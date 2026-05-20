@@ -18,8 +18,8 @@ class EmbeddingAgent:
         self.name = "Embedding Agent"
         self._model = None
         self.dim = 384
-        logger.info(f"[{self.name}] Initialisé — préchargement modèle...")
-        self._get_model()  # Chargement eager au démarrage
+        logger.info(f"[{self.name}] Initialisé — chargement lazy (premier appel)")
+        # Pas de préchargement au démarrage
 
     def _get_model(self):
         """Lazy load du modèle sentence-transformers."""
