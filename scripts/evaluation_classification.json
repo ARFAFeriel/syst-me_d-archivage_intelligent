@@ -1,0 +1,91 @@
+{
+  "date": "2026-05-05T19:29:21.073708",
+  "total_documents": 2846,
+  "metrics": {
+    "accuracy": 48.74,
+    "f1_weighted": 48.54,
+    "precision_weighted": 72.72,
+    "recall_weighted": 48.74,
+    "unknown_pct": 7.31
+  },
+  "per_class": {
+    "AD": {
+      "precision": 72.3,
+      "recall": 58.8,
+      "f1": 64.9,
+      "support": 449
+    },
+    "AMM": {
+      "precision": 2.6,
+      "recall": 21.4,
+      "f1": 4.6,
+      "support": 14
+    },
+    "ATL": {
+      "precision": 68.8,
+      "recall": 93.6,
+      "f1": 79.3,
+      "support": 47
+    },
+    "CMM": {
+      "precision": 17.0,
+      "recall": 80.0,
+      "f1": 28.1,
+      "support": 10
+    },
+    "Certificate": {
+      "precision": 45.1,
+      "recall": 81.6,
+      "f1": 58.1,
+      "support": 245
+    },
+    "Defect Report": {
+      "precision": 18.0,
+      "recall": 87.3,
+      "f1": 29.9,
+      "support": 110
+    },
+    "IPC": {
+      "precision": 20.0,
+      "recall": 100.0,
+      "f1": 33.3,
+      "support": 2
+    },
+    "Jobcard": {
+      "precision": 90.0,
+      "recall": 3.5,
+      "f1": 6.7,
+      "support": 520
+    },
+    "NCR": {
+      "precision": 50.0,
+      "recall": 100.0,
+      "f1": 66.7,
+      "support": 1
+    },
+    "RCT": {
+      "precision": 85.7,
+      "recall": 100.0,
+      "f1": 92.3,
+      "support": 6
+    },
+    "SB": {
+      "precision": 32.6,
+      "recall": 25.9,
+      "f1": 28.9,
+      "support": 108
+    },
+    "Specs": {
+      "precision": 71.6,
+      "recall": 76.5,
+      "f1": 74.0,
+      "support": 659
+    },
+    "Work Order": {
+      "precision": 88.8,
+      "recall": 31.6,
+      "f1": 46.6,
+      "support": 675
+    }
+  }
+}

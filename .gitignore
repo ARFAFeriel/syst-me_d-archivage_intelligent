@@ -1,0 +1,44 @@
+﻿venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+frontend/nouvelair-react/node_modules/
+frontend/nouvelair-react/dist/
+*.dump
+*.bak
+Thumbs.db
+desktop.ini
+
+reports/
+
+Systeme darchivage intelligent/
+
+package-lock.json
+
+import_log.txt
+
+missing_files.txt
+
+nvarbo.txt
+
+add_patch.py
+
+# Modèles ML (trop lourds pour GitHub)
+backend/models/classifier_model.pkl
+backend/models/classifier_model.pkl.backup
+backend/models/distilbert_classifier/
+models/
+
+# Logs et données temporaires
+logs/
+data/
+
+# Node modules mal placé
+frontend/node_modules/
+
+# Fichiers de debug et patch
+ocr_agent_dump.txt
+scan_errors.txt
+patch_agents.ps1
+xlm_log.txt

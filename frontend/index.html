@@ -1,0 +1,2730 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NouvelAir Archivage Intelligent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+  --nv: #003087; --nv2: #0053B4; --nv3: #0066cc;
+  --sky: #e8f1fc; --sky2: #c8ddf5; --sky3: #a8c8ed;
+  --acc: #00C896; --acc2: #00a87e;
+  --warn: #F59E0B; --danger: #EF4444; --info: #3B82F6;
+  --bg: #f0f4fa; --bg2: #e3ecf6; --sur: #ffffff;
+  --bdr: #d0dde8; --bdr2: #b8cce0;
+  --tx: #0d1a2d; --tx2: #3d5a78; --tx3: #7a9ab8;
+  --sw: 240px; --hh: 64px;
+  --sh: 0 2px 12px rgba(0,48,135,.10);
+  --sh2: 0 8px 32px rgba(0,48,135,.18);
+  --r: 10px; --rl: 16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Barlow',sans-serif;font-size:14px;color:var(--tx);background:var(--bg);min-height:100vh;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+button{cursor:pointer;font-family:'Barlow',sans-serif}
+input,select,textarea{font-family:'Barlow',sans-serif}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--bg2);border-radius:3px}
+
+/* ── HEADER ── */
+#hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:var(--nv);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  z-index:1000;box-shadow:0 2px 20px rgba(0,0,0,.25)}
+.logo{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.logo-ic{width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.25)}
+.logo-ic i{color:#fff;font-size:18px}
+.logo-tx h1{color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:1.5px}
+.logo-tx p{color:rgba(255,255,255,.55);font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+#gsb{flex:1;max-width:560px;margin:0 24px;background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.2);border-radius:8px;
+  display:flex;align-items:center;gap:8px;padding:0 14px;height:38px;transition:.2s}
+#gsb:focus-within{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
+#gsb i{color:rgba(255,255,255,.5);font-size:13px;flex-shrink:0}
+#gsi{background:none;border:none;outline:none;color:#fff;font-size:14px;flex:1}
+#gsi::placeholder{color:rgba(255,255,255,.45)}
+.hbtns{display:flex;align-items:center;gap:8px}
+.hb{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.8);
+  display:flex;align-items:center;justify-content:center;font-size:14px;position:relative;transition:.15s}
+.hb:hover{background:rgba(255,255,255,.22);color:#fff}
+.bdot{position:absolute;top:5px;right:5px;width:8px;height:8px;
+  background:#EF4444;border-radius:50%;border:2px solid var(--nv)}
+.ubtn{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:0 12px;
+  height:36px;color:#fff;font-size:13px;transition:.15s}
+.ubtn:hover{background:rgba(255,255,255,.2)}
+.uav{width:24px;height:24px;border-radius:6px;background:var(--acc);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+
+/* ── SIDEBAR ── */
+#sb{position:fixed;top:var(--hh);left:0;bottom:0;width:var(--sw);
+  background:var(--sur);border-right:1px solid var(--bdr);overflow-y:auto;
+  z-index:900;display:flex;flex-direction:column}
+.nsl{padding:16px 16px 6px;font-size:10px;font-weight:600;letter-spacing:1.5px;
+  color:var(--tx3);text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--tx2);
+  cursor:pointer;transition:.12s;font-size:13px;border-left:3px solid transparent;margin:1px 0}
+.ni:hover{background:var(--sky);color:var(--nv)}
+.ni.active{background:var(--sky);color:var(--nv);border-left-color:var(--nv);font-weight:600}
+.ni i{width:18px;font-size:13px;text-align:center;flex-shrink:0}
+.nb{margin-left:auto;background:var(--nv);color:#fff;font-size:10px;
+  font-weight:600;padding:1px 6px;border-radius:10px}
+.nb.g{background:var(--acc)}.nb.r{background:var(--danger)}.nb.a{background:var(--warn);color:var(--tx)}
+.sdiv{height:1px;background:var(--bdr);margin:6px 0}
+.sfooter{margin-top:auto;padding:14px 16px;border-top:1px solid var(--bdr)}
+.pm-lbl{font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:8px}
+.pm-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2);margin-bottom:5px}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.g{background:var(--acc)}.dot.b{background:var(--nv3)}.dot.a{background:var(--warn)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.dot.p{animation:pulse 2s infinite}
+
+/* ── MAIN ── */
+#main{margin-left:var(--sw);margin-top:var(--hh);padding:28px;min-height:calc(100vh - var(--hh))}
+.page{display:none}.page.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ── */
+.card{background:var(--sur);border-radius:var(--rl);border:1px solid var(--bdr);box-shadow:var(--sh)}
+.ch{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--bdr)}
+.ch h3{font-size:14px;font-weight:600;color:var(--tx);display:flex;align-items:center;gap:8px}
+.ch h3 i{color:var(--nv)}
+.cb{padding:18px}
+
+/* ── PAGE HEADER ── */
+.ph{margin-bottom:22px}
+.ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.ph h2{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;
+  color:var(--nv);letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+.ph p{color:var(--tx2);font-size:13px;margin-top:4px}
+
+/* ── KPI GRID ── */
+.kpig{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.kpi{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rl);
+  padding:18px;display:flex;align-items:flex-start;gap:14px;
+  box-shadow:var(--sh);transition:.2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.kic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0}
+.kic.b{background:var(--sky);color:var(--nv)}.kic.g{background:#d1fae5;color:#059669}
+.kic.a{background:#fef3c7;color:#d97706}.kic.r{background:#fee2e2;color:#dc2626}
+.kval{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;
+  color:var(--tx);line-height:1}
+.klbl{font-size:11px;color:var(--tx2);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.kd{font-size:11px;margin-top:6px;display:flex;align-items:center;gap:4px}
+.kd.up{color:#059669}.kd.dn{color:#dc2626}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+.g64{display:grid;grid-template-columns:6fr 4fr;gap:18px;margin-bottom:18px}
+.g73{display:grid;grid-template-columns:7fr 3fr;gap:18px;margin-bottom:18px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:600;transition:.15s;border:none}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-xs{padding:4px 9px;font-size:11px;border-radius:6px}
+.btn-blue{background:var(--nv);color:#fff}.btn-blue:hover{background:var(--nv2);transform:translateY(-1px)}
+.btn-green{background:var(--acc);color:#fff}.btn-green:hover{background:var(--acc2)}
+.btn-out{background:var(--sur);border:1.5px solid var(--bdr);color:var(--tx2)}
+.btn-out:hover{border-color:var(--nv);color:var(--nv);background:var(--sky)}
+.btn-danger{background:var(--danger);color:#fff}
+
+/* ── TAGS / BADGES ── */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+  border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.tag.b{background:var(--sky);color:var(--nv)}.tag.g{background:#d1fae5;color:#065f46}
+.tag.a{background:#fef3c7;color:#78350f}.tag.r{background:#fee2e2;color:#991b1b}
+.tag.p{background:#f5f3ff;color:#4c1d95}.tag.c{background:#cffafe;color:#0e7490}
+.tag.gr{background:var(--bg2);color:var(--tx2)}.tag.or{background:#fff7ed;color:#c2410c}
+
+/* ── AI BARS ── */
+.aib{margin-bottom:13px}
+.aib-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:12px}
+.aib-h strong{font-size:13px;font-weight:600}
+.bar-t{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.bar-f{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+
+/* ── ALERTS ── */
+.al{display:flex;align-items:flex-start;gap:12px;padding:11px 13px;
+  border-radius:8px;margin-bottom:8px;border:1px solid}
+.al.i{background:#eff6ff;border-color:#bfdbfe}.al.w{background:#fffbeb;border-color:#fde68a}
+.al.d{background:#fef2f2;border-color:#fecaca}.al.s{background:#f0fdf4;border-color:#bbf7d0}
+.al-ic{font-size:15px;margin-top:1px;flex-shrink:0}
+.al.i .al-ic{color:var(--nv)}.al.w .al-ic{color:var(--warn)}
+.al.d .al-ic{color:var(--danger)}.al.s .al-ic{color:var(--acc)}
+.al-body p{font-size:13px;font-weight:500}.al-body span{font-size:11px;color:var(--tx3)}
+.al-time{font-size:11px;color:var(--tx3);margin-left:auto;white-space:nowrap;flex-shrink:0}
+
+/* ── UPLOAD ── */
+.upl-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+.upl-card{border-radius:var(--rl);border:2px solid var(--bdr);padding:22px;
+  text-align:center;cursor:pointer;transition:.2s;background:var(--sur)}
+.upl-card:hover,.upl-card.sel{border-color:var(--nv);background:var(--sky)}
+.upl-ic{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:24px;margin:0 auto 12px}
+.upl-ic.b{background:var(--sky);color:var(--nv)}.upl-ic.g{background:#d1fae5;color:#059669}
+.upl-card h3{font-size:15px;font-weight:600;margin-bottom:5px}
+.upl-card p{font-size:12px;color:var(--tx2)}
+.dropz{border:2px dashed var(--bdr);border-radius:var(--rl);padding:44px;
+  text-align:center;cursor:pointer;transition:.2s;background:var(--sur);margin-bottom:22px}
+.dropz:hover,.dropz.over{border-color:var(--nv);background:var(--sky)}
+.dropz-ic{width:60px;height:60px;background:var(--bg2);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  color:var(--tx3);margin:0 auto 14px}
+.dropz h3{font-size:16px;font-weight:600;margin-bottom:7px}
+.dropz p{font-size:13px;color:var(--tx2)}
+.dropz .lnk{color:var(--nv);text-decoration:underline;cursor:pointer}
+.ocr-det{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ocd{padding:13px;border-radius:10px;border:1px solid var(--bdr)}
+.ocd.b{background:#eff6ff;border-color:#bfdbfe}.ocd.g{background:#f0fdf4;border-color:#bbf7d0}
+.ocd.p{background:#f5f3ff;border-color:#ddd6fe}
+.ocd h4{font-size:12px;font-weight:600;margin-bottom:4px}
+.ocd p{font-size:11px;color:var(--tx2)}
+.fitem{display:flex;align-items:center;gap:12px;padding:10px 13px;
+  background:var(--bg);border-radius:10px;margin-bottom:8px}
+.fic{width:34px;height:34px;background:#fee2e2;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:#dc2626;font-size:15px;flex-shrink:0}
+.finfo{flex:1;min-width:0}
+.finfo h4{font-size:12px;font-weight:600;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.finfo p{font-size:11px;color:var(--tx3)}
+.pbar{height:4px;background:var(--bg2);border-radius:2px;margin-top:5px;overflow:hidden}
+.pbar-f{height:100%;background:var(--nv);border-radius:2px;transition:width .3s ease;width:0}
+
+/* ── FILTER BAR ── */
+.fbar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;
+  padding:16px;background:var(--sur);border-radius:var(--r);
+  border:1px solid var(--bdr);margin-bottom:18px}
+.fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
+.fg label{font-size:10px;font-weight:600;color:var(--tx3);
+  text-transform:uppercase;letter-spacing:.5px}
+.fg select,.fg input{padding:8px 10px;border:1.5px solid var(--bdr);
+  border-radius:8px;font-size:13px;color:var(--tx);outline:none;
+  background:#fff;transition:.15s}
+.fg select:focus,.fg input:focus{border-color:var(--nv)}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;padding:10px 13px;font-size:11px;font-weight:600;
+  color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--bdr);background:var(--bg);white-space:nowrap}
+.tbl td{padding:11px 13px;border-bottom:1px solid rgba(208,221,232,.4);
+  font-size:13px;color:var(--tx)}
+.tbl tr:hover td{background:var(--sky)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl-wrap{overflow-x:auto}
+.conf.h{color:#059669;font-weight:600}.conf.m{color:#d97706;font-weight:600}.conf.l{color:#dc2626;font-weight:600}
+.act-btn{background:none;border:none;padding:4px 7px;border-radius:6px;
+  color:var(--tx3);font-size:13px;transition:.12s}
+.act-btn:hover{background:var(--bg2);color:var(--nv)}
+
+/* ── TREE EXPLORER ── */
+.tree-exp{display:grid;grid-template-columns:280px 1fr;
+  border-radius:var(--rl);border:1px solid var(--bdr);overflow:hidden}
+.tp{border-right:1px solid var(--bdr);overflow-y:auto;max-height:480px}
+.tp-hd{padding:10px 13px;background:var(--bg);border-bottom:1px solid var(--bdr);
+  font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase}
+.tn{display:flex;align-items:center;gap:8px;padding:7px 13px;cursor:pointer;
+  font-size:12px;color:var(--tx2);transition:.12s;border-left:2px solid transparent}
+.tn:hover{background:var(--sky);color:var(--nv)}
+.tn.sel{background:var(--sky);color:var(--nv);border-left-color:var(--nv);font-weight:500}
+.tn i{font-size:12px;width:13px;flex-shrink:0}
+.tn i.fol{color:var(--warn)}.tn i.air{color:var(--nv)}.tn i.fil{color:var(--tx3)}
+.tn.i1{padding-left:25px}.tn.i2{padding-left:37px}.tn.i3{padding-left:49px}
+.dp{padding:18px}
+.dp h3{font-size:15px;font-weight:600;color:var(--nv);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px}
+.etbl{width:100%}.etbl td{padding:6px 0;font-size:12px;border-bottom:1px solid rgba(208,221,232,.35)}
+.etbl td:first-child{color:var(--tx3);width:38%}.etbl td:last-child{font-weight:500}
+
+/* ── SEARCH ── */
+.sbar{display:flex;align-items:center;gap:10px;background:var(--sur);
+  border:2px solid var(--bdr);border-radius:12px;padding:11px 16px;
+  margin-bottom:14px;transition:.2s}
+.sbar:focus-within{border-color:var(--nv);box-shadow:0 0 0 3px var(--sky)}
+.sbar i{color:var(--tx3);font-size:16px}
+.sbar input{flex:1;border:none;outline:none;font-size:15px;color:var(--tx);background:none}
+.schips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.sc{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;
+  border:1.5px solid var(--bdr);cursor:pointer;transition:.12s;color:var(--tx2);
+  background:var(--sur);white-space:nowrap;flex-shrink:0}
+.sc:hover,.sc.active{border-color:var(--nv);background:var(--sky);color:var(--nv)}
+.sri{display:flex;gap:12px;padding:13px 15px;border-bottom:1px solid var(--bdr);
+  cursor:pointer;transition:.12s}
+.sri:hover{background:var(--sky)}.sri:last-child{border-bottom:none}
+.sri-ic{width:36px;height:36px;background:var(--sky);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:var(--nv);
+  font-size:15px;flex-shrink:0}
+.sri-body{flex:1;min-width:0}
+.sri-body h4{font-size:13px;font-weight:600;color:var(--tx)}
+.sri-body p{font-size:11px;color:var(--tx2);margin-top:3px}
+.hl{background:#fef3c7;padding:0 2px;border-radius:2px}
+.scr{font-size:11px;font-weight:600;color:var(--acc);
+  background:#d1fae5;padding:2px 6px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+
+/* ── FLEET ── */
+.fleet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.fc{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rl);
+  overflow:hidden;transition:.2s;cursor:pointer}
+.fc:hover{transform:translateY(-3px);box-shadow:var(--sh2);border-color:var(--sky2)}
+.fc-hd{padding:16px;background:linear-gradient(135deg,var(--nv) 0%,var(--nv2) 100%)}
+.fc-reg{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#fff}
+.fc-mod{font-size:11px;color:rgba(255,255,255,.65);margin-top:2px}
+.st-pill{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase}
+.st-pill.active{background:#d1fae5;color:#065f46}.st-pill.maintenance{background:#fef3c7;color:#78350f}
+.st-pill.retired{background:#f3f4f6;color:#6b7280}.st-pill.grounded{background:#fee2e2;color:#991b1b}
+
+/* ── BATCH REVIEW TABLE ── */
+.brt{width:100%;border-collapse:collapse;font-size:12px}
+.brt th{text-align:left;padding:8px 10px;font-size:10px;font-weight:600;color:var(--tx3);
+  text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--bdr);
+  background:var(--bg);white-space:nowrap}
+.brt td{padding:6px 8px;border-bottom:1px solid rgba(208,221,232,.35);vertical-align:middle}
+.brt tr:hover td{background:var(--sky)}
+.brt tr.dup td{opacity:.5;background:rgba(245,158,11,.05)}
+.brt tr.err td{background:rgba(239,68,68,.04)}
+.brt input,.brt select{padding:4px 7px;border:1.5px solid var(--bdr);border-radius:6px;
+  font-size:11px;color:var(--tx);background:var(--sur);outline:none;width:100%;
+  font-family:'Barlow',sans-serif;transition:.15s}
+.brt input:focus,.brt select:focus{border-color:var(--nv)}
+.brt .conf-badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px}
+.brt .conf-h{background:#d1fae5;color:#065f46}
+.brt .conf-m{background:#fef3c7;color:#78350f}
+.brt .conf-l{background:#fee2e2;color:#991b1b}
+.fc-bd{padding:15px}
+.fsr{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.fsr:last-child{margin-bottom:0}
+.fsl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px}
+.fsv{font-size:14px;font-weight:600;color:var(--tx)}
+.fc-ft{padding:11px 15px;border-top:1px solid var(--bdr);display:flex;flex-wrap:wrap;gap:6px}
+
+/* ── PIPELINE ── */
+.ps{display:flex;align-items:center;gap:12px;padding:13px 15px;
+  border-radius:10px;border:1px solid var(--bdr);background:var(--sur);transition:.15s}
+.ps:hover{border-color:var(--sky2);box-shadow:var(--sh)}
+.psi{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;flex-shrink:0}
+.psi.b{background:var(--sky);color:var(--nv)}.psi.p{background:#f5f3ff;color:#7c3aed}
+.psi.g{background:#d1fae5;color:#059669}.psi.a{background:#fef3c7;color:#d97706}
+.psi.r{background:#fee2e2;color:#dc2626}.psi.c{background:#cffafe;color:#0891b2}
+.psi.t{background:#d1fae5;color:#065f46}
+.psi-info{flex:1}
+.psi-info h4{font-size:13px;font-weight:600;color:var(--tx)}
+.psi-info p{font-size:11px;color:var(--tx2);margin-top:2px}
+.pss{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;flex-shrink:0}
+.sdot{width:7px;height:7px;border-radius:50%}
+.sdot.g{background:var(--acc)}.sdot.b{background:var(--nv3)}
+.sdot.pp{background:var(--warn);animation:pulse 1.5s infinite}
+.parr{text-align:center;color:var(--tx3);font-size:11px;margin:1px 0}
+.mm-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mm{background:var(--bg);border-radius:8px;padding:12px;text-align:center}
+.mmv{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--nv)}
+.mml{font-size:10px;color:var(--tx3);text-transform:uppercase;margin-top:2px}
+
+/* ── MONITORING ── */
+.aitem{display:flex;gap:11px;padding:11px 15px;border-bottom:1px solid rgba(208,221,232,.4);align-items:flex-start}
+.aitem:last-child{border-bottom:none}
+.abul{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;flex-shrink:0}
+.abul.b{background:var(--sky);color:var(--nv)}.abul.g{background:#d1fae5;color:#059669}
+.abul.a{background:#fef3c7;color:#d97706}.abul.r{background:#fee2e2;color:#dc2626}
+.abul.p{background:#f5f3ff;color:#7c3aed}
+.atx p{font-size:12px;font-weight:500;color:var(--tx)}.atx span{font-size:11px;color:var(--tx3)}
+
+/* ── ANALYTICS / POWERBI ── */
+.pbi{border-radius:10px;overflow:hidden;height:320px;
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:11px;position:relative;cursor:pointer}
+.pbi i.pbi-logo{font-size:48px;color:#F2C811;z-index:1}
+.pbi .pbi-title{color:#fff;font-family:'Barlow Condensed',sans-serif;
+  font-size:18px;font-weight:600;letter-spacing:1px;z-index:1}
+.pbi .pbi-sub{color:rgba(255,255,255,.5);font-size:12px;z-index:1}
+.pbi-btn{background:#F2C811;color:#000;border:none;border-radius:6px;
+  padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;z-index:1;transition:.15s}
+.pbi-btn:hover{background:#ffd740}
+
+/* ── CHART ── */
+.chart-wrap{height:220px;background:linear-gradient(135deg,var(--sky) 0%,rgba(232,241,252,.2) 100%);
+  border-radius:8px;border:1px dashed var(--sky2);padding:14px;
+  display:flex;flex-direction:column;position:relative}
+.chart-bars{display:flex;align-items:flex-end;gap:7px;flex:1;padding-bottom:2px}
+.cbar{flex:1;border-radius:3px 3px 0 0;cursor:pointer;transition:.2s;min-width:12px}
+.cbar:hover{opacity:.85;transform:scaleY(1.02);transform-origin:bottom}
+.cbar.b{background:var(--nv)}.cbar.g{background:var(--acc)}.cbar.a{background:var(--warn)}
+.chart-lbls{display:flex;gap:7px;padding-top:5px;font-size:9px;color:var(--tx3)}
+.chart-lbls span{flex:1;text-align:center;overflow:hidden;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2)}
+.leg-dot{width:10px;height:10px;border-radius:2px}
+.section-sp{margin-bottom:18px}
+
+/* ── LOGIN ── */
+#page-login{display:flex;align-items:center;justify-content:center;
+  min-height:calc(100vh - var(--hh));margin:-28px;
+  background:linear-gradient(135deg,#003087 0%,#0053B4 50%,#1a5fa8 100%)}
+.lcard{background:#fff;border-radius:20px;padding:44px;width:410px;
+  box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.ll-wrap{text-align:center;margin-bottom:28px}
+.ll-ic{width:62px;height:62px;background:var(--nv);border-radius:16px;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.ll-ic i{color:#fff;font-size:28px}
+.ll-wrap h2{font-family:'Barlow Condensed',sans-serif;font-size:24px;
+  font-weight:700;color:var(--nv);letter-spacing:1px}
+.ll-wrap p{font-size:12px;color:var(--tx2);margin-top:4px}
+.fgrp{margin-bottom:15px}
+.fgrp label{display:block;font-size:11px;font-weight:600;color:var(--tx2);
+  margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
+.fgrp input{width:100%;padding:11px 13px;border:1.5px solid var(--bdr);
+  border-radius:8px;font-size:14px;color:var(--tx);outline:none;transition:.2s}
+.fgrp input:focus{border-color:var(--nv);box-shadow:0 0 0 3px var(--sky)}
+.btn-prim{width:100%;padding:13px;background:var(--nv);color:#fff;border:none;
+  border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.btn-prim:hover{background:var(--nv2);transform:translateY(-1px);box-shadow:var(--sh2)}
+.login-note{margin-top:16px;text-align:center;padding:10px;
+  background:var(--bg);border-radius:8px;font-size:11px;color:var(--tx2)}
+
+/* ── LOADING ── */
+#loader{position:fixed;inset:0;background:rgba(0,48,135,.95);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.spin{width:44px;height:44px;border:3px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:rgba(255,255,255,.7);font-size:14px;letter-spacing:1px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;z-index:9998;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--tx);color:#fff;padding:12px 16px;border-radius:10px;
+  font-size:13px;max-width:320px;animation:fi .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast-item.ok{background:#059669}.toast-item.err{background:var(--danger)}
+.toast-item.warn{background:var(--warn);color:var(--tx)}
+
+/* ════════════════════════════════════════════════
+   SYSTÈME D'AIDE — Options A + B + C
+   ════════════════════════════════════════════════ */
+
+/* Option B : Icône ⓘ */
+.info-btn{display:inline-flex;align-items:center;justify-content:center;
+  width:14px;height:14px;border-radius:50%;background:var(--sky2);
+  color:var(--nv2);font-size:9px;font-weight:700;cursor:pointer;border:none;
+  flex-shrink:0;vertical-align:middle;margin-left:5px;transition:.12s;
+  font-style:normal;line-height:1;position:relative;top:-1px}
+.info-btn:hover{background:var(--nv);color:#fff}
+
+/* Option B : Popup */
+.info-wrap{position:relative;display:inline-flex;align-items:center}
+.info-popup{display:none;position:absolute;top:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);z-index:850;
+  background:#1c2d45;color:#d4e6f8;
+  border-radius:8px;padding:10px 13px;
+  font-size:11px;line-height:1.55;max-width:270px;width:max-content;
+  box-shadow:0 6px 20px rgba(0,0,0,.3);white-space:normal;pointer-events:none;
+  font-weight:400}
+.info-popup::before{content:'';position:absolute;bottom:100%;left:50%;
+  transform:translateX(-50%);border:5px solid transparent;
+  border-bottom-color:#1c2d45}
+.info-popup.show{display:block}
+.info-popup strong{color:#7dd3fc;font-weight:600}
+
+/* Option A : Tooltip graphes */
+#chart-tip{position:fixed;background:#1c2d45;color:#d4e6f8;
+  font-size:11px;padding:6px 10px;border-radius:6px;
+  pointer-events:none;white-space:nowrap;z-index:900;
+  display:none;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+
+/* Option C : Légende fixe */
+.leg-fix{margin-top:12px;padding:9px 12px;background:var(--bg);
+  border-radius:8px;border:1px solid var(--bdr)}
+.leg-fix-title{font-size:10px;font-weight:600;color:var(--tx3);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.leg-fix-row{display:flex;align-items:flex-start;gap:7px;
+  font-size:11px;color:var(--tx2);margin-bottom:5px}
+.leg-fix-row:last-child{margin-bottom:0}
+.leg-fix-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;margin-top:2px}
+.leg-fix-desc{font-size:10px;color:var(--tx3);margin-left:1px}
+</style>
+</head>
+<body>
+
+<!-- Option A : tooltip graphes (div partagé) -->
+<div id="chart-tip"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+    <div style="width:48px;height:48px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center">
+      <i class="fas fa-plane-departure" style="color:#fff;font-size:22px"></i>
+    </div>
+    <div>
+      <div style="color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px">Système d'archivage intelligent</div>
+      <div style="color:rgba(255,255,255,.5);font-size:10px;letter-spacing:2px;text-transform:uppercase">NouvelAir MRO</div>
+    </div>
+  </div>
+  <div class="spin"></div>
+  <p>Initialisation du système...</p>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══ HEADER ══ -->
+<header id="hdr">
+  <div class="logo">
+    <div class="logo-ic"><i class="fas fa-plane-departure"></i></div>
+    <div class="logo-tx">
+      <h1>Nouvelair</h1>
+      <p>NouvelAir · MRO Archive Intelligent</p>
+    </div>
+  </div>
+  <div id="gsb">
+    <i class="fas fa-search"></i>
+    <input id="gsi" type="text" placeholder="Recherche intelligente — avion, P/N, ES Ref, SB, AD, Work Order...">
+    <i class="fas fa-microphone" style="color:rgba(255,255,255,.35);cursor:pointer"></i>
+  </div>
+  <div class="hbtns">
+    <button class="hb" onclick="nav('monitoring')" title="Alertes"><i class="fas fa-bell"></i><span class="bdot" id="alert-dot" style="display:none"></span></button>
+    <button class="hb" onclick="nav('pipeline')" title="Pipeline IA"><i class="fas fa-robot"></i></button>
+    <button class="hb" onclick="nav('admin')" title="Administration"><i class="fas fa-cog"></i></button>
+    <div class="ubtn" style="cursor:pointer" onclick="doLogout()">
+      <div class="uav" id="user-av">AD</div>
+      <span id="user-label">Admin MRO</span>
+      <i class="fas fa-sign-out-alt" style="font-size:11px;opacity:.7"></i>
+    </div>
+  </div>
+</header>
+
+<!-- ══ SIDEBAR ══ -->
+<aside id="sb">
+  <div class="nsl">Navigation</div>
+  <div class="ni" id="ni-dashboard" onclick="nav('dashboard')"><i class="fas fa-chart-bar"></i>Tableau de Bord</div>
+  <div class="ni" id="ni-upload" onclick="nav('upload')"><i class="fas fa-cloud-upload-alt"></i>Upload Documents</div>
+  <div class="ni" id="ni-documents" onclick="nav('documents')"><i class="fas fa-folder-open"></i>Consultation<span class="nb" id="nb-docs">—</span></div>
+  <div class="ni" id="ni-search" onclick="nav('search')"><i class="fas fa-search-plus"></i>Recherche IA</div>
+  <div class="sdiv"></div>
+  <div class="nsl">Flotte</div>
+  <div class="ni" id="ni-fleet" onclick="nav('fleet')"><i class="fas fa-plane"></i>Vue Flotte<span class="nb" id="nb-fleet">—</span></div>
+  <div class="ni" id="ni-checks" onclick="nav('checks')"><i class="fas fa-clipboard-check"></i>Checks A/C</div>
+  <div class="sdiv"></div>
+  <div class="nsl">Intelligence</div>
+  <div class="ni" id="ni-pipeline" onclick="nav('pipeline')"><i class="fas fa-project-diagram"></i>Pipeline Agents IA<span class="nb g">Live</span></div>
+  <div class="ni" id="ni-monitoring" onclick="nav('monitoring')"><i class="fas fa-shield-alt"></i>Monitoring<span class="nb r" id="nb-alerts">—</span></div>
+  <div class="ni" id="ni-analytics" onclick="nav('analytics')"><i class="fas fa-chart-line"></i>Analytics &amp; Power BI</div>
+  <div class="sdiv"></div>
+  <div class="nsl">Administration</div>
+  <div class="ni" id="ni-admin" onclick="nav('admin')"><i class="fas fa-users-cog"></i>Gestion Sessions<span class="nb r">Admin</span></div>
+  <div class="sdiv"></div>
+  <div class="sfooter">
+    <div class="pm-lbl">Agents Status</div>
+    <div class="pm-row"><div class="dot g p" id="dot-ocr"></div><span id="lbl-ocr">OCR Agent v4 — chargement...</span></div>
+    <div class="pm-row"><div class="dot b" id="dot-ner"></div><span id="lbl-ner">NER Agent — chargement...</span></div>
+    <div class="pm-row"><div class="dot g" id="dot-cls"></div><span id="lbl-cls">Classifier — chargement...</span></div>
+    <div class="pm-row"><div class="dot a p" id="dot-emb"></div><span id="lbl-emb">Embeddings — chargement...</span></div>
+    <div class="pm-row"><div class="dot g" id="dot-arc"></div><span id="lbl-arc">Archiveur — chargement...</span></div>
+    <div class="pm-row"><div class="dot g p" id="dot-mon"></div><span id="lbl-mon">Monitoring — chargement...</span></div>
+  </div>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<main id="main">
+
+<!-- ─ LOGIN ─ -->
+<div class="page" id="page-login">
+  <div class="lcard">
+    <div class="ll-wrap">
+      <div class="ll-ic"><i class="fas fa-plane-departure"></i></div>
+      <h2>Nouvelair</h2>
+      <p>Système d'Archivage Intelligent · NouvelAir MRO</p>
+    </div>
+    <div class="fgrp"><label>Email Professionnel</label>
+      <input type="email" id="le" placeholder="prenom.nom@nouvelair.com.tn"></div>
+    <div class="fgrp"><label>Mot de passe</label>
+      <input type="password" id="lp" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--tx2);cursor:pointer">
+        <input type="checkbox">Se souvenir de moi</label>
+    </div>
+    <button class="btn-prim" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i>Se connecter</button>
+    <div class="login-note"><i class="fas fa-shield-alt" style="color:var(--nv);margin-right:5px"></i>Accès restreint — Personnels MRO NouvelAir autorisés</div>
+    <div style="margin-top:14px;padding:10px;background:#f0fdf4;border-radius:8px;font-size:11px;color:#065f46;border:1px solid #bbf7d0">
+      <strong>Comptes de test :</strong><br>
+      admin@nouvelair.com.tn / admin123 (Admin)<br>
+      technicien@nouvelair.com.tn / tech123 (Technicien)<br>
+      consultant@nouvelair.com.tn / cons123 (Consultant)
+    </div>
+  </div>
+</div>
+
+<!-- ─ DASHBOARD ─ -->
+<div class="page" id="page-dashboard">
+  <div class="ph">
+    <div class="ph-row">
+      <div><h2><i class="fas fa-chart-bar"></i>Tableau de Bord</h2>
+        <p>Vue d'ensemble de l'archivage intelligent — Flotte NouvelAir</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-out btn-sm" onclick="loadDashboard()"><i class="fas fa-sync-alt"></i>Actualiser</button>
+        <button class="btn btn-blue btn-sm" onclick="exportData()"><i class="fas fa-download"></i>Export CSV</button>
+      </div>
+    </div>
+  </div>
+  <div class="kpig" id="kpi-grid"></div>
+  <div class="g64">
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-chart-bar"></i>Documents par Aéronef</h3>
+        <button class="btn btn-out btn-sm" onclick="nav('analytics')">Détails</button></div>
+      <div class="cb">
+        <div class="chart-wrap">
+          <div class="chart-bars" id="db-bars"></div>
+          <div class="chart-lbls" id="db-lbls"></div>
+        </div>
+        <!-- Option C : légende fixe graphe aéronef -->
+        <div class="leg-fix" id="db-chart-legend">
+          <div class="leg-fix-title">Guide de lecture</div>
+          <div class="leg-fix-row">
+            <div class="leg-fix-dot" style="background:var(--nv)"></div>
+            <div><span>Hauteur de barre = nombre de documents archivés pour cet avion.</span>
+              <div class="leg-fix-desc">Passez la souris sur une barre pour voir le détail exact.</div>
+            </div>
+          </div>
+          <div class="leg-fix-row">
+            <div class="leg-fix-dot" style="background:var(--sky2);border:1px solid var(--bdr2)"></div>
+            <div><span>Immatriculations avec très peu de docs = extractions NER automatiques à vérifier.</span></div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--nv)"></div>Documents archivés par avion</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-brain" style="color:#7c3aed"></i>Confiance Agents IA</h3>
+        <button class="btn btn-out btn-sm" onclick="renderAIBars()"><i class="fas fa-sync-alt"></i></button></div>
+      <div class="cb" id="ai-conf-bars"><div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px"><i class="fas fa-spinner fa-spin"></i> Chargement...</div></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-exclamation-triangle" style="color:var(--warn)"></i>Alertes Système</h3>
+        <button class="btn btn-out btn-sm" onclick="loadAlerts()"><i class="fas fa-sync-alt"></i>Actualiser</button></div>
+      <div class="cb" style="padding:10px" id="db-alerts"></div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-layer-group"></i>Distribution par Type</h3></div>
+      <div class="cb" id="db-dist"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ UPLOAD ─ -->
+<div class="page" id="page-upload">
+  <div class="ph">
+    <h2><i class="fas fa-cloud-upload-alt"></i>Upload de Documents</h2>
+    <p>Pipeline IA complet : OCR v4 → NER → Classification → Embedding → Archive PostgreSQL</p>
+  </div>
+  <div class="upl-grid">
+    <div class="upl-card sel" id="uc-single" onclick="selMode('single')">
+      <div class="upl-ic b"><i class="fas fa-file-upload"></i></div>
+      <h3>Document Unique</h3>
+      <p>Upload <strong>synchrone</strong> — un fichier à la fois. Le pipeline complet tourne immédiatement et retourne le résultat OCR + classification dans la réponse.</p>
+    </div>
+    <div class="upl-card" id="uc-batch" onclick="selMode('batch')">
+      <div class="upl-ic g"><i class="fas fa-layer-group"></i></div>
+      <h3>Upload par Lots</h3>
+      <p>Upload <strong>multiple</strong> — jusqu'à 50 fichiers simultanément via <code>POST /upload/batch</code>. Déduplication SHA-256 automatique.</p>
+    </div>
+  </div>
+  <div class="dropz" id="dropz" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="handleDrop(event)">
+    <div class="dropz-ic"><i class="fas fa-cloud-upload-alt"></i></div>
+    <h3>Glissez-déposez votre fichier ici</h3>
+    <p>ou <span class="lnk" onclick="document.getElementById('fin').click()">parcourez</span> vos fichiers</p>
+    <p style="margin-top:8px;font-size:12px;color:var(--tx3)">PDF, DOC, DOCX, JPG, PNG — max 50 MB · Formats aéronautiques reconnus</p>
+    <input type="file" id="fin" style="display:none" onchange="handleFiles(this.files)">
+  </div>
+  <div class="card section-sp">
+    <div class="ch"><h3><i class="fas fa-magic"></i>Détection IA Automatique</h3></div>
+    <div class="cb">
+      <div class="ocr-det">
+        <div class="ocd b">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <i class="fas fa-plane" style="color:var(--nv)"></i><h4>Aéronef</h4></div>
+          <p id="ocd-aircraft-text">Chargement des immatriculations...</p>
+        </div>
+        <div class="ocd g">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <i class="fas fa-file-alt" style="color:#059669"></i><h4>Type Document</h4></div>
+          <p id="ocd-type-text">Chargement des types...</p>
+        </div>
+        <div class="ocd p">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <i class="fas fa-tags" style="color:#6d28d9"></i><h4>Entités NER</h4></div>
+          <p>Réf. ES · N° Work Order · N° Item · P/N (Part Number) · S/N (Serial Number) · ATA Chapter · Immatriculation (TS-xxx) · MSN · Date · SB/AD Référence · Check Type (A/C/D) · FH/FC · Opérateur · Station MRO · Moteur (ESN)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card section-sp" id="pipe-card" style="display:none">
+    <div class="ch"><h3><i class="fas fa-cogs" style="color:var(--acc)"></i>Pipeline de Traitement</h3>
+      <span class="tag b" id="pipe-pct">En attente</span></div>
+    <div class="cb" id="upl-list"></div>
+  </div>
+  <div class="card" id="cls-result" style="display:none">
+    <div class="ch"><h3><i class="fas fa-brain" style="color:#7c3aed"></i>Résultat Classification IA</h3>
+      <span class="tag g">Confiance: <span id="cls-conf">—</span></span></div>
+    <div class="cb">
+      <div class="g2">
+        <div>
+          <div class="fgrp"><label>Aéronef détecté</label>
+            <select id="cls-aircraft" style="padding:8px 10px;border:1.5px solid var(--bdr);border-radius:8px;width:100%;font-size:13px;outline:none">
+              <option value="">— sélectionner —</option>
+            </select></div>
+          <div class="fgrp"><label>Type de Document</label>
+            <select id="cls-type" style="padding:8px 10px;border:1.5px solid var(--bdr);border-radius:8px;width:100%;font-size:13px;outline:none">
+              <option value="">— chargement —</option>
+            </select></div>
+        </div>
+        <div>
+          <div class="fgrp"><label>Référence ES</label>
+            <input type="text" id="cls-es" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none" placeholder="ES001778"></div>
+          <div class="fgrp"><label>N° Item / P/N</label>
+            <input type="text" id="cls-item" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none" placeholder="0034"></div>
+          <div class="fgrp"><label>ATA Chapter</label>
+            <input type="text" id="cls-ata" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none" placeholder="ATA 27"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+        <button class="btn btn-out" onclick="document.getElementById('cls-result').style.display='none'">Annuler</button>
+        <button class="btn btn-green" onclick="confirmArchive()"><i class="fas fa-archive"></i>Confirmer &amp; Archiver</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="batch-review" style="display:none">
+    <div class="ch">
+      <h3><i class="fas fa-table" style="color:#7c3aed"></i>Révision des documents — <span id="br-count">0</span> fichiers</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="tag b" id="br-status">En attente</span>
+        <button class="btn btn-out btn-sm" onclick="resetBatchReview()"><i class="fas fa-times"></i>Annuler</button>
+        <button class="btn btn-green btn-sm" onclick="confirmBatchArchive()"><i class="fas fa-archive"></i>Confirmer tout &amp; Archiver</button>
+      </div>
+    </div>
+    <div style="padding:10px 14px;background:var(--sky);border-bottom:1px solid var(--sky2);font-size:12px;color:var(--tx2)">
+      <i class="fas fa-info-circle" style="color:var(--nv);margin-right:6px"></i>
+      Vérifiez et corrigez les champs avant d'archiver. Les doublons sont grisés et ignorés automatiquement.
+    </div>
+    <div class="tbl-wrap">
+      <table class="brt">
+        <thead>
+          <tr>
+            <th style="width:22px"><input type="checkbox" id="br-check-all" onchange="toggleAllRows(this.checked)" style="accent-color:var(--nv)"></th>
+            <th>Fichier</th><th style="width:110px">Aéronef</th><th style="width:130px">Type document</th>
+            <th style="width:110px">Réf. ES</th><th style="width:90px">ATA Chapter</th>
+            <th style="width:80px">Confiance</th><th style="width:80px">Statut</th>
+          </tr>
+        </thead>
+        <tbody id="br-tbody"></tbody>
+      </table>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--tx3)" id="br-summary">—</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-out btn-sm" onclick="resetBatchReview()">Annuler</button>
+        <button class="btn btn-green" onclick="confirmBatchArchive()"><i class="fas fa-archive"></i>Confirmer tout &amp; Archiver</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ DOCUMENTS ─ -->
+<div class="page" id="page-documents">
+  <div class="ph">
+    <div class="ph-row">
+      <div><h2><i class="fas fa-folder-open"></i>Consultation des Documents</h2>
+        <p>Arborescence complète — <span id="doc-total">—</span> documents archivés</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-out btn-sm" onclick="toggleTreeView()"><i class="fas fa-sitemap"></i>Arborescence</button>
+        <button class="btn btn-blue btn-sm" onclick="exportCSV()"><i class="fas fa-download"></i>Export CSV</button>
+      </div>
+    </div>
+  </div>
+  <div class="fbar">
+    <div class="fg"><label>Avion</label>
+      <select id="f-aircraft" onchange="currentPage=1;loadDocuments()">
+        <option value="">Tous les avions</option>
+      </select></div>
+    <div class="fg"><label>Type</label>
+      <select id="f-type" onchange="currentPage=1;loadDocuments()">
+        <option value="">Tous les types</option>
+      </select></div>
+    <div class="fg"><label>Catégorie</label>
+      <select id="f-cat" onchange="currentPage=1;loadDocuments()">
+        <option value="">Toutes</option>
+      </select></div>
+    <div class="fg"><label>ATA Chapter</label>
+      <select id="f-ata" onchange="currentPage=1;loadDocuments()">
+        <option value="">Tous</option>
+      </select></div>
+    <button class="btn btn-blue btn-sm" style="flex-shrink:0" onclick="currentPage=1;loadDocuments()"><i class="fas fa-filter"></i>Filtrer</button>
+  </div>
+  <div class="card section-sp" id="tree-card">
+    <div class="ch"><h3><i class="fas fa-sitemap"></i>Explorateur d'Arborescence</h3>
+      <button class="btn btn-out btn-sm" onclick="loadTree()"><i class="fas fa-sync-alt"></i>Rafraîchir</button></div>
+    <div class="tree-exp">
+      <div class="tp">
+        <div class="tp-hd"><i class="fas fa-server" style="margin-right:6px"></i>Archive Locale</div>
+        <div id="tree-nodes"><div style="padding:16px;color:var(--tx3);font-size:12px"><i class="fas fa-spinner fa-spin"></i> Chargement...</div></div>
+      </div>
+      <div class="dp" id="doc-preview">
+        <p style="color:var(--tx3);font-size:13px"><i class="fas fa-hand-pointer" style="margin-right:7px"></i>Sélectionnez un élément pour voir les détails</p>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <h3><i class="fas fa-table"></i>Bibliothèque Documentaire</h3>
+      <span class="tag b" id="doc-count-tag">— documents</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>Document</th><th>Avion</th><th>Type</th><th>Catégorie</th>
+          <th>Réf. ES</th><th>ATA</th><th>Confiance OCR</th><th>Date</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="docs-tbody"></tbody>
+      </table>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--tx3)" id="doc-pagination">Page 1</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-out btn-sm" id="btn-prev" onclick="changePage(-1)">← Précédent</button>
+        <button class="btn btn-blue btn-sm" id="btn-next" onclick="changePage(1)">Suivant →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ SEARCH ─ -->
+<div class="page" id="page-search">
+  <div class="ph">
+    <h2><i class="fas fa-search-plus"></i>Recherche Intelligente</h2>
+    <p>Hybride : Full-Text Search (pg_trgm) · Recherche Sémantique (pgvector) · Filtres NER</p>
+  </div>
+  <div class="sbar">
+    <i class="fas fa-search"></i>
+    <input type="text" id="sq" placeholder="Ex: Work Order ES001778, AD A320-27-1154, Jobcard 0034 Check A TS-INP..."
+      onkeydown="if(event.key==='Enter')runSearch()">
+    <button class="btn btn-blue btn-sm" onclick="runSearch()"><i class="fas fa-bolt"></i>Rechercher</button>
+  </div>
+  <div style="margin-bottom:18px">
+    <div class="schips" id="schips-type" style="margin-bottom:8px">
+      <div class="sc active" onclick="toggleChip(this,'')">Tous</div>
+    </div>
+    <div class="schips" id="schips-aircraft">
+      <span id="aircraft-chips" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center"></span>
+    </div>
+  </div>
+  <div class="g73">
+    <div class="card">
+      <div class="ch">
+        <h3><i class="fas fa-list"></i>Résultats <span id="sr-count" style="font-weight:400;color:var(--tx2)">— documents</span></h3>
+        <div style="display:flex;gap:8px">
+          <span class="tag g" id="sr-mode">Hybride FTS+pgvector</span>
+          <span class="tag gr" id="sr-time"></span>
+        </div>
+      </div>
+      <div id="sr-list">
+        <div style="padding:40px;text-align:center;color:var(--tx3)">
+          <i class="fas fa-search" style="font-size:32px;display:block;margin-bottom:12px;opacity:.3"></i>
+          Lancez une recherche pour voir les résultats
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="ch"><h3><i class="fas fa-tags" style="color:#7c3aed"></i>Entités NER Détectées</h3></div>
+        <div class="cb" id="ner-panel">
+          <p style="color:var(--tx3);font-size:12px">Les entités extraites de la requête apparaîtront ici</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3><i class="fas fa-question-circle"></i>Q&amp;A Documentaire (RAG)</h3></div>
+        <div class="cb">
+          <p style="font-size:12px;color:var(--tx2);margin-bottom:10px">Posez une question sur vos documents archivés</p>
+          <textarea id="rag-q" style="width:100%;padding:10px;border:1.5px solid var(--bdr);border-radius:8px;font-family:Barlow,sans-serif;font-size:13px;resize:none;outline:none;color:var(--tx)" rows="3" placeholder="Ex: Quels Work Orders concernent le Check A ES001778 de TS-INP ?"></textarea>
+          <button class="btn btn-blue btn-sm" style="margin-top:8px;width:100%" onclick="askRAG()"><i class="fas fa-robot"></i>Interroger (RAG)</button>
+          <div id="rag-ans" style="margin-top:10px;display:none;padding:12px;background:var(--sky);border-radius:8px;font-size:13px;color:var(--tx)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ FLEET ─ -->
+<div class="page" id="page-fleet">
+  <div class="ph">
+    <h2><i class="fas fa-plane"></i>Vue Flotte NouvelAir</h2>
+    <p id="fleet-subtitle">Gestion documentaire par aéronef · Airbus A320-214 · MRO NouvelAir</p>
+  </div>
+  <div class="fleet-grid" id="fleet-grid"></div>
+</div>
+
+<!-- ─ CHECKS ─ -->
+<div class="page" id="page-checks">
+  <div class="ph">
+    <h2><i class="fas fa-clipboard-check"></i>Checks &amp; Maintenance</h2>
+    <p>Gestion des Check A/C, Work Orders, Jobcards par référence ES</p>
+  </div>
+  <div class="g2" id="checks-grid"></div>
+</div>
+
+<!-- ─ PIPELINE ─ -->
+<div class="page" id="page-pipeline">
+  <div class="ph">
+    <div class="ph-row">
+      <div><h2><i class="fas fa-project-diagram"></i>Pipeline des Agents IA</h2>
+        <p>Orchestration multi-agents — OCR v4 → NER → Classification → Embedding → Archive → Monitoring</p></div>
+      <button class="btn btn-out btn-sm" onclick="loadPipelineStatus()"><i class="fas fa-sync-alt"></i>Rafraîchir</button>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-robot" style="color:var(--acc)"></i>Agents Actifs</h3>
+        <span class="tag g" id="pipeline-agent-count">— agents</span></div>
+      <div class="cb" style="padding:12px">
+        <div id="pipeline-stages"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="ch"><h3><i class="fas fa-tachometer-alt"></i>Métriques Pipeline</h3></div>
+        <div class="cb"><div class="mm-g" id="pipe-metrics"></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3><i class="fas fa-code-branch"></i>Stack Technique</h3></div>
+        <div class="cb">
+          <div style="display:flex;flex-wrap:wrap;gap:6px" id="stack-tags"></div>
+          <div style="margin-top:14px;padding:12px;background:var(--bg);border-radius:8px">
+            <p style="font-size:11px;color:var(--tx3);margin-bottom:6px"><i class="fas fa-code" style="margin-right:5px;color:var(--nv)"></i>API Endpoints</p>
+            <div id="api-endpoints"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─ MONITORING ─ -->
+<div class="page" id="page-monitoring">
+  <div class="ph">
+    <div class="ph-row">
+      <div><h2><i class="fas fa-shield-alt"></i>Monitoring Système</h2>
+        <p>Surveillance temps réel — alertes, activité agents, santé du pipeline</p></div>
+      <button class="btn btn-out btn-sm" onclick="loadMonitoring()"><i class="fas fa-sync-alt"></i>Rafraîchir</button>
+    </div>
+  </div>
+  <div class="kpig" id="mon-kpis"></div>
+  <div class="g64">
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-stream"></i>Journal d'Activité</h3>
+        <button class="btn btn-out btn-sm" id="pause-btn" onclick="toggleFeed()"><i class="fas fa-pause"></i>Pause</button></div>
+      <div id="act-feed"></div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-heartbeat" style="color:var(--danger)"></i>Santé des Agents</h3></div>
+      <div class="cb" id="agent-health" style="padding:8px 16px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <h3><i class="fas fa-exclamation-triangle" style="color:var(--warn)"></i>Alertes Actives</h3>
+      <button class="btn btn-blue btn-sm" onclick="resolveAll()"><i class="fas fa-check-double"></i>Tout résoudre</button>
+    </div>
+    <div class="cb" style="padding:10px" id="mon-alerts"></div>
+  </div>
+</div>
+
+<!-- ─ ANALYTICS ─ -->
+<div class="page" id="page-analytics">
+  <div class="ph">
+    <h2><i class="fas fa-chart-line"></i>Analytics &amp; Power BI</h2>
+    <p>Visualisation avancée · Intégration Microsoft Power BI Embedded</p>
+  </div>
+  <div class="g2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-chart-pie"></i>Rapports Power BI</h3>
+        <a href="https://app.powerbi.com" target="_blank" class="btn btn-out btn-sm"><i class="fas fa-external-link-alt"></i>Ouvrir</a></div>
+      <div style="padding:0">
+        <div class="pbi" onclick="window.open('https://app.powerbi.com','_blank')">
+          <i class="fas fa-chart-pie pbi-logo"></i>
+          <div class="pbi-title">Power BI Embedded</div>
+          <div class="pbi-sub">Tableau de bord NouvelAir MRO — Données en direct</div>
+          <button class="pbi-btn"><i class="fas fa-external-link-alt"></i> Ouvrir le rapport</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3><i class="fas fa-chart-bar" style="color:var(--acc)"></i>Couverture Documentaire</h3></div>
+      <div class="cb" id="analytics-bars">
+        <div style="text-align:center;padding:20px;color:var(--tx3);font-size:12px"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <h3><i class="fas fa-table"></i>Statistiques par Type de Document</h3>
+      <button class="btn btn-blue btn-sm" onclick="exportCSV()"><i class="fas fa-download"></i>Export CSV</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Type Document</th><th>Nombre</th><th>% Total</th><th>Confiance OCR moy.</th><th>Part</th></tr></thead>
+        <tbody id="stats-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ─ ADMIN ─ -->
+<div class="page" id="page-admin"></div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════════════════════
+const API = 'http://localhost:8000/api/v1';
+let currentPage = 1, totalPages = 1;
+let searchFilter = {type: '', aircraft: ''};
+let feedPaused = false;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// SYSTÈME D'AIDE — Options A + B + C
+// ════════════════════════════════════════════════════════════
+
+// ── Contenu des popups ⓘ (Option B) ─────────────────────────────────────────
+const KPI_HELP = [
+  '<strong>Total PDFs archivés</strong> dans PostgreSQL via le pipeline IA. Taux 100% = zéro perte : chaque fichier uploadé a bien été traité et persisté avec son hash SHA-256.',
+  '<strong>Confiance moyenne</strong> Tesseract + EasyOCR sur l\'ensemble du corpus. Au-dessus de <strong>75%</strong> = extraction fiable. En dessous de <strong>55%</strong> = révision manuelle recommandée.',
+  '<strong>Alertes non résolues</strong> générées automatiquement : AD critiques (confiance > 70%), OCR faible confiance (< 50%), anomalies de classification détectées par le pipeline.',
+  '<strong>Immatriculations distinctes</strong> dans la base. Comprend les avions réels NouvelAir (TS-INP, TS-INQ) et les extractions automatiques du NER à partir des documents.',
+];
+
+const AI_BAR_HELP = [
+  '<strong>Score moyen OCR</strong> sur 2 687 documents. Combine pdfplumber (texte natif) + Tesseract multi-PSM + EasyOCR. Les scans anciens ont naturellement des scores plus faibles que les PDFs natifs.',
+  '<strong>Taux de documents</strong> avec au moins une entité extraite (immatriculation, ES Ref, ATA, P/N...). 99.8% = le NER a fonctionné sur quasi tous les docs. Les 0.2% restants sont des PDFs vides ou illisibles.',
+  '<strong>Confiance moyenne de classification.</strong> 58.6% de moyenne ≠ 84.3% d\'accuracy : les docs ambigus (Work Order vs Jobcard) tirent la moyenne vers le bas sans fausser les prédictions.',
+  '100% = tous les documents ont un <strong>vecteur sémantique 384 dimensions</strong> généré et stocké dans pgvector. Utilisé pour la recherche sémantique et le RAG.',
+  '100% = chaque document a un <strong>hash SHA-256 calculé</strong>. Si le même PDF est uploadé deux fois, il est automatiquement détecté et ignoré.',
+];
+
+// Descriptions pour la légende fixe (Option C)
+const TYPE_DESCRIPTIONS = {
+  'Work Order':     'Document de synthèse du check (ES ref). Regroupe toutes les tâches.',
+  'Specs':          'Spécifications techniques avion — données MSN, constructeur.',
+  'Jobcard':        'Tâche individuelle issue du Work Order. Numérotée (ex: 0034).',
+  'AD':             'Airworthiness Directive — consigne EASA/FAA obligatoire.',
+  'Certificate':    'CRS, Form 1, Release to Service — certifications maintenance.',
+  'Defect Report':  'Anomalie ou défaut détecté lors d\'une inspection.',
+  'SB':             'Service Bulletin — modification recommandée par Airbus.',
+  'ATL':            'Aircraft Technical Log — journal de bord avion.',
+  'NCR':            'Non Conformity Report — rapport de non-conformité.',
+  'CMM':            'Component Maintenance Manual — guide révision composant.',
+  'AMM':            'Aircraft Maintenance Manual — procédures maintenance.',
+  'IPC':            'Illustrated Parts Catalog — catalogue pièces illustré.',
+};
+
+// ── Option B : toggle popup ⓘ ────────────────────────────────────────────────
+function togglePopup(btn) {
+  const popup = btn.nextElementSibling;
+  const isShown = popup.classList.contains('show');
+  document.querySelectorAll('.info-popup').forEach(p => p.classList.remove('show'));
+  if (!isShown) {
+    popup.classList.add('show');
+    // Ajustement si déborde à droite
+    const rect = popup.getBoundingClientRect();
+    if (rect.right > window.innerWidth - 16) {
+      popup.style.left = 'auto';
+      popup.style.right = '0';
+      popup.style.transform = 'none';
+    }
+    if (rect.left < 0) {
+      popup.style.left = '0';
+      popup.style.transform = 'none';
+    }
+  }
+}
+document.addEventListener('click', e => {
+  if (!e.target.classList.contains('info-btn'))
+    document.querySelectorAll('.info-popup').forEach(p => p.classList.remove('show'));
+});
+
+// ── Option A : tooltip graphes ───────────────────────────────────────────────
+function showTip(e, text) {
+  const tip = document.getElementById('chart-tip');
+  if (!tip) return;
+  tip.textContent = text;
+  tip.style.display = 'block';
+  moveTip(e);
+}
+function moveTip(e) {
+  const tip = document.getElementById('chart-tip');
+  if (!tip || tip.style.display === 'none') return;
+  const x = e.clientX + 14;
+  const y = e.clientY - 36;
+  tip.style.left = Math.min(x, window.innerWidth - tip.offsetWidth - 10) + 'px';
+  tip.style.top = Math.max(y, 4) + 'px';
+}
+function hideTip() {
+  const tip = document.getElementById('chart-tip');
+  if (tip) tip.style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function apiFetch(path, opts={}) {
+  try {
+    const headers = {'Content-Type':'application/json'};
+    const token = localStorage.getItem('auth_token');
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const r = await fetch(API + path, {headers, ...opts});
+    if (r.status === 401) { nav('login'); return null; }
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    console.warn('API indisponible:', e.message);
+    return null;
+  }
+}
+
+function toast(msg, type='ok', dur=3500) {
+  const c = document.getElementById('toast');
+  const d = document.createElement('div');
+  d.className = `toast-item ${type}`;
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(() => d.remove(), dur);
+}
+
+function tag(text, cls) {
+  return `<span class="tag ${cls}">${text}</span>`;
+}
+
+function confBadge(v) {
+  const n = parseFloat(v)||0;
+  const cls = n>=90?'h':n>=75?'m':'l';
+  return `<span class="conf ${cls}">${n>=90?'●':n>=75?'◑':'○'} ${n.toFixed(1)}%</span>`;
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const d = (Date.now() - new Date(iso)) / 1000;
+  if (d < 60) return 'Il y a quelques secondes';
+  if (d < 3600) return `Il y a ${Math.round(d/60)} min`;
+  if (d < 86400) return `Il y a ${Math.round(d/3600)} h`;
+  return `Il y a ${Math.round(d/86400)} j`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SESSION / AUTH
+// ══════════════════════════════════════════════════════════════════════════════
+
+const USERS_KEY = 'sai_users';
+const SESSION_KEY = 'sai_session';
+
+function getUsers() {
+  const raw = localStorage.getItem(USERS_KEY);
+  if (raw) return JSON.parse(raw);
+  const defaults = [
+    {id:1, email:'admin@nouvelair.com.tn', password:'admin123', nom:'Administrateur', role:'admin',
+     droits:{consultation:true, upload:true, admin:true, monitoring:true, analytics:true}, actif:true},
+    {id:2, email:'technicien@nouvelair.com.tn', password:'tech123', nom:'Technicien MRO', role:'technicien',
+     droits:{consultation:true, upload:true, admin:false, monitoring:false, analytics:false}, actif:true},
+    {id:3, email:'consultant@nouvelair.com.tn', password:'cons123', nom:'Consultant', role:'consultant',
+     droits:{consultation:true, upload:false, admin:false, monitoring:false, analytics:true}, actif:true},
+  ];
+  localStorage.setItem(USERS_KEY, JSON.stringify(defaults));
+  return defaults;
+}
+
+function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function getSession() { const raw = localStorage.getItem(SESSION_KEY); return raw ? JSON.parse(raw) : null; }
+function setSession(user) { localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); localStorage.removeItem('auth_token'); }
+function canAccess(droit) { const s = getSession(); return s && s.droits && s.droits[droit]; }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════════════════
+
+function nav(page) {
+  if (page !== 'login') {
+    const s = getSession();
+    if (!s) { nav('login'); return; }
+    const droitsMap = { upload:'upload', analytics:'analytics', monitoring:'monitoring', admin:'admin' };
+    if (droitsMap[page] && !canAccess(droitsMap[page])) { toast('Accès non autorisé pour votre profil', 'err'); return; }
+  }
+  document.querySelectorAll('.page').forEach(p => {p.classList.remove('active'); p.style.display='none';});
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById('page-'+page);
+  const ni = document.getElementById('ni-'+page);
+  if (el) { el.style.display=''; el.classList.add('active'); }
+  if (ni) ni.classList.add('active');
+  const sb = document.getElementById('sb');
+  const main = document.getElementById('main');
+  if (page === 'login') { sb.style.display = 'none'; main.style.marginLeft = '0'; }
+  else { sb.style.display = ''; main.style.marginLeft = 'var(--sw)'; }
+  const loaders = {
+    dashboard: loadDashboard, documents: loadDocuments,
+    fleet: loadFleet, pipeline: loadPipelineStatus,
+    monitoring: loadMonitoring, analytics: loadAnalytics,
+    checks: loadChecks, admin: loadAdminPanel,
+  };
+  if (loaders[page]) setTimeout(loaders[page], 50);
+}
+
+function doLogin() {
+  const e = document.getElementById('le').value.trim();
+  const p = document.getElementById('lp').value;
+  if (!e || !p) { toast('Veuillez saisir vos identifiants','err'); return; }
+  const users = getUsers();
+  const user = users.find(u => u.email === e && u.password === p && u.actif);
+  if (!user) { toast('Identifiants incorrects ou compte désactivé','err'); return; }
+  setSession(user);
+  document.getElementById('user-label').textContent = user.nom;
+  const av = document.getElementById('user-av'); if(av) av.textContent = user.nom.charAt(0).toUpperCase();
+  applyDroits(user);
+  toast(`Bienvenue ${user.nom} !`, 'ok');
+  nav('dashboard');
+  loadKPIBadges();
+  initDynamicData();
+  updateAgentDots();
+}
+
+function applyDroits(user) {
+  const niUpload = document.getElementById('ni-upload');
+  const niMonitoring = document.getElementById('ni-monitoring');
+  const niAnalytics = document.getElementById('ni-analytics');
+  const niAdmin = document.getElementById('ni-admin');
+  if (niUpload) niUpload.style.display = user.droits.upload ? '' : 'none';
+  if (niMonitoring) niMonitoring.style.display = user.droits.monitoring ? '' : 'none';
+  if (niAnalytics) niAnalytics.style.display = user.droits.analytics ? '' : 'none';
+  if (niAdmin) niAdmin.style.display = user.droits.admin ? '' : 'none';
+}
+
+function doLogout() { clearSession(); toast('Déconnexion effectuée','ok'); nav('login'); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT DYNAMIC DATA
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function initDynamicData() {
+  await Promise.all([
+    initDynamicAircraft(),
+    initDynamicFilters(),
+  ]);
+}
+
+async function initDynamicAircraft() {
+  const data = await apiFetch('/aircraft/');
+  if (!data || !data.length) return;
+  window._aircraftList = data;
+
+  const fac = document.getElementById('f-aircraft');
+  if (fac) {
+    const cur = fac.value;
+    fac.innerHTML = '<option value="">Tous les avions</option>' +
+      data.map(a => `<option value="${a.registration}">${a.registration} (MSN ${a.msn||'—'})</option>`).join('');
+    if (cur) fac.value = cur;
+  }
+
+  const cls = document.getElementById('cls-aircraft');
+  if (cls) cls.innerHTML = '<option value="">— sélectionner —</option>' +
+    data.map(a => `<option value="${a.registration}">${a.registration}</option>`).join('');
+
+  const chipsZone = document.getElementById('aircraft-chips');
+  if (chipsZone) chipsZone.innerHTML = data
+    .map(a => `<span class="sc" onclick="toggleChip(this,'${a.registration}','aircraft')">${a.registration}</span>`).join('');
+
+  const ocdAircraft = document.getElementById('ocd-aircraft-text');
+  if (ocdAircraft) ocdAircraft.textContent = data.map(a => a.registration).join(', ');
+
+  await initSearchTypeChips();
+}
+
+async function initDynamicFilters() {
+  const stats = await apiFetch('/analytics/stats');
+  if (!stats) return;
+
+  if (stats.by_type && stats.by_type.length) {
+    const typeOpts = stats.by_type.map(t => `<option value="${t.type}">${t.type} (${t.count})</option>`).join('');
+
+    const fType = document.getElementById('f-type');
+    if (fType) fType.innerHTML = '<option value="">Tous les types</option>' + typeOpts;
+
+    const clsType = document.getElementById('cls-type');
+    if (clsType) clsType.innerHTML = '<option value="">— sélectionner —</option>' + typeOpts;
+
+    const ocdType = document.getElementById('ocd-type-text');
+    if (ocdType) ocdType.textContent = stats.by_type.map(t => t.type).join(', ');
+  }
+
+  if (stats.by_category && stats.by_category.length) {
+    const fCat = document.getElementById('f-cat');
+    if (fCat) fCat.innerHTML = '<option value="">Toutes</option>' +
+      stats.by_category.map(c => `<option value="${c.category}">${c.category} (${c.count})</option>`).join('');
+  }
+
+  if (stats.by_ata && stats.by_ata.length) {
+    const fAta = document.getElementById('f-ata');
+    if (fAta) fAta.innerHTML = '<option value="">Tous</option>' +
+      stats.by_ata.map(a => `<option value="${a.ata}">${a.ata}</option>`).join('');
+  }
+}
+
+async function initSearchTypeChips() {
+  const stats = await apiFetch('/analytics/stats');
+  const schips = document.getElementById('schips-type');
+  if (!schips || !stats?.by_type) return;
+  const topTypes = stats.by_type.map(t => t.type);
+  schips.innerHTML = `<div class="sc active" onclick="toggleChip(this,'')">Tous</div>` +
+    topTypes.map(t => `<div class="sc" onclick="toggleChip(this,'${t}')">${t}</div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadDashboard() {
+  const [kpiData, statsData] = await Promise.all([
+    apiFetch('/analytics/kpis'),
+    apiFetch('/analytics/stats'),
+  ]);
+
+  if (kpiData) renderKPIs(kpiData);
+  else renderKPIsFallback();
+
+  if (statsData) {
+    renderDistributionReal(statsData.by_type);
+    renderDashChart(statsData.by_aircraft);
+  } else {
+    renderDistributionFallback();
+  }
+
+  await renderAIBars();
+  await loadAlerts();
+}
+
+// ── Option B : KPIs avec icônes ⓘ ────────────────────────────────────────────
+function renderKPIs(d) {
+  const g = document.getElementById('kpi-grid');
+  if (!g) return;
+  const items = [
+    {val:(d.total_documents||0).toLocaleString(), lbl:'Documents Archivés', icon:'fa-file-pdf', cls:'b', delta:`Taux archivage: ${d.archive_rate_pct||0}%`, up:true},
+    {val:d.avg_ocr_confidence ? d.avg_ocr_confidence.toFixed(1)+'%' : '—', lbl:'Précision OCR IA', icon:'fa-robot', cls:'g', delta:'OCR v4 pipeline', up:true},
+    {val:d.active_alerts !== undefined ? d.active_alerts : '—', lbl:'Alertes Actives', icon:'fa-exclamation-triangle', cls:'a', delta:`${d.critical_ads||0} AD critiques`, up:false},
+    {val:d.total_aircraft !== undefined ? d.total_aircraft : '—', lbl:'Aéronefs Gérés', icon:'fa-plane', cls:'b', delta:'Flotte NouvelAir', up:true},
+  ];
+  g.innerHTML = items.map((i, idx) => `
+    <div class="kpi">
+      <div class="kic ${i.cls}"><i class="fas ${i.icon}"></i></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="kval">${i.val}</span>
+          <div class="info-wrap">
+            <button class="info-btn" onclick="event.stopPropagation();togglePopup(this)">i</button>
+            <div class="info-popup">${KPI_HELP[idx]}</div>
+          </div>
+        </div>
+        <div class="klbl">${i.lbl}</div>
+        <div class="kd ${i.up?'up':'dn'}">${i.delta}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderKPIsFallback() {
+  const g = document.getElementById('kpi-grid');
+  if (g) g.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--tx3)">
+    <i class="fas fa-exclamation-circle"></i> Backend non disponible — démarrez FastAPI</div>`;
+}
+
+// ── Option A : graphe barres avec tooltips ────────────────────────────────────
+function renderDashChart(byAircraft) {
+  const bars = document.getElementById('db-bars');
+  const lbls = document.getElementById('db-lbls');
+  if (!bars) return;
+  if (!byAircraft || !byAircraft.length) {
+    bars.innerHTML = '<div style="color:var(--tx3);font-size:12px;padding:20px">Aucune donnée</div>';
+    return;
+  }
+  const max = Math.max(...byAircraft.map(a=>a.count||0), 1);
+  bars.innerHTML = byAircraft.map(a => {
+    const h = Math.round((a.count||0)/max*130);
+    const reg = (a.aircraft||'—').replace(/'/g,"\\'");
+    const cnt = a.count||0;
+    const pct = Math.round(cnt/byAircraft.reduce((s,x)=>s+(x.count||0),0)*100);
+    return `<div class="cbar b"
+      style="height:${h}px"
+      onmouseenter="showTip(event,'${reg} — ${cnt.toLocaleString()} documents (${pct}% du total)')"
+      onmousemove="moveTip(event)"
+      onmouseleave="hideTip()"></div>`;
+  }).join('');
+  lbls.innerHTML = byAircraft.map(a => `<span>${a.aircraft||'—'}</span>`).join('');
+}
+
+// ── Option B : barres IA avec ⓘ — Option C : légende sous distribution ────────
+async function renderAIBars() {
+  const c = document.getElementById('ai-conf-bars');
+  if (!c) return;
+
+  const [pipeData, kpiData] = await Promise.all([
+    apiFetch('/pipeline/status'),
+    apiFetch('/analytics/kpis'),
+  ]);
+
+  const agents = pipeData?.agents || {};
+
+  const items = [
+    {lbl:'OCR v4 (pdfplumber + Tesseract)', val: kpiData?.avg_ocr_confidence || 0, c:'var(--acc)'},
+    {lbl:'NER (spaCy + Regex · profils adaptatifs)', val: agents.ner?.confidence != null ? agents.ner.confidence * 100 : null, c:'var(--nv)'},
+    {lbl:'Classifier (TF-IDF + LR · 12 classes)', val: agents.classifier?.confidence != null ? agents.classifier.confidence * 100 : null, c:'#7c3aed'},
+    {lbl:'Embeddings (MiniLM-L6-v2 · 384d)', val: agents.embedding?.confidence != null ? agents.embedding.confidence * 100 : null, c:'var(--warn)'},
+    {lbl:'Déduplication SHA-256', val: 100, c:'var(--acc)'},
+  ];
+
+  c.innerHTML = items.map((i, idx) => {
+    const hasVal = i.val !== null && i.val !== undefined;
+    const display  = hasVal ? i.val.toFixed(1) + '%' : 'N/A';
+    const barWidth = hasVal ? Math.min(i.val, 100) : 0;
+    const barColor = hasVal ? i.c : 'var(--bdr2)';
+    const labelClr = hasVal ? 'var(--tx)' : 'var(--tx3)';
+
+    return `<div class="aib">
+      <div class="aib-h" style="position:relative">
+        <span style="color:${labelClr};display:flex;align-items:center;gap:3px">${i.lbl}
+          <div class="info-wrap">
+            <button class="info-btn" onclick="event.stopPropagation();togglePopup(this)">i</button>
+            <div class="info-popup">${AI_BAR_HELP[idx]}</div>
+          </div>
+        </span>
+        <strong style="color:${labelClr}">${display}</strong>
+      </div>
+      <div class="bar-t">
+        <div class="bar-f" style="width:${barWidth}%;background:${barColor}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadAlerts() {
+  const data = await apiFetch('/pipeline/alerts?limit=10');
+  const c = document.getElementById('db-alerts');
+  if (!c) return;
+  if (!data || !data.length) {
+    c.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px"><i class="fas fa-check-circle" style="color:var(--acc)"></i> Aucune alerte active</div>`;
+    const nb = document.getElementById('nb-alerts'); if (nb) nb.textContent = '0';
+    const dot = document.getElementById('alert-dot'); if (dot) dot.style.display = 'none';
+    return;
+  }
+  const map = {critical:'d',warning:'w',info:'i',success:'s'};
+  const imap = {critical:'fa-radiation-alt',warning:'fa-exclamation-circle',info:'fa-info-circle',success:'fa-check-circle'};
+  c.innerHTML = data.slice(0,4).map(a => `
+    <div class="al ${map[a.severity]||'i'}" id="alert-row-${a.id}">
+      <i class="fas ${imap[a.severity]||'fa-info'} al-ic"></i>
+      <div class="al-body"><p>${a.title}</p><span>${a.message||''}</span></div>
+      <span class="al-time">${timeAgo(a.created_at)}</span>
+    </div>`).join('');
+  const nb_count = data.filter(a=>!a.resolved).length;
+  const nb = document.getElementById('nb-alerts'); if (nb) nb.textContent = nb_count;
+  const dot = document.getElementById('alert-dot'); if (dot) dot.style.display = nb_count > 0 ? '' : 'none';
+}
+
+// ── Option C : distribution avec légende fixe ─────────────────────────────────
+function renderDistributionReal(byType) {
+  const c = document.getElementById('db-dist');
+  if (!c || !byType || !byType.length) {
+    if(c) c.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:12px">Aucune donnée</div>`;
+    return;
+  }
+  const total = byType.reduce((s,t) => s+(t.count||0), 0) || 1;
+  const colors = ['var(--nv)','var(--warn)','var(--acc)','#7c3aed','#0891b2','var(--danger)','var(--info)'];
+
+  // Barres
+  const barsHtml = byType.slice(0,7).map((t,i) => {
+    const pct = Math.round((t.count||0)/total*100);
+    const desc = TYPE_DESCRIPTIONS[t.type] || '';
+    const tipText = `${t.type} — ${(t.count||0).toLocaleString()} docs (${pct}%)${desc ? ' · ' + desc : ''}`;
+    return `<div class="aib">
+      <div class="aib-h">
+        <span
+          onmouseenter="showTip(event,'${tipText.replace(/'/g, '&#39;')}')"
+          onmousemove="moveTip(event)"
+          onmouseleave="hideTip()"
+          style="cursor:default"
+        >${t.type||'—'}</span>
+        <strong>${(t.count||0).toLocaleString()}</strong>
+      </div>
+      <div class="bar-t"><div class="bar-f" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Légende fixe (Option C)
+  const legendRows = byType.slice(0,7).map((t,i) => {
+    const desc = TYPE_DESCRIPTIONS[t.type] || '';
+    if (!desc) return '';
+    return `<div class="leg-fix-row">
+      <div class="leg-fix-dot" style="background:${colors[i%colors.length]}"></div>
+      <div><span style="font-weight:500">${t.type}</span>${desc ? `<div class="leg-fix-desc">${desc}</div>` : ''}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  c.innerHTML = barsHtml + (legendRows ? `
+    <div class="leg-fix" style="margin-top:14px">
+      <div class="leg-fix-title">Légende des types</div>
+      ${legendRows}
+    </div>` : '');
+}
+
+function renderDistributionFallback() {
+  const c = document.getElementById('db-dist');
+  if (c) c.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:12px">Backend non disponible</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DOCUMENTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadDocuments() {
+  const aircraft = document.getElementById('f-aircraft')?.value || '';
+  const type = document.getElementById('f-type')?.value || '';
+  const cat = document.getElementById('f-cat')?.value || '';
+  const ata = document.getElementById('f-ata')?.value || '';
+  let url = `/documents/?page=${currentPage}&size=20`;
+  if (aircraft) url += `&aircraft=${encodeURIComponent(aircraft)}`;
+  if (type) url += `&doc_type=${encodeURIComponent(type)}`;
+  if (cat) url += `&category=${encodeURIComponent(cat)}`;
+  if (ata) url += `&ata_chapter=${encodeURIComponent(ata)}`;
+  const data = await apiFetch(url);
+  const tbody = document.getElementById('docs-tbody');
+  if (!tbody) return;
+  if (!data) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--tx3)">
+      <i class="fas fa-exclamation-circle"></i> Backend non disponible</td></tr>`;
+    return;
+  }
+  const docs = data.items || [];
+  const total = data.total || 0;
+  totalPages = data.pages || 1;
+  document.getElementById('doc-total').textContent = total.toLocaleString();
+  document.getElementById('doc-count-tag').textContent = `${total.toLocaleString()} documents`;
+  document.getElementById('doc-pagination').textContent = `Page ${currentPage} de ${totalPages}`;
+  const nb = document.getElementById('nb-docs'); if (nb) nb.textContent = total.toLocaleString();
+  if (!docs.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--tx3)">Aucun document trouvé</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = docs.map(d => {
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:7px">
+        <i class="fas fa-file-pdf" style="color:#dc2626;font-size:15px"></i>
+        <span style="font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.filename}">${d.filename}</span>
+      </div></td>
+      <td>${tag(d.aircraft_registration||'—','b')}</td>
+      <td><span class="tag p">${d.doc_type||'—'}</span></td>
+      <td>${tag(d.category||'—','g')}</td>
+      <td><code style="font-size:11px;color:var(--nv)">${d.es_reference||'—'}</code></td>
+      <td>${d.ata_chapter ? tag(d.ata_chapter,'gr') : '—'}</td>
+      <td>${confBadge(d.ocr_confidence)}</td>
+      <td style="color:var(--tx3)">${d.created_at ? d.created_at.split('T')[0] : '—'}</td>
+      <td><div style="display:flex;gap:2px">
+        <button class="act-btn" title="Voir le texte OCR" onclick="previewDoc(${d.id},'${d.filename.replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i></button>
+        <button class="act-btn" title="Éditer" onclick="editDoc(${d.id})"><i class="fas fa-edit"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  loadTree();
+}
+
+function changePage(dir) {
+  currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
+  loadDocuments();
+}
+
+async function previewDoc(id, filename) {
+  const data = await apiFetch(`/documents/${id}/ocr-text`);
+  if (!data) { toast('Impossible de charger le document','err'); return; }
+  const modal = document.createElement('div');
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px`;
+  modal.innerHTML = `
+    <div style="background:var(--sur);border-radius:var(--rl);width:90%;max-width:800px;max-height:85vh;display:flex;flex-direction:column;box-shadow:var(--sh2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bdr)">
+        <h3 style="font-size:14px;font-weight:600;color:var(--nv);display:flex;align-items:center;gap:8px">
+          <i class="fas fa-file-pdf" style="color:#dc2626"></i>${filename}</h3>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3)">✕</button>
+      </div>
+      <div style="padding:18px;overflow-y:auto;flex:1">
+        ${data.ocr_text
+          ? `<pre style="white-space:pre-wrap;font-size:12px;color:var(--tx);font-family:'Barlow',sans-serif;line-height:1.6;background:var(--bg);padding:14px;border-radius:8px;border:1px solid var(--bdr)">${escapeHtml(data.ocr_text)}</pre>`
+          : `<div style="text-align:center;padding:32px;color:var(--tx3)">
+              <i class="fas fa-file-slash" style="font-size:32px;display:block;margin-bottom:12px;opacity:.3"></i>
+              Aucun texte OCR disponible pour ce document</div>`}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function editDoc(id) {
+  const data = await apiFetch(`/documents/${id}`);
+  if (!data) { toast('Impossible de charger le document','err'); return; }
+  const aircraftOpts = (window._aircraftList||[]).map(a =>
+    `<option value="${a.registration}" ${a.registration===data.aircraft_registration?'selected':''}>${a.registration}</option>`
+  ).join('');
+  const modal = document.createElement('div');
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px`;
+  modal.innerHTML = `
+    <div style="background:var(--sur);border-radius:var(--rl);width:90%;max-width:560px;box-shadow:var(--sh2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bdr)">
+        <h3 style="font-size:14px;font-weight:600;color:var(--nv)"><i class="fas fa-edit"></i> Corriger document</h3>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3)">✕</button>
+      </div>
+      <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+        <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">Immatriculation</label>
+          <select id="ed-reg" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none">
+            <option value="">—</option>${aircraftOpts}
+          </select></div>
+        <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">Réf. ES</label>
+          <input id="ed-es" value="${data.es_reference||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none"></div>
+        <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">ATA Chapter</label>
+          <input id="ed-ata" value="${data.ata_chapter||''}" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none"></div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
+          <button class="btn btn-out btn-sm" onclick="this.closest('[style*=fixed]').remove()">Annuler</button>
+          <button class="btn btn-blue btn-sm" onclick="saveEdit(${id})"><i class="fas fa-save"></i>Enregistrer</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function saveEdit(id) {
+  const payload = {
+    aircraft_registration: document.getElementById('ed-reg')?.value||null,
+    es_reference: document.getElementById('ed-es')?.value||null,
+    ata_chapter: document.getElementById('ed-ata')?.value||null,
+    manually_corrected: true,
+  };
+  const data = await apiFetch(`/documents/${id}`, {method:'PATCH', body: JSON.stringify(payload)});
+  if (data) { toast('Document mis à jour','ok'); document.querySelector('[style*=fixed]')?.remove(); loadDocuments(); }
+  else toast('Erreur lors de la mise à jour','err');
+}
+
+async function exportCSV() {
+  const aircraft = document.getElementById('f-aircraft')?.value || '';
+  const type = document.getElementById('f-type')?.value || '';
+  let url = `/documents/?page=1&size=5000`;
+  if (aircraft) url += `&aircraft=${encodeURIComponent(aircraft)}`;
+  if (type) url += `&doc_type=${encodeURIComponent(type)}`;
+  toast('Export CSV en cours...','info');
+  const data = await apiFetch(url);
+  if (!data || !data.items) { toast("Impossible d'exporter",'err'); return; }
+  const headers = ['ID','Fichier','Avion','Type','Catégorie','Réf.ES','ATA','Confiance OCR','Date'];
+  const rows = data.items.map(d => [
+    d.id, `"${d.filename}"`, d.aircraft_registration||'', d.doc_type||'',
+    d.category||'', d.es_reference||'', d.ata_chapter||'',
+    d.ocr_confidence ? d.ocr_confidence.toFixed(1)+'%' : '',
+    d.created_at ? d.created_at.split('T')[0] : '',
+  ]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const url2 = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url2; a.download = `documents_${aircraft||'tous'}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click(); URL.revokeObjectURL(url2);
+  toast(`${data.items.length} documents exportés`,'ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ARBORESCENCE
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadTree() {
+  const c = document.getElementById('tree-nodes');
+  if (!c) return;
+  c.innerHTML = `<div style="padding:16px;color:var(--tx3);font-size:12px">
+    <i class="fas fa-spinner fa-spin" style="margin-right:6px"></i>Chargement...</div>`;
+  const data = await apiFetch('/documents/?page=1&size=3000');
+  if (!data || !data.items) {
+    c.innerHTML = `<div style="padding:16px;color:var(--tx3);font-size:12px">
+      <i class="fas fa-exclamation-circle"></i> Arborescence non disponible</div>`;
+    return;
+  }
+  const tree = {};
+  data.items.forEach(d => {
+    const ac = d.aircraft_registration || 'Inconnu';
+    const cat = d.category || 'Sans catégorie';
+    const es = d.es_reference || '—';
+    if (!tree[ac]) tree[ac] = {};
+    if (!tree[ac][cat]) tree[ac][cat] = {};
+    if (!tree[ac][cat][es]) tree[ac][cat][es] = [];
+    tree[ac][cat][es].push(d);
+  });
+  let html = '';
+  Object.entries(tree).forEach(([ac, cats]) => {
+    const totalAc = Object.values(cats).flatMap(e=>Object.values(e)).flat().length;
+    html += `<div class="tn" onclick="toggleBranch(this)">
+      <i class="fas fa-plane air"></i>${ac}
+      <span class="nb" style="margin-left:auto;font-size:10px">${totalAc}</span>
+    </div>`;
+    Object.entries(cats).forEach(([cat, ess]) => {
+      const totalCat = Object.values(ess).flat().length;
+      html += `<div class="tn i1" style="display:none" onclick="toggleBranch(this)">
+        <i class="fas fa-folder fol"></i>${cat}
+        <span class="nb b" style="margin-left:auto;font-size:10px">${totalCat}</span>
+      </div>`;
+      Object.entries(ess).forEach(([es, docs]) => {
+        if (es !== '—') {
+          html += `<div class="tn i2" style="display:none" onclick="toggleBranch(this)">
+            <i class="fas fa-folder fol"></i>${es} (${docs.length})
+          </div>`;
+          docs.slice(0,20).forEach(d => {
+            html += `<div class="tn i3" style="display:none"
+              onclick="showDocPreviewReal('${d.filename.replace(/'/g,"&#39;")}',${d.id},event)">
+              <i class="fas fa-file-pdf fil"></i>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.filename}</span>
+            </div>`;
+          });
+        } else {
+          docs.slice(0,10).forEach(d => {
+            html += `<div class="tn i2" style="display:none"
+              onclick="showDocPreviewReal('${d.filename.replace(/'/g,"&#39;")}',${d.id},event)">
+              <i class="fas fa-file-pdf fil"></i>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.filename}</span>
+            </div>`;
+          });
+        }
+      });
+    });
+  });
+  c.innerHTML = html;
+}
+
+function toggleBranch(el) {
+  const level = el.classList.contains('i1') ? 'i2' :
+                el.classList.contains('i2') ? 'i3' : 'i1';
+  let next = el.nextElementSibling;
+  while (next && next.classList.contains(level)) {
+    next.style.display = next.style.display === 'none' ? '' : 'none';
+    if (next.style.display === 'none') {
+      let sub = next.nextElementSibling;
+      while (sub && (sub.classList.contains('i2') || sub.classList.contains('i3'))) {
+        sub.style.display = 'none';
+        sub = sub.nextElementSibling;
+      }
+    }
+    next = next.nextElementSibling;
+    if (next && !next.classList.contains(level)) break;
+  }
+}
+
+async function showDocPreviewReal(filename, id, event) {
+  event.stopPropagation();
+  document.querySelectorAll('.tn').forEach(n => n.classList.remove('sel'));
+  event.currentTarget.classList.add('sel');
+  const p = document.getElementById('doc-preview');
+  p.innerHTML = `<div style="color:var(--tx3);font-size:12px"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>`;
+  const data = await apiFetch(`/documents/${id}`);
+  if (!data) { p.innerHTML = `<p style="color:var(--tx3)">Erreur chargement</p>`; return; }
+  p.innerHTML = `
+    <h3 style="font-size:14px;font-weight:600;color:var(--nv);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      <i class="fas fa-file-pdf" style="color:#dc2626"></i>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${data.filename}</span>
+    </h3>
+    <table class="etbl">
+      <tr><td>Aéronef</td><td>${tag(data.aircraft_registration||'—','b')}</td></tr>
+      <tr><td>Type</td><td><span class="tag p">${data.doc_type||'—'}</span></td></tr>
+      <tr><td>Catégorie</td><td>${data.category||'—'}</td></tr>
+      <tr><td>Confiance OCR</td><td><strong style="color:var(--acc)">${data.ocr_confidence ? data.ocr_confidence.toFixed(1)+'%' : '—'}</strong></td></tr>
+      <tr><td>ATA Chapter</td><td>${data.ata_chapter||'—'}</td></tr>
+      <tr><td>Réf. ES</td><td><strong style="color:var(--nv)">${data.es_reference||'—'}</strong></td></tr>
+      <tr><td>P/N</td><td>${data.part_number||'—'}</td></tr>
+      <tr><td>S/N</td><td>${data.serial_number||'—'}</td></tr>
+      <tr><td>Date</td><td>${data.created_at ? data.created_at.split('T')[0] : '—'}</td></tr>
+      ${data.needs_review ? `<tr><td>Statut</td><td>${tag('Revue requise','a')}</td></tr>` : ''}
+    </table>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-blue btn-sm" onclick="previewDoc(${data.id},'${data.filename.replace(/'/g,"\\'")}')">
+        <i class="fas fa-eye"></i>Voir OCR</button>
+      <button class="btn btn-out btn-sm" onclick="editDoc(${data.id})">
+        <i class="fas fa-edit"></i>Modifier</button>
+    </div>`;
+}
+
+function toggleTreeView() {
+  const c = document.getElementById('tree-card');
+  if (c) c.style.display = c.style.display==='none' ? '' : 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UPLOAD
+// ══════════════════════════════════════════════════════════════════════════════
+
+let uploadMode = 'single';
+
+function selMode(m) {
+  uploadMode = m;
+  document.getElementById('uc-single').classList.toggle('sel', m==='single');
+  document.getElementById('uc-batch').classList.toggle('sel', m==='batch');
+  const fin = document.getElementById('fin');
+  if (fin) fin.multiple = m === 'batch';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropz').classList.remove('over');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(files) {
+  if (!files || !files.length) return;
+  if (uploadMode === 'single' && files.length > 1) { toast('Mode document unique : sélectionnez un seul fichier','warn'); return; }
+  document.getElementById('pipe-card').style.display = '';
+  document.getElementById('upl-list').innerHTML = '';
+  document.getElementById('cls-result').style.display = 'none';
+  Array.from(files).forEach((f, i) => {
+    document.getElementById('upl-list').innerHTML += `
+      <div class="fitem">
+        <div class="fic"><i class="fas fa-file-pdf"></i></div>
+        <div class="finfo"><h4>${f.name}</h4><p>${(f.size/1024).toFixed(0)} KB</p>
+          <div class="pbar"><div class="pbar-f" id="pb-${i}"></div></div></div>
+        <span class="tag b" id="ps-${i}">En attente</span>
+      </div>`;
+  });
+  if (uploadMode === 'single') uploadSingle(files[0]);
+  else uploadBatch(Array.from(files));
+}
+
+async function uploadSingle(file) {
+  const stages = ['OCR v4...','NER...','Classifier...','Embedding...','Archivé ✓'];
+  let stageIdx = 0;
+  const bar = document.getElementById('pb-0');
+  const stat = document.getElementById('ps-0');
+  const iv = setInterval(() => {
+    stageIdx = Math.min(stageIdx + 1, 3);
+    if (bar) bar.style.width = (stageIdx * 20) + '%';
+    if (stat) stat.textContent = stages[stageIdx];
+    document.getElementById('pipe-pct').textContent = (stageIdx * 20) + '%';
+  }, 600);
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const r = await fetch(API + '/documents/upload', {method:'POST', body: form});
+    clearInterval(iv);
+    if (r.ok) {
+      const d = await r.json();
+      if (bar) bar.style.width = '100%';
+      const isDup = d.pipeline_result?.status === 'duplicate';
+      if (isDup) {
+        if (bar) bar.style.background = 'var(--warn)';
+        if (stat) { stat.textContent = 'Doublon !'; stat.className = 'tag a'; }
+      } else {
+        if (stat) { stat.textContent = 'Archivé ✓'; stat.className = 'tag g'; }
+      }
+      document.getElementById('pipe-pct').textContent = isDup ? 'Doublon' : '100% ✓';
+      document.getElementById('pipe-pct').className = isDup ? 'tag a' : 'tag g';
+      if (d.pipeline_result?.ner) {
+        const ner = d.pipeline_result.ner;
+        if (ner.aircraft_registration) document.getElementById('cls-aircraft').value = ner.aircraft_registration;
+        if (ner.es_reference) document.getElementById('cls-es').value = ner.es_reference;
+        if (ner.item_number) document.getElementById('cls-item').value = ner.item_number;
+        if (ner.ata_chapter) document.getElementById('cls-ata').value = ner.ata_chapter;
+      }
+      if (d.pipeline_result?.classification)
+        document.getElementById('cls-conf').textContent = (d.pipeline_result.classification.confidence*100).toFixed(0)+'%';
+      if (d.pipeline_result?.status !== 'duplicate')
+        setTimeout(() => { document.getElementById('cls-result').style.display = ''; }, 300);
+      else toast('Document déjà archivé (doublon SHA-256 détecté)','warn');
+      toast(`Document archivé: ${file.name}`, 'ok');
+    } else {
+      const err = await r.json().catch(()=>({}));
+      if (stat) { stat.textContent = 'Erreur'; stat.className = 'tag r'; }
+      toast(`Erreur: ${err.detail||r.status}`, 'err');
+    }
+  } catch(e) {
+    clearInterval(iv);
+    if (stat) { stat.textContent = 'Erreur'; stat.className = 'tag r'; }
+    toast('Backend non disponible','err');
+  }
+}
+
+let _batchResults = [];
+
+async function uploadBatch(files) {
+  toast(`Envoi de ${files.length} fichier(s) en lot...`, 'info');
+  const form = new FormData();
+  files.forEach(f => form.append('files', f));
+  files.forEach((f, i) => {
+    const bar = document.getElementById(`pb-${i}`);
+    const stat = document.getElementById(`ps-${i}`);
+    if (stat) stat.textContent = 'Envoi...';
+    let pct = 0;
+    const iv = setInterval(() => {
+      pct = Math.min(pct + Math.random()*3 + 1, 85);
+      if (bar) bar.style.width = pct + '%';
+    }, 200);
+    if (bar) bar.dataset.interval = iv;
+  });
+  try {
+    const r = await fetch(API + '/documents/upload/batch', {method:'POST', body: form});
+    if (!r.ok) { toast('Erreur lors du lot','err'); return; }
+    const d = await r.json();
+    (d.results||[]).forEach((res, i) => {
+      const bar = document.getElementById(`pb-${i}`);
+      const stat = document.getElementById(`ps-${i}`);
+      if (bar) { clearInterval(bar.dataset.interval); bar.style.width = '100%'; }
+      if (res.is_duplicate) { if (bar) bar.style.background='var(--warn)'; if(stat){stat.textContent='Doublon';stat.className='tag a';} }
+      else if (res.status==='error') { if(bar)bar.style.background='var(--danger)'; if(stat){stat.textContent='Erreur';stat.className='tag r';} }
+      else { if(stat){stat.textContent='Traité ✓';stat.className='tag b';} }
+    });
+    document.getElementById('pipe-pct').textContent = '100% ✓';
+    document.getElementById('pipe-pct').className = 'tag g';
+    _batchResults = (d.results||[]).map((res, i) => ({
+      idx: i, filename: files[i]?.name || res.filename || `fichier_${i+1}`,
+      doc_id: res.document_id || null, aircraft: res.ner?.aircraft_registration || '',
+      doc_type: res.classification?.predicted_type || '', es_ref: res.ner?.es_reference || '',
+      ata: res.ner?.ata_chapter || '', confidence: res.classification?.confidence || 0,
+      is_duplicate: res.is_duplicate || false, status: res.status || 'unknown',
+    }));
+    renderBatchReviewTable(_batchResults);
+  } catch(e) { toast('Backend non disponible — upload impossible','err'); }
+}
+
+function renderBatchReviewTable(results) {
+  const tbody = document.getElementById('br-tbody');
+  if (!tbody) return;
+  const aircraftOpts = (window._aircraftList||[]).map(a => `<option value="${a.registration}">${a.registration}</option>`).join('');
+  let html = ''; let totalValid = 0, totalDups = 0;
+  results.forEach(r => {
+    const confPct = Math.round((r.confidence||0)*100);
+    const confCls = confPct>=70?'conf-h':confPct>=40?'conf-m':'conf-l';
+    const rowCls = r.is_duplicate?'dup':r.status==='error'?'err':'';
+    const dis = r.is_duplicate||r.status==='error'?'disabled':'';
+    const statusTag = r.is_duplicate?`<span class="tag a" style="font-size:10px">Doublon</span>`:
+      r.status==='error'?`<span class="tag r" style="font-size:10px">Erreur</span>`:
+      `<span class="tag g" style="font-size:10px">Prêt</span>`;
+    if (!r.is_duplicate && r.status!=='error') totalValid++;
+    if (r.is_duplicate) totalDups++;
+    html += `<tr class="${rowCls}" id="br-row-${r.idx}">
+      <td style="padding:5px 8px"><input type="checkbox" class="br-chk" data-idx="${r.idx}" ${!r.is_duplicate&&r.status!=='error'?'checked':''} ${dis} style="accent-color:var(--nv)"></td>
+      <td style="padding:5px 8px"><span style="font-size:11px;font-weight:500"><i class="fas fa-file-pdf" style="color:#dc2626;margin-right:4px"></i>${r.filename}</span></td>
+      <td><select class="br-fld" data-idx="${r.idx}" data-key="aircraft" ${dis}><option value="">—</option>${aircraftOpts}</select></td>
+      <td><input class="br-fld" data-idx="${r.idx}" data-key="doc_type" type="text" value="${r.doc_type||''}" ${dis}></td>
+      <td><input class="br-fld" data-idx="${r.idx}" data-key="es_ref" type="text" value="${r.es_ref||''}" placeholder="ES——" ${dis}></td>
+      <td><input class="br-fld" data-idx="${r.idx}" data-key="ata" type="text" value="${r.ata||''}" placeholder="—" ${dis}></td>
+      <td style="padding:5px 8px"><span class="conf-badge ${confCls}">${confPct>0?confPct+'%':'—'}</span></td>
+      <td style="padding:5px 8px">${statusTag}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  results.forEach(r => {
+    const s = document.querySelector(`select.br-fld[data-idx="${r.idx}"][data-key="aircraft"]`);
+    if (s && r.aircraft) s.value = r.aircraft;
+  });
+  document.getElementById('br-count').textContent = results.length;
+  document.getElementById('br-summary').textContent = `${totalValid} à confirmer · ${totalDups} doublon(s) ignoré(s)`;
+  document.getElementById('br-status').textContent = `${totalValid} prêt(s)`;
+  document.getElementById('batch-review').style.display = '';
+  setTimeout(() => document.getElementById('batch-review').scrollIntoView({behavior:'smooth',block:'start'}), 100);
+}
+
+function toggleAllRows(checked) {
+  document.querySelectorAll('.br-chk:not([disabled])').forEach(cb => cb.checked = checked);
+}
+
+async function confirmBatchArchive() {
+  const toArchive = [];
+  document.querySelectorAll('.br-chk:checked:not([disabled])').forEach(cb => {
+    const idx = cb.dataset.idx;
+    const res = _batchResults[idx];
+    if (!res || !res.doc_id) return;
+    const patch = {manually_corrected: true};
+    document.querySelectorAll(`.br-fld[data-idx="${idx}"]`).forEach(input => {
+      const key = input.dataset.key;
+      const val = input.value?.trim() || null;
+      const keyMap = {aircraft:'aircraft_registration',es_ref:'es_reference',ata:'ata_chapter'};
+      const dbKey = keyMap[key] || key;
+      if (val) patch[dbKey] = val;
+    });
+    if (res.doc_type) patch.doc_type = res.doc_type;
+    toArchive.push({doc_id: res.doc_id, patch});
+  });
+  if (!toArchive.length) { toast('Aucun document sélectionné','warn'); return; }
+  let ok=0, err=0;
+  for (const {doc_id, patch} of toArchive) {
+    const r = await apiFetch(`/documents/${doc_id}`, {method:'PATCH', body: JSON.stringify(patch)});
+    if (r) ok++; else err++;
+  }
+  toast(`${ok} document(s) archivé(s)${err?' · '+err+' erreur(s)':''}`, ok>0?'ok':'err');
+  document.getElementById('batch-review').style.display = 'none';
+  document.getElementById('pipe-card').style.display = 'none';
+  _batchResults = [];
+  loadKPIBadges();
+}
+
+function resetBatchReview() {
+  document.getElementById('batch-review').style.display = 'none';
+  document.getElementById('pipe-card').style.display = 'none';
+  _batchResults = [];
+}
+
+function confirmArchive() {
+  document.getElementById('cls-result').style.display = 'none';
+  document.getElementById('pipe-card').style.display = 'none';
+  toast('✓ Confirmé et archivé dans PostgreSQL !', 'ok');
+  loadKPIBadges();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RECHERCHE
+// ══════════════════════════════════════════════════════════════════════════════
+
+function toggleChip(el, val, field='type') {
+  if (field === 'type') {
+    document.querySelectorAll('#schips-type .sc').forEach(c => c.classList.remove('active'));
+    searchFilter.type = val; el.classList.add('active');
+  } else {
+    const wasActive = el.classList.contains('active');
+    document.querySelectorAll('#schips-aircraft .sc').forEach(c => c.classList.remove('active'));
+    if (!wasActive) { el.classList.add('active'); searchFilter.aircraft = val; }
+    else searchFilter.aircraft = '';
+  }
+}
+
+async function runSearch() {
+  const q = document.getElementById('sq').value.trim();
+  if (!q) { toast('Saisissez une requête','warn'); return; }
+  const list = document.getElementById('sr-list');
+  list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--tx3)"><i class="fas fa-spinner fa-spin" style="font-size:24px;display:block;margin-bottom:12px"></i>Recherche en cours...</div>`;
+  let url = `/search/?q=${encodeURIComponent(q)}&limit=20`;
+  if (searchFilter.type) url += `&doc_type=${encodeURIComponent(searchFilter.type)}`;
+  if (searchFilter.aircraft) url += `&aircraft=${encodeURIComponent(searchFilter.aircraft)}`;
+  const t0 = Date.now();
+  const data = await apiFetch(url);
+  const elapsed = Date.now() - t0;
+  if (!data) { list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--tx3)"><i class="fas fa-exclamation-circle"></i> Backend non disponible</div>`; return; }
+  const results = data.results || [];
+  document.getElementById('sr-count').textContent = `${data.total||results.length} document(s)`;
+  document.getElementById('sr-mode').textContent = data.mode || 'Hybride FTS+pgvector';
+  document.getElementById('sr-time').textContent = `${data.search_time_ms?.toFixed(0)||elapsed}ms`;
+  if (!results.length) {
+    list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--tx3)"><i class="fas fa-search" style="font-size:32px;display:block;margin-bottom:12px;opacity:.3"></i>Aucun résultat pour «${q}»</div>`;
+    return;
+  }
+  list.innerHTML = results.map(r => {
+    const doc = r.document || r;
+    const hl = (doc.filename||'').replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m => `<span class="hl">${m}</span>`);
+    const ents = [doc.aircraft_registration, doc.doc_type, doc.es_reference, doc.ata_chapter].filter(Boolean);
+    return `<div class="sri" onclick="previewDoc(${doc.id},'${(doc.filename||'').replace(/'/g,"\\'")}')">
+      <div class="sri-ic"><i class="fas fa-file-pdf"></i></div>
+      <div class="sri-body"><h4>${hl}</h4>
+        <p>${doc.aircraft_registration||'?'} / ${doc.category||'?'} / ${doc.es_reference||'?'}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">${ents.map(e => tag(e,'b')).join('')}</div>
+      </div>
+      <span class="scr">${r.score ? (r.score*100).toFixed(0)+'%' : '—'}</span>
+    </div>`;
+  }).join('');
+  if (data.extracted_entities) renderNERPanel(data.extracted_entities);
+}
+
+function renderNERPanel(entities) {
+  const p = document.getElementById('ner-panel');
+  if (!p) return;
+  const emap = {
+    aircraft_registration:{lbl:'Avion',icon:'fa-plane',cls:'b'},
+    es_reference:{lbl:'Réf. ES',icon:'fa-hashtag',cls:'a'},
+    ata_chapter:{lbl:'ATA',icon:'fa-wrench',cls:'c'},
+    sb_ad_reference:{lbl:'AD/SB',icon:'fa-exclamation-triangle',cls:'r'},
+    work_order_number:{lbl:'Work Order',icon:'fa-file-alt',cls:'p'},
+    item_number:{lbl:'N° Item',icon:'fa-tag',cls:'g'},
+    part_number:{lbl:'P/N',icon:'fa-cog',cls:'gr'},
+  };
+  const tagsHtml = Object.entries(entities||{}).filter(([,v])=>v)
+    .map(([k,v]) => { const m=emap[k]||{lbl:k,icon:'fa-tag',cls:'gr'}; return `<span class="tag ${m.cls}"><i class="fas ${m.icon}" style="margin-right:3px"></i>${m.lbl}: ${v}</span>`; }).join('');
+  p.innerHTML = `<p style="font-size:11px;color:var(--tx3);margin-bottom:8px">Entités extraites :</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${tagsHtml||tag('Aucune entité','gr')}</div>
+    <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:11px;color:var(--tx2)">
+      <strong>Mode :</strong> Hybride FTS + pgvector · <strong>Modèle :</strong> MiniLM-L6-v2 (384d)</div>`;
+}
+
+async function askRAG() {
+  const q = document.getElementById('rag-q').value.trim();
+  if (!q) return;
+  const ans = document.getElementById('rag-ans');
+  ans.style.display = '';
+  ans.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:var(--nv)"></i> Analyse des documents...';
+  const data = await apiFetch('/search/rag', {method:'POST', body: JSON.stringify({question:q, top_k:5})});
+  if (!data) { ans.innerHTML = `<div style="color:var(--tx3);font-size:12px">Backend non disponible</div>`; return; }
+  ans.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start">
+    <i class="fas fa-robot" style="color:var(--nv);margin-top:2px;flex-shrink:0"></i>
+    <div><p style="font-weight:600;margin-bottom:6px">Réponse IA (RAG)</p><p>${data.answer}</p>
+      <p style="font-size:11px;color:var(--tx3);margin-top:6px">Confiance: ${data.confidence?(data.confidence*100).toFixed(0)+'%':'—'} · pgvector</p>
+    </div></div>`;
+}
+
+document.getElementById('gsi').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.value.trim()) {
+    nav('search'); document.getElementById('sq').value = e.target.value; setTimeout(runSearch, 100);
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FLEET
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadFleet() {
+  const data = await apiFetch('/aircraft/');
+  const g = document.getElementById('fleet-grid');
+  if (!g) return;
+  if (!data || !data.length) {
+    g.innerHTML = `<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--tx3)"><i class="fas fa-exclamation-circle"></i> Backend non disponible</div>`;
+    return;
+  }
+  const nf = document.getElementById('nb-fleet');
+  if (nf) nf.textContent = data.length;
+  const subtitle = document.getElementById('fleet-subtitle');
+  if (subtitle) subtitle.textContent = `Gestion documentaire par aéronef · ${data.length} aéronef(s) · MRO NouvelAir`;
+  g.innerHTML = data.map(a => `
+    <div class="fc" onclick="nav('documents');document.getElementById('f-aircraft').value='${a.registration}';loadDocuments()">
+      <div class="fc-hd">
+        <div class="fc-reg">${a.registration}</div>
+      </div>
+      <div class="fc-bd">
+        <div class="fsr"><span class="fsl">Documents</span><span class="fsv">${(a.doc_count||0).toLocaleString()}</span></div>
+        <div class="fsr"><span class="fsl">Modèle</span><span class="fsv">${a.model||'A320-214'}</span></div>
+        <div class="fsr"><span class="fsl">MSN</span><span class="fsv">${a.msn||'—'}</span></div>
+      </div>
+      <div class="fc-ft"><span class="tag b" style="font-size:10px"><i class="fas fa-folder"></i> Voir documents</span></div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHECKS
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadChecks() {
+  const g = document.getElementById('checks-grid');
+  if (!g) return;
+  g.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--tx3)">
+    <i class="fas fa-spinner fa-spin"></i> Chargement...</div>`;
+
+  const aircraftList = await apiFetch('/aircraft/');
+  const registrations = (aircraftList || []).map(a => a.registration).filter(Boolean);
+
+  if (!registrations.length) {
+    g.innerHTML = `<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--tx3)">Aucun aéronef trouvé</div>`;
+    return;
+  }
+
+  let checks = [];
+  for (const reg of registrations) {
+    const data = await apiFetch('/aircraft/' + reg + '/checks');
+    if (data && data.length) {
+      data.forEach(c => checks.push({ ...c, aircraft: reg }));
+    }
+  }
+
+  const seen = {};
+  checks = checks.filter(c => {
+    const key = (c.es_reference || '').toUpperCase().replace(/^ES/, '');
+    if (!key) return false;
+    if (seen[key]) {
+      if (c.total_documents > seen[key].total_documents) {
+        seen[key] = c;
+        return false;
+      }
+      return false;
+    }
+    seen[key] = c;
+    return true;
+  });
+
+  if (!checks.length) {
+    g.innerHTML = `<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--tx3)">
+      <i class="fas fa-check-circle" style="color:var(--acc)"></i>
+      Aucun check avec documents trouvé</div>`;
+    return;
+  }
+
+  checks.sort((a, b) => (b.total_documents || 0) - (a.total_documents || 0));
+
+  g.innerHTML = checks.map(c => {
+    const checkTypeTag = c.check_type
+      ? `<span class="tag ${c.check_type.includes('A') ? 'g' : c.check_type.includes('C') ? 'b' : 'a'}">${c.check_type}</span>`
+      : '<span class="tag gr">—</span>';
+
+    const subItems = [
+      c.work_orders_count   ? `<span class="tag b" style="font-size:10px">${c.work_orders_count} WO</span>`   : '',
+      c.jobcards_count      ? `<span class="tag g" style="font-size:10px">${c.jobcards_count} JC</span>`      : '',
+      c.defect_reports_count? `<span class="tag a" style="font-size:10px">${c.defect_reports_count} DR</span>` : '',
+      c.ncr_count           ? `<span class="tag r" style="font-size:10px">${c.ncr_count} NCR</span>`          : '',
+    ].filter(Boolean).join('');
+
+    return `
+      <div class="card">
+        <div class="ch">
+          <h3><i class="fas fa-wrench" style="color:var(--warn)"></i>
+            ${c.check_type || 'Check'} — ${c.es_reference} (${c.aircraft})
+          </h3>
+          <span class="tag g">Archivé</span>
+        </div>
+        <div class="cb">
+          <table class="etbl">
+            <tr><td>Aéronef</td><td><strong>${c.aircraft}</strong></td></tr>
+            <tr><td>Référence ES</td><td><code style="color:var(--nv);font-weight:600">${c.es_reference}</code></td></tr>
+            <tr><td>Type</td><td>${checkTypeTag}</td></tr>
+            <tr><td>Documents</td><td><strong style="font-size:16px">${c.total_documents || 0}</strong></td></tr>
+            ${subItems ? `<tr><td>Détail</td><td><div style="display:flex;gap:4px;flex-wrap:wrap">${subItems}</div></td></tr>` : ''}
+            ${c.start_date ? `<tr><td>Date début</td><td>${c.start_date.split('T')[0]}</td></tr>` : ''}
+          </table>
+          <div style="display:flex;gap:8px;margin-top:14px">
+            <button class="btn btn-blue btn-sm"
+              onclick="nav('documents');
+                       document.getElementById('f-aircraft').value='${c.aircraft}';
+                       loadDocuments()">
+              <i class="fas fa-folder-open"></i>Ouvrir
+            </button>
+            <button class="btn btn-out btn-sm"
+              onclick="nav('search');
+                       document.getElementById('sq').value='${c.es_reference}';
+                       setTimeout(runSearch,100)">
+              <i class="fas fa-search"></i>Rechercher
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PIPELINE
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadPipelineStatus() {
+  const data = await apiFetch('/pipeline/status');
+
+  const apiAgents = data?.agents || {};
+  const agentDefs = [
+    {key:'ocr', n:'Agent OCR v4', d:'pdfplumber + Tesseract · PSM adaptatif · OpenCV CLAHE+deskew', ic:'b', icon:'fa-eye'},
+    {key:'ner', n:'Agent NER', d:'spaCy + Regex · 15 entités MRO · Patterns filtrés par profil', ic:'p', icon:'fa-tag'},
+    {key:'classifier', n:'Agent Classifier', d:'TF-IDF + Logistic Regression · 12 classes aéro', ic:'g', icon:'fa-brain'},
+    {key:'embedding', n:'Agent Embedding', d:'MiniLM-L6-v2 · Vecteurs 384d · pgvector', ic:'a', icon:'fa-vector-square'},
+    {key:'archive', n:'Agent Archiveur', d:'PostgreSQL · SHA-256 dédup · Métadonnées persistés', ic:'c', icon:'fa-database'},
+    {key:'monitoring', n:'Agent Monitoring', d:'Alertes EASA · Doublons · Erreurs pipeline · KPIs', ic:'t', icon:'fa-shield-alt'},
+  ];
+
+  const statusLabel = {active:'Actif', ready:'Prêt', processing:'Traitement', error:'Erreur', idle:'Idle'};
+  const statusDot = {active:'g', ready:'g', processing:'pp', error:'r', idle:'b'};
+
+  const activeCount = agentDefs.filter(a => {
+    const s = apiAgents[a.key]?.status || 'ready';
+    return s === 'active' || s === 'ready';
+  }).length;
+
+  const countEl = document.getElementById('pipeline-agent-count');
+  if (countEl) countEl.textContent = `${activeCount} agents opérationnels`;
+
+  const c = document.getElementById('pipeline-stages');
+  if (c) c.innerHTML = agentDefs.map((a,i) => {
+    const agentData = apiAgents[a.key] || {};
+    const status = agentData.status || 'ready';
+    const sc = statusDot[status] || 'g';
+    const sl = statusLabel[status] || status;
+    const extra = agentData.docs_processed ? ` · ${agentData.docs_processed} docs traités` : '';
+    return `
+    <div class="ps"><div class="psi ${a.ic}"><i class="fas ${a.icon}"></i></div>
+      <div class="psi-info"><h4>${a.n}</h4><p>${a.d}${extra}</p></div>
+      <div class="pss"><div class="sdot ${sc}"></div><span style="color:var(--tx2)">${sl}</span></div>
+    </div>${i<agentDefs.length-1?'<div class="parr"><i class="fas fa-arrow-down"></i></div>':''}`;
+  }).join('');
+
+  const m = data?.pipeline || {};
+  const metrics = [
+    {v: m.docs_per_hour !== undefined ? m.docs_per_hour : '—', l:'Docs/heure'},
+    {v: m.avg_processing_time_s ? m.avg_processing_time_s.toFixed(1)+'s' : '—', l:'Temps moyen'},
+    {v: m.total_errors !== undefined ? m.total_errors : '—', l:'Erreurs pipeline'},
+    {v: data?.uptime_s ? Math.round(data.uptime_s/3600)+'h' : '—', l:'Uptime'},
+  ];
+  const mc = document.getElementById('pipe-metrics');
+  if (mc) mc.innerHTML = metrics.map(m => `<div class="mm"><div class="mmv">${m.v}</div><div class="mml">${m.l}</div></div>`).join('');
+
+  const stack = data?.stack || ['FastAPI','asyncpg','SQLAlchemy 2.0','pdfplumber','Tesseract OCR',
+    'spaCy NER','sentence-transformers','PostgreSQL 15','pgvector','MiniLM-L6-v2','TF-IDF + LR','SHA-256','OpenCV 4.10'];
+  const sc2 = document.getElementById('stack-tags');
+  const clss = ['b','g','p','a','c','b','g','c','p','gr','a','g','b'];
+  if (sc2) sc2.innerHTML = stack.map((s,i) => tag(s,clss[i%clss.length])).join('');
+
+  const endpoints = data?.endpoints || [
+    'POST /api/v1/documents/upload',
+    'POST /api/v1/documents/upload/batch',
+    'GET  /api/v1/search?q=...',
+    'GET  /api/v1/aircraft/{reg}/documents',
+    'GET  /api/v1/pipeline/status',
+  ];
+  const ep = document.getElementById('api-endpoints');
+  if (ep) ep.innerHTML = endpoints.map((e,i) => `<code style="font-size:11px;color:${i===0?'var(--nv)':'var(--tx2)'};display:block;margin-bottom:3px">${e}</code>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MONITORING
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadMonitoring() {
+  const [statusData, alertData, kpiData] = await Promise.all([
+    apiFetch('/pipeline/status'),
+    apiFetch('/pipeline/alerts?limit=20&resolved=false'),
+    apiFetch('/analytics/kpis'),
+  ]);
+
+  const kpis = [
+    {v: statusData?.uptime_s ? (statusData.uptime_s/3600).toFixed(1)+'h' : '—', l:'Uptime Système', ic:'g', icon:'fa-check-circle'},
+    {v: statusData?.pipeline?.avg_processing_time_s ? statusData.pipeline.avg_processing_time_s.toFixed(1)+'s' : '—', l:'Latence Moy.', ic:'b', icon:'fa-bolt'},
+    {v: kpiData?.active_alerts !== undefined ? kpiData.active_alerts : '—', l:'Alertes Actives', ic:'a', icon:'fa-exclamation'},
+    {v: kpiData?.total_documents !== undefined ? kpiData.total_documents.toLocaleString() : '—', l:'Documents Total', ic:'b', icon:'fa-file'},
+  ];
+  const kc = document.getElementById('mon-kpis');
+  if (kc) kc.innerHTML = kpis.map(k => `<div class="kpi"><div class="kic ${k.ic}"><i class="fas ${k.icon}"></i></div><div><div class="kval">${k.v}</div><div class="klbl">${k.l}</div></div></div>`).join('');
+
+  const fc = document.getElementById('act-feed');
+  if (fc) {
+    const alerts = alertData || [];
+    if (alerts.length) {
+      const map = {critical:'r',warning:'a',info:'b',success:'g'};
+      const imap = {critical:'fa-radiation-alt',warning:'fa-exclamation-triangle',info:'fa-info-circle',success:'fa-check-circle'};
+      fc.innerHTML = alerts.map(a => `<div class="aitem">
+        <div class="abul ${map[a.severity]||'b'}"><i class="fas ${imap[a.severity]||'fa-circle'}"></i></div>
+        <div class="atx"><p>${a.title}</p><span>${a.message||''} · ${timeAgo(a.created_at)}</span></div>
+      </div>`).join('');
+    } else {
+      fc.innerHTML = `<div style="padding:24px;text-align:center;color:var(--tx3);font-size:13px"><i class="fas fa-check-circle" style="color:var(--acc)"></i> Système opérationnel</div>`;
+    }
+  }
+
+  const hc = document.getElementById('agent-health');
+  if (hc && statusData?.agents) {
+    const agents = statusData.agents;
+    const agentList = [
+      {key:'ocr', name:'OCR Agent v4'},
+      {key:'ner', name:'NER Agent'},
+      {key:'classifier', name:'Classifier'},
+      {key:'embedding', name:'Embedding'},
+      {key:'archive', name:'Archiveur'},
+      {key:'monitoring', name:'Monitoring'},
+    ];
+    const dotMap = {active:'g p', ready:'g', processing:'pp', error:'r', idle:'b'};
+    const labelMap = {active:'Actif', ready:'Prêt', processing:'Traitement...', error:'Erreur', idle:'Inactif'};
+    hc.innerHTML = agentList.map(a => {
+      const status = agents[a.key]?.status || 'ready';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bdr)">
+        <span style="font-size:12px;font-weight:500">${a.name}</span>
+        <div class="pss"><div class="sdot ${dotMap[status]||'g'}"></div><span style="font-size:11px;color:var(--tx2)">${labelMap[status]||status}</span></div>
+      </div>`;
+    }).join('');
+  } else if (hc) {
+    hc.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:12px">Données agents non disponibles</div>`;
+  }
+
+  await renderMonAlertes();
+}
+
+async function renderMonAlertes() {
+  const ma = document.getElementById('mon-alerts');
+  if (!ma) return;
+  const alertData = await apiFetch('/pipeline/alerts?limit=50') || [];
+  if (!alertData.length) {
+    ma.innerHTML = `<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px"><i class="fas fa-check-circle" style="color:var(--acc)"></i> Aucune alerte active</div>`;
+    return;
+  }
+  const map = {critical:'d',warning:'w',info:'i',success:'s'};
+  const imap = {critical:'fa-radiation-alt',warning:'fa-exclamation-circle',info:'fa-info-circle',success:'fa-check-circle'};
+  ma.innerHTML = alertData.map(a => `
+    <div class="al ${map[a.severity]||'i'}" id="mon-alert-${a.id}" style="${a.resolved?'opacity:.5':''}">
+      <i class="fas ${imap[a.severity]||'fa-info'} al-ic"></i>
+      <div class="al-body"><p>${a.title}</p><span>${a.message||''} · ${a.aircraft_registration||''}</span></div>
+      <span class="al-time">${timeAgo(a.created_at)}</span>
+      ${!a.resolved
+        ? `<button class="btn btn-xs btn-out" style="margin-left:8px;flex-shrink:0" onclick="resolveAlert(${a.id},this)"><i class="fas fa-check"></i> Résoudre</button>`
+        : `<span style="font-size:11px;color:var(--acc);margin-left:8px;flex-shrink:0">✓ Résolu</span>`}
+    </div>`).join('');
+}
+
+async function resolveAlert(id, btn) {
+  const modal = document.createElement('div');
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px`;
+  modal.innerHTML = `
+    <div style="background:var(--sur);border-radius:var(--rl);width:480px;box-shadow:var(--sh2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bdr)">
+        <h3 style="font-size:14px;font-weight:600;color:var(--nv)">
+          <i class="fas fa-check-circle" style="color:var(--acc);margin-right:7px"></i>Résolution manuelle — Alerte #${id}
+        </h3>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3)">✕</button>
+      </div>
+      <div style="padding:18px">
+        <div style="padding:12px;background:#fff7ed;border:1px solid #fde68a;border-radius:8px;margin-bottom:14px;font-size:12px;color:#78350f">
+          <i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>
+          Vous êtes sur le point de marquer cette alerte comme résolue manuellement.
+        </div>
+        <div class="fgrp">
+          <label style="font-size:11px;font-weight:600;color:var(--tx3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">
+            Action corrective effectuée
+          </label>
+          <select id="res-action" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none;margin-bottom:10px">
+            <option value="">— sélectionner une action —</option>
+            <option value="verified">Document vérifié manuellement</option>
+            <option value="corrected">Classification corrigée</option>
+            <option value="reassigned">Document réassigné au bon avion</option>
+            <option value="duplicate_removed">Doublon supprimé</option>
+            <option value="false_positive">Fausse alerte — ignorée</option>
+            <option value="escalated">Escaladé au responsable MRO</option>
+            <option value="other">Autre action</option>
+          </select>
+        </div>
+        <div class="fgrp">
+          <label style="font-size:11px;font-weight:600;color:var(--tx3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">
+            Commentaire (optionnel)
+          </label>
+          <textarea id="res-comment" rows="3"
+            style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none;font-family:Barlow,sans-serif;resize:none"
+            placeholder="Décrivez l'action corrective effectuée..."></textarea>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+          <span style="font-size:11px;color:var(--tx3)">
+            <i class="fas fa-user" style="margin-right:4px"></i>
+            Résolu par : <strong>${getSession()?.nom || 'Utilisateur'}</strong>
+          </span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-out btn-sm" onclick="this.closest('[style*=fixed]').remove()">Annuler</button>
+            <button class="btn btn-green btn-sm" id="confirm-resolve-btn" onclick="confirmResolve(${id}, this)">
+              <i class="fas fa-check"></i>Confirmer résolution
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function confirmResolve(id, btn) {
+  const action = document.getElementById('res-action')?.value;
+  const comment = document.getElementById('res-comment')?.value?.trim();
+  if (!action) { toast('Sélectionnez une action corrective', 'warn'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Résolution...';
+  const payload = {
+    resolved_by: getSession()?.nom || 'Utilisateur',
+    action_taken: action,
+    comment: comment || null,
+  };
+  const data = await apiFetch(`/pipeline/alerts/${id}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  document.querySelector('[style*=fixed]')?.remove();
+  if (data) {
+    const row = document.getElementById(`mon-alert-${id}`);
+    if (row) {
+      row.style.opacity = '.5';
+      const resolveBtn = row.querySelector('.btn-xs');
+      if (resolveBtn) resolveBtn.replaceWith(
+        Object.assign(document.createElement('span'), {
+          textContent: '✓ Résolu',
+          style: 'font-size:11px;color:var(--acc);margin-left:8px;flex-shrink:0;font-weight:600'
+        })
+      );
+    }
+    toast(`Alerte #${id} résolue manuellement`, 'ok');
+    loadKPIBadges();
+  } else {
+    toast('Erreur lors de la résolution', 'err');
+  }
+}
+
+function resolveAll() {
+  if (!confirm('Résoudre toutes les alertes actives ?')) return;
+  toast('Résolution en cours...','info');
+  apiFetch('/pipeline/alerts/resolve-all', {method:'POST'}).then(() => {
+    loadMonitoring(); loadKPIBadges();
+    toast('Toutes les alertes résolues','ok');
+  });
+}
+
+function toggleFeed() {
+  feedPaused=!feedPaused;
+  document.getElementById('pause-btn').innerHTML = feedPaused
+    ? '<i class="fas fa-play"></i>Reprendre'
+    : '<i class="fas fa-pause"></i>Pause';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadAnalytics() {
+  const [kpiData, statsData] = await Promise.all([
+    apiFetch('/analytics/kpis'),
+    apiFetch('/analytics/stats'),
+  ]);
+
+  const abarsEl = document.getElementById('analytics-bars');
+  if (abarsEl && kpiData) {
+    const archRate = kpiData.archive_rate_pct || 0;
+    const ocrRate = kpiData.avg_ocr_confidence || 0;
+    const dupRate = kpiData.duplicate_rate_pct || 0;
+    abarsEl.innerHTML = `
+      <div class="aib">
+        <div class="aib-h">
+          <span onmouseenter="showTip(event,'100% = tous les PDFs uploadés ont été traités et archivés sans perte.')" onmousemove="moveTip(event)" onmouseleave="hideTip()" style="cursor:default">Taux d'archivage automatique</span>
+          <strong>${archRate}%</strong>
+        </div>
+        <div class="bar-t"><div class="bar-f" style="width:${archRate}%;background:var(--nv)"></div></div>
+      </div>
+      <div class="aib">
+        <div class="aib-h">
+          <span onmouseenter="showTip(event,'Confiance moyenne Tesseract+EasyOCR. 75%+ = fiable, <55% = révision recommandée.')" onmousemove="moveTip(event)" onmouseleave="hideTip()" style="cursor:default">Précision OCR moyenne</span>
+          <strong>${ocrRate.toFixed(1)}%</strong>
+        </div>
+        <div class="bar-t"><div class="bar-f" style="width:${ocrRate}%;background:var(--acc)"></div></div>
+      </div>
+      ${dupRate ? `<div class="aib">
+        <div class="aib-h">
+          <span onmouseenter="showTip(event,'PDFs identiques détectés par leur hash SHA-256 et ignorés automatiquement.')" onmousemove="moveTip(event)" onmouseleave="hideTip()" style="cursor:default">Taux de doublons détectés</span>
+          <strong>${dupRate}%</strong>
+        </div>
+        <div class="bar-t"><div class="bar-f" style="width:${dupRate}%;background:var(--warn)"></div></div>
+      </div>` : ''}
+      <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--tx2)">
+        <strong>${(kpiData.total_documents||0).toLocaleString()}</strong> documents archivés · 
+        <strong>${kpiData.total_aircraft||0}</strong> aéronef(s) · 
+        <strong>${kpiData.active_alerts||0}</strong> alerte(s) active(s)
+      </div>`;
+  }
+
+  const tbody = document.getElementById('stats-tbody');
+  if (!tbody) return;
+  if (!statsData || !statsData.by_type) {
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--tx3)">Backend non disponible</td></tr>`;
+    return;
+  }
+  const total = statsData.by_type.reduce((s,t) => s+(t.count||0), 0) || 1;
+  tbody.innerHTML = statsData.by_type.map(t => {
+    const pct = ((t.count||0)/total*100).toFixed(1);
+    return `<tr>
+      <td style="font-weight:500">${t.type||'—'}</td>
+      <td>${(t.count||0).toLocaleString()}</td>
+      <td>${tag(pct+'%','b')}</td>
+      <td><span class="conf ${t.avg_ocr_confidence>=90?'h':t.avg_ocr_confidence>=75?'m':'l'}">● ${t.avg_ocr_confidence ? t.avg_ocr_confidence.toFixed(1)+'%' : '—'}</span></td>
+      <td><div style="display:flex;align-items:center;gap:7px">
+        <div class="bar-t" style="width:80px;display:inline-block"><div class="bar-f" style="width:${pct}%;background:var(--acc)"></div></div>
+        <span style="font-size:12px">${pct}%</span></div></td>
+    </tr>`;
+  }).join('');
+}
+
+function exportData() { exportCSV(); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════════════════════════════════════
+
+function loadAdminPanel() {
+  const page = document.getElementById('page-admin');
+  if (!page) return;
+  if (!canAccess('admin')) {
+    page.innerHTML = `<div style="padding:40px;text-align:center;color:var(--tx3)"><i class="fas fa-lock" style="font-size:32px;display:block;margin-bottom:12px"></i>Accès réservé à l'administrateur</div>`;
+    return;
+  }
+  renderAdminPanel();
+}
+
+function renderAdminPanel() {
+  const page = document.getElementById('page-admin');
+  if (!page) return;
+  const users = getUsers(); const session = getSession();
+  page.innerHTML = `
+    <div class="ph"><div class="ph-row">
+      <div><h2><i class="fas fa-users-cog"></i>Gestion des Sessions & Utilisateurs</h2>
+        <p>${users.length} utilisateur(s) · ${users.filter(u=>u.actif).length} actif(s)</p></div>
+      <button class="btn btn-blue btn-sm" onclick="openAddUser()"><i class="fas fa-user-plus"></i>Ajouter</button>
+    </div></div>
+    <div class="card section-sp"><div class="ch"><h3><i class="fas fa-user-check"></i>Session Active</h3></div>
+      <div class="cb"><div style="display:flex;align-items:center;gap:16px;padding:12px;background:var(--sky);border-radius:10px">
+        <div class="uav" style="width:44px;height:44px;font-size:16px">${session?.nom?.charAt(0)||'?'}</div>
+        <div><div style="font-weight:600;font-size:14px">${session?.nom||'—'}</div>
+          <div style="font-size:12px;color:var(--tx2)">${session?.email||'—'} · ${session?.role||'—'}</div></div>
+        <button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i>Déconnexion</button>
+      </div></div>
+    </div>
+    <div class="card"><div class="ch"><h3><i class="fas fa-users"></i>Utilisateurs</h3><span class="tag b">${users.filter(u=>u.actif).length} actifs</span></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr>
+        <th>Nom</th><th>Email</th><th>Rôle</th><th>Upload</th><th>Monitoring</th><th>Analytics</th><th>Admin</th><th>Statut</th><th></th>
+      </tr></thead><tbody>
+        ${users.map(u => `<tr>
+          <td style="font-weight:500">${u.nom}</td>
+          <td style="font-size:12px;color:var(--tx2)">${u.email}</td>
+          <td>${tag(u.role, u.role==='admin'?'r':u.role==='technicien'?'b':'gr')}</td>
+          <td style="text-align:center">${droit(u.id,'upload',u.droits?.upload)}</td>
+          <td style="text-align:center">${droit(u.id,'monitoring',u.droits?.monitoring)}</td>
+          <td style="text-align:center">${droit(u.id,'analytics',u.droits?.analytics)}</td>
+          <td style="text-align:center">${droit(u.id,'admin',u.droits?.admin)}</td>
+          <td>${tag(u.actif?'Actif':'Inactif', u.actif?'g':'r')}</td>
+          <td>
+            <button class="act-btn" title="${u.actif?'Désactiver':'Activer'}" onclick="toggleUser(${u.id})"><i class="fas fa-${u.actif?'ban':'check-circle'}"></i></button>
+            ${u.id!==session?.id?`<button class="act-btn" onclick="deleteUser(${u.id})"><i class="fas fa-trash" style="color:var(--danger)"></i></button>`:''}
+          </td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+}
+
+function droit(userId, droitName, val) {
+  return `<input type="checkbox" ${val?'checked':''} onchange="toggleDroit(${userId},'${droitName}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--nv)">`;
+}
+
+function toggleDroit(userId, droitName, val) {
+  const users = getUsers(); const u = users.find(u=>u.id===userId); if(!u)return;
+  if(!u.droits)u.droits={}; u.droits[droitName]=val; saveUsers(users);
+  toast(`Droit «${droitName}» ${val?'accordé':'retiré'} à ${u.nom}`, 'ok');
+}
+
+function toggleUser(userId) {
+  const session = getSession(); if(userId===session?.id){toast('Impossible de désactiver votre propre compte','err');return;}
+  const users=getUsers(); const u=users.find(u=>u.id===userId); if(!u)return;
+  u.actif=!u.actif; saveUsers(users); toast(`${u.nom} — ${u.actif?'activé':'désactivé'}`, 'ok'); renderAdminPanel();
+}
+
+function deleteUser(userId) {
+  const session=getSession(); if(userId===session?.id){toast('Impossible de supprimer votre compte','err');return;}
+  if(!confirm('Supprimer cet utilisateur ?'))return;
+  let users=getUsers(); users=users.filter(u=>u.id!==userId); saveUsers(users); toast('Utilisateur supprimé','ok'); renderAdminPanel();
+}
+
+function openAddUser() {
+  const modal=document.createElement('div');
+  modal.style.cssText=`position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px`;
+  modal.innerHTML=`<div style="background:var(--sur);border-radius:var(--rl);width:460px;box-shadow:var(--sh2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bdr)">
+      <h3 style="font-size:14px;font-weight:600;color:var(--nv)"><i class="fas fa-user-plus"></i> Nouvel utilisateur</h3>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3)">✕</button>
+    </div>
+    <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+      <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">Nom complet</label>
+        <input id="nu-nom" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none" placeholder="Prénom Nom"></div>
+      <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">Email</label>
+        <input id="nu-email" type="email" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none" placeholder="prenom.nom@nouvelair.com.tn"></div>
+      <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">Mot de passe</label>
+        <input id="nu-pass" type="password" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none"></div>
+      <div class="fgrp"><label style="font-size:11px;font-weight:600;color:var(--tx3)">Rôle</label>
+        <select id="nu-role" style="width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none">
+          <option value="technicien">Technicien MRO</option><option value="consultant">Consultant</option><option value="admin">Administrateur</option>
+        </select></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
+        <button class="btn btn-out btn-sm" onclick="this.closest('[style*=fixed]').remove()">Annuler</button>
+        <button class="btn btn-blue btn-sm" onclick="saveNewUser()"><i class="fas fa-save"></i>Créer</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function saveNewUser() {
+  const nom=document.getElementById('nu-nom')?.value.trim();
+  const email=document.getElementById('nu-email')?.value.trim();
+  const pass=document.getElementById('nu-pass')?.value;
+  const role=document.getElementById('nu-role')?.value;
+  if(!nom||!email||!pass){toast('Tous les champs sont requis','err');return;}
+  const users=getUsers();
+  if(users.find(u=>u.email===email)){toast('Email déjà utilisé','err');return;}
+  users.push({id:Math.max(...users.map(u=>u.id),0)+1,email,password:pass,nom,role,
+    droits:{consultation:true,upload:role!=='consultant',monitoring:role==='admin',analytics:true,admin:role==='admin'},actif:true});
+  saveUsers(users); document.querySelector('[style*=fixed]')?.remove(); toast(`Utilisateur ${nom} créé`,'ok'); renderAdminPanel();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// KPI BADGES
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadKPIBadges() {
+  const data = await apiFetch('/analytics/kpis');
+  if (!data) return;
+  const nb = document.getElementById('nb-docs'); if (nb) nb.textContent = (data.total_documents||0).toLocaleString();
+  const na = document.getElementById('nb-alerts'); if (na) na.textContent = data.active_alerts !== undefined ? data.active_alerts : '—';
+  const dot = document.getElementById('alert-dot'); if (dot) dot.style.display = (data.active_alerts||0)>0?'':'none';
+  const nf = document.getElementById('nb-fleet'); if (nf) nf.textContent = data.total_aircraft !== undefined ? data.total_aircraft : '—';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AGENT DOTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function updateAgentDots() {
+  const data = await apiFetch('/pipeline/status');
+  if (!data) return;
+  const agents = data.agents || {};
+  const map = [
+    {dot:'dot-ocr',lbl:'lbl-ocr',key:'ocr',name:'OCR Agent v4'},
+    {dot:'dot-ner',lbl:'lbl-ner',key:'ner',name:'NER Agent'},
+    {dot:'dot-cls',lbl:'lbl-cls',key:'classifier',name:'Classifier'},
+    {dot:'dot-emb',lbl:'lbl-emb',key:'embedding',name:'Embeddings'},
+    {dot:'dot-arc',lbl:'lbl-arc',key:'archive',name:'Archiveur'},
+    {dot:'dot-mon',lbl:'lbl-mon',key:'monitoring',name:'Monitoring'},
+  ];
+  const dotMap = {active:'g p', ready:'g', processing:'a p', error:'r', idle:'b'};
+  const labelMap = {active:'actif', ready:'prêt', processing:'traitement', error:'erreur', idle:'inactif'};
+  map.forEach(({dot,lbl,key,name}) => {
+    const d=document.getElementById(dot); const l=document.getElementById(lbl);
+    const agentData = agents[key] || {};
+    const status = agentData.status || 'ready';
+    if(d) d.className='dot '+(dotMap[status]||'g');
+    if(l) l.textContent=`${name} — ${labelMap[status]||status}`;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DÉMARRAGE
+// ══════════════════════════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => { const loader=document.getElementById('loader'); if(loader)loader.style.display='none'; }, 1200);
+  const session = getSession();
+  if (session) {
+    document.getElementById('user-label').textContent = session.nom || 'Utilisateur';
+    const av = document.getElementById('user-av'); if(av) av.textContent=(session.nom||'U').charAt(0).toUpperCase();
+    applyDroits(session);
+    nav('dashboard');
+    loadKPIBadges();
+    initDynamicData();
+    updateAgentDots();
+  } else {
+    const loader=document.getElementById('loader'); if(loader)loader.style.display='none';
+    nav('login');
+  }
+  setInterval(loadKPIBadges, 60000);
+  setInterval(updateAgentDots, 30000);
+  setInterval(() => {
+    const dash=document.getElementById('page-dashboard');
+    if(dash&&dash.classList.contains('active')) loadDashboard();
+  }, 30000);
+});
+</script>
+</body>
+</html>
