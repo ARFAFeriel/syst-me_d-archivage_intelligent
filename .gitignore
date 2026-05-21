@@ -91,3 +91,5 @@ desktop.ini
 Systeme darchivage intelligent/
 
 savoirfaire/
+
+backend/models/distilbert_classifier/
