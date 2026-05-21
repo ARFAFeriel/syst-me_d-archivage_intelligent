@@ -2,6 +2,8 @@
 Point d'entrée FastAPI
 Système Intelligent d'Archivage des Documents Aéronautiques — NouvelAir MRO
 """
+from backend.api.users_api import router as users_router
+from backend.api.auth_api import router as auth_router
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -113,7 +115,7 @@ app.include_router(aircraft_router, prefix=API_PREFIX)
 app.include_router(pipeline_router, prefix=API_PREFIX)
 app.include_router(analytics_router, prefix=API_PREFIX)
 app.include_router(auth_router, prefix=API_PREFIX)
-app.include_router(users_router, prefix=API_PREFIX)
+
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
 @app.websocket("/ws/documents")
