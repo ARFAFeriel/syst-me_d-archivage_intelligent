@@ -20,6 +20,11 @@ v4 — Organisation fichiers :
   - Après archivage, chaque document est copié dans ORGANISED/ avec nom normalisé
   - Format : {IMMAT}_{TYPE}_{REF}.pdf  ex: TS-INQ_WO_ES154313.pdf
   - Sans immatriculation → En_Attente/ + alerte générée
+
+v5 — Fix copie physique :
+  - _organise_file effectue maintenant une vraie copie shutil.copy2
+  - Le chemin stocké en base pointe vers ORGANISED/ (permanent)
+  - Plus de perte de fichier après upload temporaire
 """
 import hashlib
 import shutil
@@ -91,9 +96,13 @@ class ArchiveAgent:
     # ─── Organisation fichier ─────────────────────────────────────────────────
     def _organise_file(self, src_path: str, doc: Document) -> str | None:
         """
-Retourne le chemin original sans copie physique.
-        Format : {IMMAT}_{TYPE}_{REF}.pdf
-        Retourne le nouveau chemin, ou None si la source est introuvable.
+        Copie le fichier source vers ORGANISED/ avec un nom normalisé.
+        Format : {IMMAT}_{TYPE}_{REF}.pdf  ex: TS-INQ_WO_ES154313.pdf
+        Retourne le chemin de destination, ou None si la source est introuvable.
+
+        FIX v5 : copie physique réelle (shutil.copy2) au lieu d'un simple retour
+        du chemin source. Garantit que le fichier est accessible après suppression
+        du fichier temporaire d'upload.
         """
         raw = (src_path or "").strip()
         src = Path(raw[4:] if raw.startswith("\\\\?\\") else raw)
@@ -102,13 +111,18 @@ Retourne le chemin original sans copie physique.
             logger.warning(f"[{self.name}] _organise_file: source introuvable {src}")
             return None
 
-        # Dossier destination
+        # ── Calcul du dossier destination ────────────────────────────────────
         reg = (doc.aircraft_registration or "").strip().upper()
+
         if not reg:
             dest_folder = _ORGANISED_ROOT / "En_Attente"
         else:
             cat_key  = (doc.category or "").strip().lower()
-            cat_fold = _CATEGORY_FOLDER.get(cat_key) or cat_key.replace(' ', '_').replace('&', 'et').strip() or "Divers"
+            cat_fold = (
+                _CATEGORY_FOLDER.get(cat_key)
+                or cat_key.replace(' ', '_').replace('&', 'et').strip()
+                or "Divers"
+            )
             dt_str   = str(doc.doc_type or "").split(".")[-1].upper()
             type_sub = _TYPE_FOLDER.get(dt_str, "")
             parts    = [_ORGANISED_ROOT, reg, cat_fold]
@@ -116,31 +130,50 @@ Retourne le chemin original sans copie physique.
                 parts.append(type_sub)
             dest_folder = Path(*parts)
 
-        # Nom normalisé
+        # ── Calcul du nom de fichier normalisé ───────────────────────────────
         dt_str    = str(doc.doc_type or "").split(".")[-1].upper()
         short     = _TYPE_SHORT.get(dt_str, dt_str[:6])
         ref       = (
-            doc.es_reference or doc.sb_ad_reference or
-            doc.work_order_number or doc.item_number or str(doc.id)
+            doc.es_reference
+            or doc.sb_ad_reference
+            or doc.work_order_number
+            or doc.item_number
+            or str(doc.id)
         )
-        ref       = ref.strip().replace(" ", "_").replace("/", "-").replace("\\", "-")
-        ata       = f"_ATA{doc.ata_chapter}" if doc.ata_chapter else ""
-        reg_part  = reg if reg else "UNKN"
+        ref      = ref.strip().replace(" ", "_").replace("/", "-").replace("\\", "-")
+        ata      = f"_ATA{doc.ata_chapter}" if doc.ata_chapter else ""
+        reg_part = reg if reg else "UNKN"
         dest_name = f"{reg_part}_{short}_{ref}{ata}.pdf"
         dest_path = dest_folder / dest_name
 
-        # Collision de nom → ajouter ID
+        # ── Gestion collision de nom ─────────────────────────────────────────
         if dest_path.exists():
             try:
+                # Si c'est déjà le même fichier (re-traitement), on ne recopie pas
                 if dest_path.resolve() == src.resolve():
-                    return str(dest_path)  # déjà organisé
+                    logger.debug(f"[{self.name}] Fichier déjà organisé : {dest_path}")
+                    return str(dest_path)
             except Exception:
                 pass
+            # Nom différent → ajouter l'ID pour éviter l'écrasement
             dest_name = f"{dest_path.stem}_{doc.id}.pdf"
             dest_path = dest_folder / dest_name
 
-        logger.info(f"[{self.name}] Fichier référencé (pas de copie) → {src}")
-        return str(src)
+        # ── Copie physique réelle vers ORGANISED/ ────────────────────────────
+        try:
+            dest_folder.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest_path)
+            logger.info(f"[{self.name}] Fichier copié → {dest_path}")
+            return str(dest_path)
+        except PermissionError as e:
+            logger.error(f"[{self.name}] Permission refusée lors de la copie {src} → {dest_path}: {e}")
+            return str(src)
+        except OSError as e:
+            logger.error(f"[{self.name}] Erreur OS lors de la copie {src} → {dest_path}: {e}")
+            return str(src)
+        except Exception as e:
+            logger.error(f"[{self.name}] Erreur inattendue lors de la copie {src} → {dest_path}: {e}")
+            return str(src)
 
     async def resolve_aircraft(self, db: AsyncSession, registration: str) -> Aircraft | None:
         if not registration:
@@ -157,8 +190,10 @@ Retourne le chemin original sans copie physique.
         aircraft = result.scalar_one_or_none()
         if not aircraft:
             aircraft = Aircraft(
-                registration=reg_upper, model="A320-214", airline="NouvelAir",
-                archive_path=f"{settings.archive_root_path}\\{reg_upper}"
+                registration=reg_upper,
+                model="A320-214",
+                airline="NouvelAir",
+                archive_path=f"{settings.archive_root_path}\\{reg_upper}",
             )
             db.add(aircraft)
             await db.flush()
@@ -167,7 +202,11 @@ Retourne le chemin original sans copie physique.
         return aircraft
 
     async def resolve_check(
-        self, db: AsyncSession, es_ref: str, aircraft: Aircraft, doc_category: str
+        self,
+        db: AsyncSession,
+        es_ref: str,
+        aircraft: Aircraft,
+        doc_category: str,
     ) -> AircraftCheck | None:
         if not es_ref:
             return None
@@ -179,15 +218,20 @@ Retourne le chemin original sans copie physique.
             if check:
                 return check
             del self._check_cache[es_upper]
-        result = await db.execute(select(AircraftCheck).where(AircraftCheck.es_reference == es_upper))
+        result = await db.execute(
+            select(AircraftCheck).where(AircraftCheck.es_reference == es_upper)
+        )
         check = result.scalar_one_or_none()
         if not check and aircraft:
             check_type = CheckType.CHECK_A
             if doc_category and "C" in doc_category.upper():
                 check_type = CheckType.CHECK_C
             check = AircraftCheck(
-                es_reference=es_upper, check_type=check_type, aircraft_id=aircraft.id,
-                description=f"Check {check_type} — {es_ref} (inféré)", confirmed_by_rct=False,
+                es_reference=es_upper,
+                check_type=check_type,
+                aircraft_id=aircraft.id,
+                description=f"Check {check_type} — {es_ref} (inféré)",
+                confirmed_by_rct=False,
             )
             db.add(check)
             await db.flush()
@@ -196,11 +240,15 @@ Retourne le chemin original sans copie physique.
             self._check_cache[es_upper] = check.id
         return check
 
-    async def _process_rct_anchor(self, db: AsyncSession, doc: Document, ner: NERResult) -> None:
+    async def _process_rct_anchor(
+        self, db: AsyncSession, doc: Document, ner: NERResult
+    ) -> None:
         linked_wp      = ner.linked_wp
         check_type_str = ner.check_type
         if not linked_wp or not check_type_str:
-            logger.warning(f"[{self.name}] RCT {doc.filename} — linked_wp ou check_type manquant")
+            logger.warning(
+                f"[{self.name}] RCT {doc.filename} — linked_wp ou check_type manquant"
+            )
             return
         check_type_enum = _CHECK_TYPE_MAP.get(check_type_str.upper())
         if not check_type_enum:
@@ -208,7 +256,9 @@ Retourne le chemin original sans copie physique.
             return
         aircraft = await self.resolve_aircraft(db, ner.aircraft_registration)
         if not aircraft:
-            logger.warning(f"[{self.name}] RCT anchor: aircraft introuvable ({ner.aircraft_registration})")
+            logger.warning(
+                f"[{self.name}] RCT anchor: aircraft introuvable ({ner.aircraft_registration})"
+            )
             return
 
         result = await db.execute(
@@ -216,27 +266,34 @@ Retourne le chemin original sans copie physique.
         )
         existing_check = result.scalar_one_or_none()
         if existing_check:
-            existing_check.check_type      = check_type_enum
-            existing_check.aircraft_id     = aircraft.id
+            existing_check.check_type       = check_type_enum
+            existing_check.aircraft_id      = aircraft.id
             existing_check.confirmed_by_rct = True
             existing_check.rct_document_id  = doc.id
-            existing_check.description     = f"Confirmé par RCT — {doc.filename}"
+            existing_check.description      = f"Confirmé par RCT — {doc.filename}"
             anchor_check = existing_check
-            logger.info(f"[{self.name}] aircraft_checks mis à jour: {linked_wp} → {check_type_enum}")
+            logger.info(
+                f"[{self.name}] aircraft_checks mis à jour: {linked_wp} → {check_type_enum}"
+            )
         else:
             anchor_check = AircraftCheck(
-                es_reference=linked_wp.upper(), check_type=check_type_enum,
-                aircraft_id=aircraft.id, confirmed_by_rct=True,
-                rct_document_id=doc.id, description=f"Confirmé par RCT — {doc.filename}",
+                es_reference=linked_wp.upper(),
+                check_type=check_type_enum,
+                aircraft_id=aircraft.id,
+                confirmed_by_rct=True,
+                rct_document_id=doc.id,
+                description=f"Confirmé par RCT — {doc.filename}",
             )
             db.add(anchor_check)
-            logger.info(f"[{self.name}] aircraft_checks créé: {linked_wp} → {check_type_enum}")
+            logger.info(
+                f"[{self.name}] aircraft_checks créé: {linked_wp} → {check_type_enum}"
+            )
 
         await db.flush()
         self._check_cache.pop(linked_wp.upper(), None)
         self._check_cache[linked_wp.upper()] = anchor_check.id
 
-        # Backfill rétroactif
+        # ── Backfill rétroactif ───────────────────────────────────────────────
         result = await db.execute(
             select(Document).where(Document.es_reference == linked_wp.upper())
         )
@@ -268,7 +325,7 @@ Retourne le chemin original sans copie physique.
         ner: NERResult,
         classification: ClassifierResult,
         embedding: list[float] | None,
-        file_size_kb: float = 0.0
+        file_size_kb: float = 0.0,
     ) -> tuple[Document, bool]:
         """
         Persiste le document en base + copie organisée dans ORGANISED/.
@@ -278,9 +335,13 @@ Retourne le chemin original sans copie physique.
         aircraft = await self.resolve_aircraft(db, ner.aircraft_registration)
 
         from backend.models.document import DocumentType
-        is_rct          = (classification.predicted_type == DocumentType.RCT)
-        es_ref_for_check = (ner.linked_wp if is_rct and ner.linked_wp else ner.es_reference)
-        check = await self.resolve_check(db, es_ref_for_check, aircraft, classification.predicted_category)
+        is_rct           = (classification.predicted_type == DocumentType.RCT)
+        es_ref_for_check = (
+            ner.linked_wp if is_rct and ner.linked_wp else ner.es_reference
+        )
+        check = await self.resolve_check(
+            db, es_ref_for_check, aircraft, classification.predicted_category
+        )
 
         doc = Document(
             sha256_hash           = sha256,
@@ -310,40 +371,49 @@ Retourne le chemin original sans copie physique.
             check_id              = check.id if check else None,
             archived_at           = None,
             is_critical           = self._is_critical_ad(ner, classification),
-            needs_review          = ocr.confidence < 60.0 or classification.confidence < 0.5,
+            needs_review          = (
+                ocr.confidence < 60.0 or classification.confidence < 0.5
+            ),
         )
 
         db.add(doc)
         await db.flush()
 
-        # RCT anchor
+        # ── RCT anchor ───────────────────────────────────────────────────────
         if is_rct:
             await self._process_rct_anchor(db, doc, ner)
 
-        # Alertes qualité
+        # ── Alertes qualité ──────────────────────────────────────────────────
         await self._generate_alerts(db, doc, ocr, classification)
 
-        # ── Organisation fichier → ORGANISED/ ────────────────────────────────
+        # ── Copie vers ORGANISED/ (FIX v5) ───────────────────────────────────
         organised_path = self._organise_file(original_path, doc)
         if organised_path:
             doc.original_path = organised_path
-        elif not ner.aircraft_registration:
-            db.add(Alert(
-                title                = f"Document sans immatriculation — {filename}",
-                message              = (
-                    f"'{filename}' n'a pas d'immatriculation reconnue. "
-                    f"Placé dans En_Attente/. Vérification manuelle requise."
-                ),
-                severity             = AlertSeverity.WARNING,
-                alert_type           = AlertType.OCR_LOW_CONFIDENCE,
-                aircraft_registration= None,
-                document_id          = doc.id,
-            ))
+            logger.debug(
+                f"[{self.name}] original_path mis à jour → {organised_path}"
+            )
+        else:
+            # Fichier source introuvable : alerte si pas déjà gérée
+            if not ner.aircraft_registration:
+                db.add(Alert(
+                    title                = f"Document sans immatriculation — {filename}",
+                    message              = (
+                        f"'{filename}' n'a pas d'immatriculation reconnue. "
+                        f"Placé dans En_Attente/. Vérification manuelle requise."
+                    ),
+                    severity             = AlertSeverity.WARNING,
+                    alert_type           = AlertType.OCR_LOW_CONFIDENCE,
+                    aircraft_registration= None,
+                    document_id          = doc.id,
+                ))
 
         logger.info(f"[{self.name}] Document archivé: #{doc.id} {filename}")
         return doc, False
 
-    def _is_critical_ad(self, ner: NERResult, classification: ClassifierResult) -> bool:
+    def _is_critical_ad(
+        self, ner: NERResult, classification: ClassifierResult
+    ) -> bool:
         from backend.models.document import DocumentType
         return (
             classification.predicted_type == DocumentType.AD
@@ -351,19 +421,26 @@ Retourne le chemin original sans copie physique.
         )
 
     async def _generate_alerts(
-        self, db: AsyncSession, doc: Document,
-        ocr: OCRResult, classification: ClassifierResult
-    ):
+        self,
+        db: AsyncSession,
+        doc: Document,
+        ocr: OCRResult,
+        classification: ClassifierResult,
+    ) -> None:
         alerts = []
-       
+
         if 0 < ocr.confidence < 50.0:
             alerts.append(Alert(
                 title                = f"OCR faible confiance — {doc.filename}",
-                message              = f"Confiance OCR: {ocr.confidence:.1f}%. Vérification manuelle recommandée.",
+                message              = (
+                    f"Confiance OCR: {ocr.confidence:.1f}%. "
+                    f"Vérification manuelle recommandée."
+                ),
                 severity             = AlertSeverity.WARNING,
                 alert_type           = AlertType.OCR_LOW_CONFIDENCE,
                 aircraft_registration= doc.aircraft_registration,
                 document_id          = doc.id,
             ))
+
         for alert in alerts:
             db.add(alert)

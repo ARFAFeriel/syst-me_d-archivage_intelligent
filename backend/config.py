@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     embedding_dim: int = 384
     groq_api_key: str = ""
 
+    # Email
+    mail_username: str = ""
+    mail_password: str = ""
+    mail_from: str = ""
+
     # Upload
     max_upload_size_mb: int = 200
     upload_dir: str = os.getenv("UPLOAD_DIR", "./uploads")

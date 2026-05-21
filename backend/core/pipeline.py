@@ -7,11 +7,19 @@ OPTIMISATIONS v2 :
     avec semaphore configurable (défaut: 3 docs en parallèle)
   - Les agents agents (NER, Classifier, Embedding) bénéficient du parallélisme
     inter-documents
+
+v3 — Aircraft Resolver :
+  - Après NER, si aircraft_registration est vide et es_reference est trouvée,
+    on interroge la base pour trouver l'avion via les documents existants.
+  - Fallback : cherche via le nom de fichier dans les docs existants.
+  - Garantit que le système "apprend" de ses propres archives.
 """
+import re
 import time
 import asyncio
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from backend.agents.ocr_agent import OCRAgent
 from backend.agents.ner_agent import NERAgent
 from backend.agents.classifier_agent import ClassifierAgent
@@ -19,6 +27,7 @@ from backend.agents.embedding_agent import EmbeddingAgent
 from backend.agents.archive_agent import ArchiveAgent
 from backend.agents.monitoring_agent import MonitoringAgent
 from backend.agents.linked_wp_resolver import resolve_linked_wp_category
+from backend.models.document import Document
 from backend.schemas.document import (
     PipelineResult, DocumentStatusEnum, DocumentTypeEnum, ClassifierResult
 )
@@ -43,6 +52,85 @@ PATH_TO_ENUM = {
 }
 
 
+async def _resolve_aircraft_from_db(
+    db: AsyncSession,
+    es_reference: str | None,
+    filename: str,
+) -> str | None:
+    """
+    Cherche l'immatriculation de l'avion dans la base de données
+    en utilisant la référence ES ou le nom de fichier.
+
+    Stratégie :
+    1. Si es_reference connue → cherche les docs avec cette ES ref
+    2. Sinon → cherche les docs avec un nom similaire
+    3. Retourne l'immatriculation la plus fréquente trouvée
+    """
+
+    # ── Stratégie 1 : via référence ES ───────────────────────────────────────
+    if es_reference:
+        es_clean = es_reference.upper().strip()
+        # Cherche avec ou sans le préfixe "ES"
+        es_num = es_clean[2:] if es_clean.startswith('ES') else es_clean
+
+        result = await db.execute(
+            select(
+                Document.aircraft_registration,
+                func.count(Document.id).label('cnt')
+            )
+            .where(
+                Document.aircraft_registration.isnot(None),
+                Document.aircraft_registration != '',
+                Document.es_reference.ilike(f'%{es_num}%'),
+            )
+            .group_by(Document.aircraft_registration)
+            .order_by(func.count(Document.id).desc())
+            .limit(1)
+        )
+        row = result.first()
+        if row and row.aircraft_registration:
+            logger.info(
+                f"[Pipeline][AircraftResolver] "
+                f"'{es_reference}' → '{row.aircraft_registration}' "
+                f"({row.cnt} docs existants)"
+            )
+            return row.aircraft_registration
+
+    # ── Stratégie 2 : via nom de fichier (extrait l'ES du nom) ───────────────
+    m = re.search(r'(ES\d{4,8})', filename, re.IGNORECASE)
+    if m:
+        es_from_name = m.group(1).upper()
+        es_num = es_from_name[2:]  # retire "ES"
+        result = await db.execute(
+            select(
+                Document.aircraft_registration,
+                func.count(Document.id).label('cnt')
+            )
+            .where(
+                Document.aircraft_registration.isnot(None),
+                Document.aircraft_registration != '',
+                Document.es_reference.ilike(f'%{es_num}%'),
+            )
+            .group_by(Document.aircraft_registration)
+            .order_by(func.count(Document.id).desc())
+            .limit(1)
+        )
+        row = result.first()
+        if row and row.aircraft_registration:
+            logger.info(
+                f"[Pipeline][AircraftResolver] "
+                f"filename '{filename}' → ES '{es_from_name}' "
+                f"→ '{row.aircraft_registration}' ({row.cnt} docs)"
+            )
+            return row.aircraft_registration
+
+    logger.debug(
+        f"[Pipeline][AircraftResolver] "
+        f"Aucun avion trouvé pour ES='{es_reference}' / file='{filename}'"
+    )
+    return None
+
+
 class PipelineOrchestrator:
     """
     Orchestre le pipeline complet de traitement d'un document.
@@ -50,6 +138,7 @@ class PipelineOrchestrator:
     Pipeline single :
     1. OCR Agent       — Extraction de texte (pdfplumber + Tesseract)
     2. NER Agent       — Extraction d'entités (spaCy + Regex)
+    2b. AircraftResolver — Lookup DB si avion non détecté
     3. Classifier      — Classification (TF-IDF + LR + règles chemin)
     3b. LinkedWP       — Résolution catégorie via Linked WP
     4. Embedding Agent — Vecteur 384d (MiniLM-L6-v2)
@@ -136,11 +225,12 @@ class PipelineOrchestrator:
             ner_result = await self.ner.process(
                 ocr_result.text, filename, profile=profile,
             )
+            # Fallback 1 : inférer depuis le chemin
             if not ner_result.aircraft_registration and original_path:
                 ner_result.aircraft_registration = \
                     self.ner.infer_aircraft_from_path(original_path)
+            # Fallback 2 : regex sur le nom de fichier
             if not ner_result.aircraft_registration:
-                import re
                 m = re.search(r"(TS-IN[A-Z])", filename, re.IGNORECASE)
                 if m:
                     ner_result.aircraft_registration = m.group(1).upper()
@@ -149,6 +239,35 @@ class PipelineOrchestrator:
             errors.append(f"NER: {e}")
             from backend.schemas.document import NERResult
             ner_result = NERResult()
+
+        # ── Étape 2b : Aircraft Resolver (lookup base de données) ─────────────
+        # Si après NER + fallbacks l'avion est toujours inconnu,
+        # on interroge la base via la référence ES ou le nom de fichier.
+        # Le système "apprend" de ses propres archives.
+        if not ner_result.aircraft_registration:
+            logger.info(
+                f"[Pipeline] [2b] AircraftResolver: "
+                f"avion non détecté pour '{filename}', "
+                f"lookup DB via ES='{ner_result.es_reference}'..."
+            )
+            try:
+                resolved = await _resolve_aircraft_from_db(
+                    db,
+                    es_reference=ner_result.es_reference,
+                    filename=filename,
+                )
+                if resolved:
+                    ner_result.aircraft_registration = resolved
+                    logger.info(
+                        f"[Pipeline] [2b] ✓ Avion résolu via DB: "
+                        f"'{resolved}' pour '{filename}'"
+                    )
+                else:
+                    logger.warning(
+                        f"[Pipeline] [2b] ✗ Avion non résolu pour '{filename}'"
+                    )
+            except Exception as e:
+                logger.warning(f"[Pipeline] AircraftResolver ignoré: {e}")
 
         # ── Étape 3 : Classification ──────────────────────────────────────────
         logger.info(f"[Pipeline] [3/5] Classification: {filename}")
@@ -163,7 +282,7 @@ class PipelineOrchestrator:
                     f"path='{doc_type}' vs "
                     f"classifier='{classifier_result.predicted_type.value}'"
                 )
-                # ✅ Priorité au chemin si type connu et non 'unknown'
+                # Priorité au chemin si type connu et non 'unknown'
                 if doc_type != 'unknown':
                     enum_value = PATH_TO_ENUM.get(doc_type.lower())
                     if enum_value:
@@ -263,6 +382,7 @@ class PipelineOrchestrator:
         logger.info(
             f"[Pipeline] ✓ {filename} → doc#{document.id} "
             f"[{classifier_result.predicted_type.value}] "
+            f"avion={ner_result.aircraft_registration or '?'} "
             f"conf={classifier_result.confidence:.0%} "
             f"ocr={ocr_result.confidence:.1f}% "
             f"t={duration}s"

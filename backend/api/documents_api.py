@@ -4,6 +4,8 @@ CRUD + Upload + Pipeline
 """
 import math
 import os
+import tempfile
+from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -36,14 +38,41 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(400, "Nom de fichier manquant")
 
+    # ── Sauvegarde temporaire sur disque ──────────────────────────────────────
+    # Nécessaire pour que l'archiver puisse copier physiquement le fichier
+    # vers ORGANISED/ via shutil.copy2. Sans ça, le chemin est fictif.
+    upload_dir = Path(settings.archive_root_path).parent / "uploads_temp"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    temp_path = upload_dir / file.filename
+
+    try:
+        with open(temp_path, "wb") as f:
+            f.write(content)
+        original_path = str(temp_path)
+        logger.info(f"[Upload] Fichier temporaire sauvegardé : {temp_path}")
+    except Exception as e:
+        logger.error(f"[Upload] Impossible de sauvegarder le fichier temporaire : {e}")
+        original_path = f"upload/{file.filename}"
+        temp_path = None
+
     pipeline = get_pipeline()
     result = await pipeline.process_document(
         db=db,
         file_content=content,
         filename=file.filename,
-        original_path=f"upload/{file.filename}",
+        original_path=original_path,
         file_size_kb=len(content) / 1024,
     )
+
+    # ── Nettoyage du fichier temporaire ───────────────────────────────────────
+    # L'archiver a déjà copié le fichier vers ORGANISED/ à ce stade.
+    # On supprime le temp pour ne pas encombrer le disque.
+    if temp_path and temp_path.exists():
+        try:
+            temp_path.unlink()
+            logger.debug(f"[Upload] Fichier temporaire supprimé : {temp_path}")
+        except Exception:
+            pass
 
     if result.status.value == "error":
         raise HTTPException(422, f"Erreur pipeline: {result.errors}")
@@ -70,24 +99,53 @@ async def upload_batch(
     if len(files) > 50:
         raise HTTPException(400, "Maximum 50 fichiers par lot")
 
+    # Créer le dossier temporaire pour le lot
+    upload_dir = Path(settings.archive_root_path).parent / "uploads_temp"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
     results = []
     pipeline = get_pipeline()
+    temp_paths = []
 
     for file in files:
         content = await file.read()
+        filename = file.filename or "unknown.pdf"
+
+        # Sauvegarde temporaire
+        temp_path = upload_dir / filename
+        try:
+            with open(temp_path, "wb") as f:
+                f.write(content)
+            original_path = str(temp_path)
+            temp_paths.append(temp_path)
+        except Exception:
+            original_path = ""
+            temp_path = None
+
         result = await pipeline.process_document(
             db=db,
             file_content=content,
-            filename=file.filename or "unknown.pdf",
+            filename=filename,
+            original_path=original_path,
             file_size_kb=len(content) / 1024,
         )
         results.append({
-            "filename": file.filename,
+            "filename": filename,
             "status": result.status.value,
             "document_id": result.document_id,
             "is_duplicate": result.is_duplicate,
+            "ner": result.ner.model_dump() if result.ner else {},
+            "classification": result.classification.model_dump() if result.classification else {},
             "errors": result.errors,
         })
+
+    # Nettoyage des fichiers temporaires du lot
+    for tp in temp_paths:
+        try:
+            if tp and tp.exists():
+                tp.unlink()
+        except Exception:
+            pass
 
     success = sum(1 for r in results if r["status"] == "archived")
     return {
@@ -156,24 +214,18 @@ async def serve_document_file(
     doc_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Sert le fichier PDF original stocké sur le serveur.
-    Utilisé par le viewer PDF intégré dans le frontend.
-    """
     result = await db.execute(select(Document).where(Document.id == doc_id))
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(404, f"Document #{doc_id} introuvable")
 
-    # Résoudre le chemin absolu
     original_path = (doc.original_path or "").lstrip("\\\\?\\").lstrip("//?/")
 
-    # Chercher dans plusieurs emplacements possibles
     candidate_paths = [
-        original_path,                                          # chemin absolu direct
-        os.path.join(settings.archive_root_path, original_path),    # relatif à archive
-        os.path.join(settings.upload_path,  os.path.basename(original_path)),  # dossier upload
-        os.path.join(settings.archive_root_path, doc.filename),     # par nom de fichier
+        original_path,
+        os.path.join(settings.archive_root_path, original_path),
+        os.path.join(settings.upload_path, os.path.basename(original_path)),
+        os.path.join(settings.archive_root_path, doc.filename),
     ]
 
     file_path = None
@@ -235,6 +287,11 @@ async def delete_document(doc_id: int, db: AsyncSession = Depends(get_db)):
     doc = result.scalar_one_or_none()
     if not doc:
         raise HTTPException(404, f"Document #{doc_id} introuvable")
+
+    # Supprimer d'abord les alertes liées (contrainte FK)
+    from backend.models.check import Alert
+    from sqlalchemy import delete
+    await db.execute(delete(Alert).where(Alert.document_id == doc_id))
     await db.delete(doc)
     await db.commit()
     return {"message": f"Document #{doc_id} supprimé"}
@@ -247,5 +304,3 @@ async def get_ocr_text(doc_id: int, db: AsyncSession = Depends(get_db)):
     if not doc:
         raise HTTPException(404)
     return {"document_id": doc_id, "filename": doc.filename, "ocr_text": doc.ocr_text}
-
-

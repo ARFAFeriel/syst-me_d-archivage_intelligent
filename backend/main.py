@@ -112,6 +112,8 @@ app.include_router(search_router, prefix=API_PREFIX)
 app.include_router(aircraft_router, prefix=API_PREFIX)
 app.include_router(pipeline_router, prefix=API_PREFIX)
 app.include_router(analytics_router, prefix=API_PREFIX)
+app.include_router(auth_router, prefix=API_PREFIX)
+app.include_router(users_router, prefix=API_PREFIX)
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
 @app.websocket("/ws/documents")
