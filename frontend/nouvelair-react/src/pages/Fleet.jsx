@@ -1,538 +1,354 @@
 // pages/Fleet.jsx
-// Vue Flotte NouvelAir — filtres NEO/CEO, cards avions, arborescence documentaire
-// + modal d'édition avion (changement de type NEO/CEO, MSN, bailleur...)
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApi, apiFetch } from '../hooks/useApi';
-import { useToast } from '../contexts/ToastContext';
-import TreeView from '../components/ui/TreeView';
+import { apiFetch } from '../hooks/useApi';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const TYPE_TAG = {
-  NEO: { label: 'A320 NEO', cls: 'tag g', dot: '#059669' },
-  CEO: { label: 'A320 CEO', cls: 'tag b', dot: 'var(--nv)' },
-};
-
-const ORIGIN_OPTIONS = [
-  { value: 'ALL',        label: 'Toutes origines' },
-  { value: 'BOCA',       label: 'BOCA (Légal)'    },
-  { value: 'AIRBUS_LBT', label: 'Airbus LBT'      },
-  { value: 'MRO',        label: 'MRO'             },
+// ── Données statiques flotte NouvelAir (18 aéronefs confirmés) ─────────────
+const FLEET_DATA = [
+  { reg: 'TS-INC', msn: '1744',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-IND', msn: '5016',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INE', msn: '5310',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INF', msn: '5867',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-ING', msn: '5878',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INH', msn: '5905',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INI', msn: '6017',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INJ', msn: '6084',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INK', msn: '6133',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INL', msn: '12280', type: 'NEO', variant: 'A320-251N', engine: 'CFM LEAP-1A26' },
+  { reg: 'TS-INM', msn: '12308', type: 'NEO', variant: 'A320-251N', engine: 'CFM LEAP-1A26' },
+  { reg: 'TS-INN', msn: '6254',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INO', msn: '6285',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INP', msn: '1597',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INQ', msn: '6333',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INR', msn: '6362',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INT', msn: '6401',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INU', msn: '6435',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
 ];
 
-// ── Modal édition avion ───────────────────────────────────────────────────────
-function EditAircraftModal({ aircraft, onClose, onSaved }) {
-  const toast = useToast();
-  const [form, setForm] = useState({
-    aircraft_type: aircraft.aircraft_type || 'CEO',
-    msn:           aircraft.msn || '',
-    variant:       aircraft.variant || '',
-    delivery_date: aircraft.delivery_date || '',
-    lessor:        aircraft.lessor || '',
-    notes:         aircraft.notes || '',
-  });
-  const [saving, setSaving] = useState(false);
-
-  const isNeo = form.aircraft_type === 'NEO';
-
-  const save = async () => {
-    setSaving(true);
-    const r = await apiFetch(`/aircraft/${aircraft.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(form),
-    });
-    setSaving(false);
-    if (r) {
-      toast(`${aircraft.registration} mis à jour`, 'ok');
-      onSaved();
-      onClose();
-    } else {
-      toast('Erreur lors de la mise à jour', 'err');
-    }
-  };
-
+// ── Silhouette A320 top-view (SVG inline) ───────────────────────────────────
+function PlaneIcon({ neo }) {
+  const wing   = neo ? '#059669' : '#2563eb';
+  const body   = neo ? '#064e3b' : '#1e3a8a';
+  const engine = neo ? '#047857' : '#1d4ed8';
   return (
-    <div
-      className="modal-overlay"
-      onClick={onClose}
-    >
-      <div
-        className="modal-box"
-        style={{ width: 520 }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="modal-hd">
-          <h3>
-            <i className="fas fa-plane-departure"></i>
-            Modifier — {aircraft.registration}
-          </h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        <div style={{ padding: 20 }}>
-          {/* Type NEO / CEO */}
-          <div className="fgrp">
-            <label>Type d'avion</label>
-            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-              {['CEO', 'NEO'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => setForm(f => ({ ...f, aircraft_type: t }))}
-                  style={{
-                    flex: 1, padding: '10px 0', borderRadius: 8, fontWeight: 700,
-                    fontSize: 14, cursor: 'pointer', transition: '.12s',
-                    border: `2px solid ${form.aircraft_type === t
-                      ? (t === 'NEO' ? '#059669' : 'var(--nv)')
-                      : 'var(--bdr)'}`,
-                    background: form.aircraft_type === t
-                      ? (t === 'NEO' ? '#d1fae5' : 'var(--sky)')
-                      : 'var(--sur)',
-                    color: form.aircraft_type === t
-                      ? (t === 'NEO' ? '#065f46' : 'var(--nv)')
-                      : 'var(--tx3)',
-                  }}
-                >
-                  {t === 'NEO' ? '✈ A320 NEO' : '✈ A320 CEO'}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 6 }}>
-              {isNeo
-                ? 'NEO — arborescence BOCA + Standard List A–H (Airbus LBT)'
-                : 'CEO — arborescence Certificats A + Maintenance B + Records C'}
-            </p>
-          </div>
-
-          {/* MSN */}
-          <div className="fgrp">
-            <label>MSN (Manufacturing Serial Number)</label>
-            <input
-              value={form.msn}
-              onChange={e => setForm(f => ({ ...f, msn: e.target.value }))}
-              placeholder="ex: 12280"
-            />
-          </div>
-
-          {/* Variant */}
-          <div className="fgrp">
-            <label>Variante</label>
-            <select
-              value={form.variant}
-              onChange={e => setForm(f => ({ ...f, variant: e.target.value }))}
-            >
-              <option value="">— Sélectionner —</option>
-              <option value="A320-251N">A320-251N (NEO CFM LEAP)</option>
-              <option value="A320-271N">A320-271N (NEO PW1100G)</option>
-              <option value="A320-200">A320-200 (CEO CFM56)</option>
-              <option value="A320-214">A320-214 (CEO CFM56-5B4)</option>
-              <option value="A320-232">A320-232 (CEO IAE V2527)</option>
-            </select>
-          </div>
-
-          {/* Date de livraison — surtout utile pour NEO */}
-          <div className="fgrp">
-            <label>Date de livraison</label>
-            <input
-              type="date"
-              value={form.delivery_date || ''}
-              onChange={e => setForm(f => ({ ...f, delivery_date: e.target.value }))}
-            />
-          </div>
-
-          {/* Bailleur */}
-          <div className="fgrp">
-            <label>Bailleur (Lessor)</label>
-            <input
-              value={form.lessor || ''}
-              onChange={e => setForm(f => ({ ...f, lessor: e.target.value }))}
-              placeholder="ex: BOC Aviation (BOCA)"
-            />
-          </div>
-
-          {/* Notes */}
-          <div className="fgrp">
-            <label>Notes</label>
-            <input
-              value={form.notes || ''}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="ex: Restitué — remplacé par MSN 99999"
-            />
-          </div>
-
-          {/* Avertissement changement de type */}
-          {form.aircraft_type !== aircraft.aircraft_type && (
-            <div style={{
-              background: '#fef3c7', border: '1px solid #fde68a',
-              borderRadius: 8, padding: '10px 14px', marginBottom: 14,
-              fontSize: 12, color: '#78350f',
-            }}>
-              <i className="fas fa-exclamation-triangle" style={{ marginRight: 7 }}></i>
-              Le type passe de <strong>{aircraft.aircraft_type}</strong> à{' '}
-              <strong>{form.aircraft_type}</strong> — l'arborescence documentaire
-              dans Vue Flotte sera mise à jour immédiatement.
-            </div>
-          )}
-
-          {/* Boutons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button className="btn btn-out btn-sm" onClick={onClose}>
-              Annuler
-            </button>
-            <button
-              className="btn btn-blue btn-sm"
-              onClick={save}
-              disabled={saving}
-            >
-              <i className={`fas ${saving ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <svg viewBox="0 0 56 56" fill="none" style={{ width: 40, height: 40, flexShrink: 0 }}>
+      {/* fuselage */}
+      <ellipse cx="28" cy="28" rx="3.5" ry="20" fill={body} opacity=".9" />
+      {/* wings */}
+      <path d="M28 30 L4 40 L7 42 L28 34 L49 42 L52 40 Z" fill={wing} opacity=".8" />
+      {/* winglets NEO */}
+      {neo && (
+        <>
+          <rect x="3"  y="39" width="3" height="5" rx="1" fill={wing} transform="rotate(-12 4 41)" />
+          <rect x="50" y="39" width="3" height="5" rx="1" fill={wing} transform="rotate(12 52 41)" />
+        </>
+      )}
+      {/* horizontal stabilizers */}
+      <path d="M28 48 L19 53 L21 54 L28 50 L35 54 L37 53 Z" fill={wing} opacity=".65" />
+      {/* engines */}
+      <ellipse cx="13" cy="35" rx="3" ry="1.8" fill={engine} opacity=".9" />
+      <ellipse cx="43" cy="35" rx="3" ry="1.8" fill={engine} opacity=".9" />
+      {/* cockpit glare */}
+      <ellipse cx="28" cy="9"  rx="2.5" ry="1.5" fill="#bfdbfe" opacity=".4" />
+    </svg>
   );
 }
 
-// ── Composant carte avion ─────────────────────────────────────────────────────
-function AircraftCard({ aircraft, selected, onClick, onEdit }) {
-  const type     = aircraft.aircraft_type || 'CEO';
-  const typeInfo = TYPE_TAG[type] || TYPE_TAG.CEO;
-  const isNeo    = type === 'NEO';
-
-  return (
-    <div
-      className="fc"
-      onClick={onClick}
-      style={{
-        outline: selected ? '2.5px solid var(--nv)' : 'none',
-        outlineOffset: 2,
-        cursor: 'pointer',
-      }}
-    >
-      {/* Header */}
-      <div
-        className="fc-hd"
-        style={{
-          background: isNeo
-            ? 'linear-gradient(135deg, #065f46 0%, #059669 100%)'
-            : 'linear-gradient(135deg, var(--nv) 0%, var(--nv2) 100%)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div className="fc-reg">{aircraft.registration}</div>
-            <div className="fc-mod">
-              {aircraft.variant || (isNeo ? 'A320-251N' : 'A320-200')}
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-            <span style={{
-              background: 'rgba(255,255,255,.2)', color: '#fff',
-              fontSize: 9, fontWeight: 700, padding: '2px 7px',
-              borderRadius: 10, letterSpacing: 1,
-            }}>
-              {type}
-            </span>
-            {/* Bouton éditer */}
-            <button
-              onClick={e => { e.stopPropagation(); onEdit(); }}
-              style={{
-                background: 'rgba(255,255,255,.15)', border: 'none',
-                color: '#fff', fontSize: 10, padding: '2px 7px',
-                borderRadius: 6, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}
-              title="Modifier cet avion"
-            >
-              <i className="fas fa-edit"></i> Modifier
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="fc-bd">
-        <div className="fsr">
-          <span className="fsl">MSN</span>
-          <span className="fsv">{aircraft.msn || '—'}</span>
-        </div>
-        <div className="fsr">
-          <span className="fsl">Documents</span>
-          <span className="fsv">{(aircraft.doc_count || 0).toLocaleString()}</span>
-        </div>
-        {aircraft.delivery_date && (
-          <div className="fsr">
-            <span className="fsl">Livraison</span>
-            <span className="fsv" style={{ fontSize: 12 }}>
-              {new Date(aircraft.delivery_date).toLocaleDateString('fr-FR', {
-                month: 'short', year: 'numeric',
-              })}
-            </span>
-          </div>
-        )}
-        {aircraft.lessor && (
-          <div className="fsr">
-            <span className="fsl">Bailleur</span>
-            <span className="fsv" style={{ fontSize: 11 }}>
-              {aircraft.lessor.replace(' (BOCA)', '')}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="fc-ft">
-        <span className={typeInfo.cls} style={{ fontSize: 10 }}>
-          <i className={`fas ${isNeo ? 'fa-star' : 'fa-plane'}`}></i>
-          {typeInfo.label}
-        </span>
-        {selected && (
-          <span className="tag g" style={{ fontSize: 10, marginLeft: 'auto' }}>
-            <i className="fas fa-eye"></i> Sélectionné
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Page principale ───────────────────────────────────────────────────────────
-export default function Fleet() {
+// ── Carte aéronef ─────────────────────────────────────────────────────────
+function AircraftCard({ ac, docCount, checkCount, selected, onSelect }) {
   const navigate = useNavigate();
-  const toast    = useToast();
-  const { data: aircraft, loading, error, refetch } = useApi('/aircraft/');
-
-  const [typeFilter,   setTypeFilter]   = useState('ALL');
-  const [originFilter, setOriginFilter] = useState('ALL');
-  const [selected,     setSelected]     = useState(null);
-  const [editAircraft, setEditAircraft] = useState(null);  // avion en cours d'édition
-
-  const allAircraft = aircraft || [];
-  const neoCount    = allAircraft.filter(a => a.aircraft_type === 'NEO').length;
-  const ceoCount    = allAircraft.filter(a => a.aircraft_type === 'CEO').length;
-
-  const filtered = allAircraft.filter(a =>
-    typeFilter === 'ALL' || a.aircraft_type === typeFilter
-  );
-
-  const selectedAircraft = allAircraft.find(a => a.registration === selected);
-
-  const tabs = [
-    { key: 'ALL', label: 'Tous', count: allAircraft.length },
-    { key: 'NEO', label: 'NEO',  count: neoCount           },
-    { key: 'CEO', label: 'CEO',  count: ceoCount           },
-  ];
+  const neo      = ac.type === 'NEO';
+  const accent   = neo ? '#059669' : '#2563eb';
+  const accentBg = neo ? '#d1fae5' : '#dbeafe';
+  const isActive = (docCount ?? 0) > 0;
 
   return (
-    <div className="page-enter">
-      {/* ── Header ── */}
-      <div className="ph">
-        <div className="ph-row">
-          <div>
-            <h2><i className="fas fa-plane"></i>Vue Flotte NouvelAir</h2>
-            <p>
-              {loading ? 'Chargement...'
-                : `${allAircraft.length} aéronef(s) — ${neoCount} NEO actifs · ${ceoCount} CEO historiques`}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-out btn-sm" onClick={refetch}>
-              <i className="fas fa-sync-alt"></i> Actualiser
-            </button>
-            <button className="btn btn-blue btn-sm" onClick={() => navigate('/documents')}>
-              <i className="fas fa-folder-open"></i> Tous les documents
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Filtres type ── */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, alignItems: 'center', flexWrap: 'wrap' }}>
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTypeFilter(t.key)}
-            style={{
-              padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-              border: `1.5px solid ${typeFilter === t.key ? 'var(--nv)' : 'var(--bdr)'}`,
-              background: typeFilter === t.key ? 'var(--sky)' : 'var(--sur)',
-              color: typeFilter === t.key ? 'var(--nv)' : 'var(--tx2)',
-              cursor: 'pointer', transition: '.12s',
-            }}
-          >
-            {t.label}
-            <span style={{
-              marginLeft: 6,
-              background: typeFilter === t.key ? 'var(--nv)' : 'var(--bdr)',
-              color: typeFilter === t.key ? '#fff' : 'var(--tx3)',
-              borderRadius: 10, padding: '1px 6px', fontSize: 10,
-            }}>
-              {t.count}
-            </span>
-          </button>
-        ))}
-
-        {selected && (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--tx3)' }}>Origine :</span>
-            {ORIGIN_OPTIONS.map(o => (
-              <button
-                key={o.value}
-                onClick={() => setOriginFilter(o.value)}
-                style={{
-                  padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500,
-                  border: `1.5px solid ${originFilter === o.value ? 'var(--nv)' : 'var(--bdr)'}`,
-                  background: originFilter === o.value ? 'var(--sky)' : 'var(--sur)',
-                  color: originFilter === o.value ? 'var(--nv)' : 'var(--tx2)',
-                  cursor: 'pointer', transition: '.12s',
-                }}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--tx3)' }}>
-          <i className="fas fa-exclamation-circle"></i> Backend non disponible
-        </div>
-      )}
-      {loading && (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--tx3)' }}>
-          <i className="fas fa-spinner fa-spin"></i> Chargement de la flotte...
-        </div>
+    <div
+      onClick={() => onSelect(selected ? null : ac.reg)}
+      style={{
+        background: selected ? accentBg : '#ffffff',
+        border: `1.5px solid ${selected ? accent : 'var(--bdr)'}`,
+        borderRadius: 12,
+        padding: '14px 16px',
+        cursor: 'pointer',
+        transition: 'all .18s',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = accent + '88'; }}
+      onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--bdr)'; }}
+    >
+      {/* Badge NEO */}
+      {neo && (
+        <span style={{
+          position: 'absolute', top: 0, right: 0,
+          background: '#059669', color: '#fff',
+          fontSize: 9, fontWeight: 700, letterSpacing: '.08em',
+          padding: '3px 10px 3px 12px',
+          borderRadius: '0 12px 0 12px',
+        }}>NEO</span>
       )}
 
-      {/* ── Contenu principal ── */}
-      {!loading && !error && (
-        <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
-
-          {/* Grille cartes */}
+      {/* Ligne principale */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <PlaneIcon neo={neo} />
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            flex: selected ? '0 0 auto' : '1',
-            width: selected ? 320 : 'auto',
-            display: selected ? 'flex' : 'grid',
-            flexDirection: selected ? 'column' : undefined,
-            gridTemplateColumns: selected ? undefined : 'repeat(3, 1fr)',
-            gap: 14, transition: '.2s',
-            maxHeight: selected ? 'calc(100vh - 200px)' : undefined,
-            overflowY: selected ? 'auto' : undefined,
-          }}>
-            {filtered.map(a => (
-              <AircraftCard
-                key={a.registration}
-                aircraft={a}
-                selected={selected === a.registration}
-                onClick={() => {
-                  setSelected(sel => sel === a.registration ? null : a.registration);
-                  setOriginFilter('ALL');
-                }}
-                onEdit={() => setEditAircraft(a)}
-              />
-            ))}
-            {!filtered.length && (
-              <div style={{ gridColumn: '1/-1', padding: 32, textAlign: 'center', color: 'var(--tx3)' }}>
-                Aucun aéronef trouvé
-              </div>
-            )}
+            fontSize: 15, fontWeight: 700,
+            color: selected ? accent : 'var(--tx)',
+            letterSpacing: '.04em',
+          }}>{ac.reg}</div>
+          <div style={{ fontSize: 10, color: 'var(--tx3)', marginTop: 1 }}>{ac.variant}</div>
+        </div>
+        {/* Indicateur actif */}
+        <div style={{
+          width: 7, height: 7, borderRadius: '50%',
+          background: isActive ? '#059669' : '#d1d5db',
+          boxShadow: isActive ? '0 0 6px #05966966' : 'none',
+          flexShrink: 0,
+        }} title={isActive ? 'Documents archivés' : 'Aucun document'} />
+      </div>
+
+      {/* MSN pill */}
+      <div style={{
+        background: 'var(--bg)',
+        border: '1px solid var(--bdr)',
+        borderRadius: 7,
+        padding: '5px 10px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 8,
+      }}>
+        <span style={{ fontSize: 10, color: 'var(--tx3)', letterSpacing: '.06em' }}>MSN</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: accent, letterSpacing: '.04em' }}>
+          {ac.msn}
+        </span>
+      </div>
+
+      {/* Stats inline */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <span style={{
+          flex: 1, textAlign: 'center', fontSize: 10,
+          background: docCount ? accentBg : 'var(--bg)',
+          color: docCount ? accent : 'var(--tx3)',
+          border: `1px solid ${docCount ? accent + '33' : 'var(--bdr)'}`,
+          borderRadius: 6, padding: '3px 0',
+        }}>
+          <i className="fas fa-file-alt" style={{ marginRight: 4 }} />
+          {docCount ?? '—'} docs
+        </span>
+        <span style={{
+          flex: 1, textAlign: 'center', fontSize: 10,
+          background: checkCount ? '#fef3c7' : 'var(--bg)',
+          color: checkCount ? '#d97706' : 'var(--tx3)',
+          border: `1px solid ${checkCount ? '#d9770633' : 'var(--bdr)'}`,
+          borderRadius: 6, padding: '3px 0',
+        }}>
+          <i className="fas fa-clipboard-check" style={{ marginRight: 4 }} />
+          {checkCount ?? '—'} checks
+        </span>
+      </div>
+
+      {/* Détail expandable */}
+      {selected && (
+        <div style={{
+          marginTop: 12, paddingTop: 12,
+          borderTop: `1px solid ${accent}33`,
+          animation: 'fadeIn .15s ease',
+        }}>
+          {[
+            ['Immatriculation', ac.reg],
+            ['MSN',             ac.msn],
+            ['Modèle',          ac.variant],
+            ['Motorisation',    ac.engine],
+            ['Génération',      ac.type],
+            ['Opérateur',       'NouvelAir Tunisie'],
+            ['Autorité',        'DGAC Tunisie / EASA'],
+          ].map(([k, v]) => (
+            <div key={k} style={{
+              display: 'flex', justifyContent: 'space-between',
+              fontSize: 11, padding: '4px 0',
+              borderBottom: '1px solid var(--bdr)',
+            }}>
+              <span style={{ color: 'var(--tx3)' }}>{k}</span>
+              <span style={{ color: accent, fontWeight: 600 }}>{v}</span>
+            </div>
+          ))}
+
+          <div style={{ display: 'flex', gap: 7, marginTop: 10 }}>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                navigate('/documents', { state: { aircraft: ac.reg } });
+              }}
+              style={{
+                flex: 1, padding: '7px 0',
+                background: accentBg,
+                border: `1px solid ${accent}`,
+                borderRadius: 7, color: accent,
+                fontSize: 11, cursor: 'pointer', fontWeight: 600,
+              }}
+            >
+              <i className="fas fa-folder-open" style={{ marginRight: 5 }} />
+              Documents
+            </button>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                navigate('/checks', { state: { aircraft: ac.reg } });
+              }}
+              style={{
+                flex: 1, padding: '7px 0',
+                background: 'var(--bg)',
+                border: '1px solid var(--bdr)',
+                borderRadius: 7, color: 'var(--tx2)',
+                fontSize: 11, cursor: 'pointer', fontWeight: 500,
+              }}
+            >
+              <i className="fas fa-clipboard-check" style={{ marginRight: 5 }} />
+              Checks
+            </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-          {/* Panneau arborescence */}
-          {selected && selectedAircraft && (
-            <div className="card" style={{ flex: 1, minWidth: 0 }}>
-              <div className="ch" style={{ flexWrap: 'wrap', gap: 8 }}>
-                <h3>
-                  <i className="fas fa-sitemap"></i>
-                  Arborescence — <span style={{ color: 'var(--acc)' }}>{selected}</span>
-                  <span style={{ marginLeft: 6 }}>MSN {selectedAircraft.msn || '—'}</span>
-                </h3>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    className="btn btn-out btn-sm"
-                    onClick={() => setEditAircraft(selectedAircraft)}
-                  >
-                    <i className="fas fa-edit"></i> Modifier avion
-                  </button>
-                  <button
-                    className="btn btn-blue btn-sm"
-                    onClick={() => navigate('/documents', { state: { aircraft: selected } })}
-                  >
-                    <i className="fas fa-folder-open"></i> Documents
-                  </button>
-                  <button className="btn btn-out btn-sm" onClick={() => setSelected(null)}>
-                    <i className="fas fa-times"></i>
-                  </button>
-                </div>
-              </div>
+// ── Page principale ────────────────────────────────────────────────────────
+export default function Fleet() {
+  const [filter,    setFilter]    = useState('ALL');
+  const [selected,  setSelected]  = useState(null);
+  const [docCounts, setDocCounts] = useState({});   // { 'TS-INP': 862, ... }
+  const [checkCounts, setCheckCounts] = useState({}); // { 'TS-INP': 2, ... }
+  const [loading,   setLoading]   = useState(true);
 
-              <div style={{
-                display: 'flex', gap: 8, padding: '10px 18px',
-                borderBottom: '1px solid var(--bdr)', flexWrap: 'wrap',
-              }}>
-                <span className={TYPE_TAG[selectedAircraft.aircraft_type || 'CEO'].cls} style={{ fontSize: 11 }}>
-                  <i className="fas fa-plane"></i> {selectedAircraft.variant || 'A320-200'}
-                </span>
-                {selectedAircraft.aircraft_type === 'NEO' && (
-                  <>
-                    <span className="tag or" style={{ fontSize: 11 }}>
-                      <i className="fas fa-briefcase"></i> BOCA
-                    </span>
-                    <span className="tag c" style={{ fontSize: 11 }}>
-                      <i className="fas fa-plane-departure"></i> Airbus LBT
-                    </span>
-                  </>
-                )}
-                {selectedAircraft.aircraft_type === 'CEO' && (
-                  <span className="tag b" style={{ fontSize: 11 }}>
-                    <i className="fas fa-tools"></i> MRO Archives
-                  </span>
-                )}
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--tx3)' }}>
-                  {(selectedAircraft.doc_count || 0).toLocaleString()} documents
-                </span>
-              </div>
+  // ── Fetch doc counts + check counts depuis l'API ─────────────────────────
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        // 1. Récupérer la liste des avions (avec doc_count si dispo)
+        const aircraftList = await apiFetch('/aircraft/');
+        if (aircraftList) {
+          const dc = {};
+          const cc = {};
+          for (const a of aircraftList) {
+            if (a.doc_count   !== undefined) dc[a.registration] = a.doc_count;
+            if (a.check_count !== undefined) cc[a.registration] = a.check_count;
+          }
+          setDocCounts(dc);
+          setCheckCounts(cc);
+        }
+      } catch {
+        // API indisponible — on affiche quand même la flotte statique
+      }
+      setLoading(false);
+    })();
+  }, []);
 
-              <div className="cb" style={{ padding: '12px 14px', maxHeight: 500, overflowY: 'auto' }}>
-                <TreeView
-                  aircraftType={selectedAircraft.aircraft_type || 'CEO'}
-                  originFilter={originFilter}
-                />
-              </div>
+  const filtered = filter === 'ALL'
+    ? FLEET_DATA
+    : FLEET_DATA.filter(a => a.type === filter);
 
-              <div style={{
-                padding: '10px 16px', borderTop: '1px solid var(--bdr)',
-                display: 'flex', gap: 8, flexWrap: 'wrap',
-              }}>
-                <button className="btn btn-out btn-xs"
-                  onClick={() => navigate('/search', { state: { aircraft: selected } })}>
-                  <i className="fas fa-search"></i> Recherche IA
-                </button>
-                <button className="btn btn-out btn-xs"
-                  onClick={() => navigate('/checks', { state: { aircraft: selected } })}>
-                  <i className="fas fa-clipboard-check"></i> Checks
-                </button>
-                {selectedAircraft.aircraft_type === 'NEO' && (
-                  <button className="btn btn-out btn-xs" onClick={() => setOriginFilter('BOCA')}>
-                    <i className="fas fa-briefcase"></i> BOCA only
-                  </button>
-                )}
+  const neoCount = FLEET_DATA.filter(a => a.type === 'NEO').length;
+  const ceoCount = FLEET_DATA.filter(a => a.type === 'CEO').length;
+  const totalDocs = Object.values(docCounts).reduce((s, n) => s + n, 0);
+  const withDocs  = FLEET_DATA.filter(a => (docCounts[a.reg] ?? 0) > 0).length;
+
+  return (
+    <div className="page-content" style={{ padding: '24px 28px' }}>
+
+      {/* ── En-tête ───────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--tx)', marginBottom: 4 }}>
+            <i className="fas fa-plane" style={{ marginRight: 10, color: 'var(--nv)' }} />
+            Vue Flotte NouvelAir
+          </h1>
+          <p style={{ fontSize: 12, color: 'var(--tx3)' }}>
+            Flotte Airbus A320 Family — EASA Part-145 — DGAC Tunisie
+          </p>
+        </div>
+
+        {/* KPI pills */}
+        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
+          {[
+            { icon: 'fa-plane',      val: FLEET_DATA.length, label: 'Aéronefs',      color: '#2563eb', bg: '#dbeafe' },
+            { icon: 'fa-file-alt',   val: loading ? '…' : totalDocs.toLocaleString(), label: 'Documents', color: '#059669', bg: '#d1fae5' },
+            { icon: 'fa-database',   val: loading ? '…' : `${withDocs}/${FLEET_DATA.length}`, label: 'Avec docs', color: '#d97706', bg: '#fef3c7' },
+          ].map(k => (
+            <div key={k.label} style={{
+              background: k.bg, border: `1px solid ${k.color}33`,
+              borderRadius: 10, padding: '8px 16px',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <i className={`fas ${k.icon}`} style={{ color: k.color, fontSize: 16 }} />
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: k.color, lineHeight: 1 }}>{k.val}</div>
+                <div style={{ fontSize: 10, color: k.color, opacity: .7, letterSpacing: '.05em' }}>{k.label}</div>
               </div>
             </div>
-          )}
+          ))}
+        </div>
+      </div>
+
+      {/* ── Filtres ───────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+        {[
+          { key: 'ALL', label: `Tous (${FLEET_DATA.length})` },
+          { key: 'NEO', label: `NEO (${neoCount})` },
+          { key: 'CEO', label: `CEO (${ceoCount})` },
+        ].map(f => (
+          <button
+            key={f.key}
+            onClick={() => { setFilter(f.key); setSelected(null); }}
+            style={{
+              padding: '6px 18px', borderRadius: 20,
+              fontSize: 12, fontWeight: 500,
+              cursor: 'pointer',
+              border: filter === f.key ? '1.5px solid var(--nv)' : '1px solid var(--bdr)',
+              background: filter === f.key ? '#dbeafe' : 'var(--bg)',
+              color: filter === f.key ? 'var(--nv)' : 'var(--tx2)',
+              transition: 'all .15s',
+            }}
+          >{f.label}</button>
+        ))}
+      </div>
+
+      {/* ── Grille ────────────────────────────────────────────── */}
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
+          <i className="fas fa-spinner fa-spin" style={{ marginRight: 8 }} />
+          Chargement de la flotte...
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: 12,
+        }}>
+          {filtered.map(ac => (
+            <AircraftCard
+              key={ac.reg}
+              ac={ac}
+              docCount={docCounts[ac.reg]}
+              checkCount={checkCounts[ac.reg]}
+              selected={selected === ac.reg}
+              onSelect={setSelected}
+            />
+          ))}
         </div>
       )}
 
-      {/* ── Modal édition avion ── */}
-      {editAircraft && (
-        <EditAircraftModal
-          aircraft={editAircraft}
-          onClose={() => setEditAircraft(null)}
-          onSaved={refetch}
-        />
-      )}
+      {/* ── Footer info ───────────────────────────────────────── */}
+      <div style={{
+        marginTop: 24, padding: '12px 16px',
+        background: 'var(--bg2)', border: '1px solid var(--bdr)', borderRadius: 10,
+        display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, color: 'var(--tx3)',
+      }}>
+       
+       
+      </div>
     </div>
   );
 }

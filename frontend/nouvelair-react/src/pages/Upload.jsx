@@ -427,7 +427,15 @@ export default function Upload() {
         <BatchReviewTable
           results={batchResults}
           onConfirm={confirmBatchArchive}
-          onCancel={() => { setShowBatch(false); setShowPipeline(false); setBatchResults([]); }}
+          onCancel={async () => {
+            // Supprimer tous les docs du lot non confirmés
+            for (const res of batchResults) {
+              if (res.docId && !res.isDuplicate) {
+                await apiFetch(`/documents/${res.docId}`, { method: 'DELETE' });
+              }
+            }
+            setShowBatch(false); setShowPipeline(false); setBatchResults([]); setFiles([]);
+          }}
           aircraftList={aircraftList}
         />
       )}

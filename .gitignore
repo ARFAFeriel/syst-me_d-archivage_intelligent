@@ -1,44 +1,93 @@
-﻿venv/
+# ============================================================
+# .gitignore — Système d'archivage intelligent NouvelAir
+# ============================================================
+
+# ── Environnement Python ─────────────────────────────────────
+venv/
+env/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── Variables d'environnement (SENSIBLE) ─────────────────────
 .env
-frontend/nouvelair-react/node_modules/
-frontend/nouvelair-react/dist/
+# Garder .env.example (template sans valeurs réelles)
+
+# ── Base de données (SENSIBLE) ───────────────────────────────
 *.dump
-*.bak
+*.sql.gz
+*.backup
+backup_nouv_db.dump
+
+# ── Modèles ML lourds ────────────────────────────────────────
+models/*.pkl
+models/*.joblib
+models/*.pt
+models/*.bin
+# Garder models/.gitkeep pour créer le dossier vide
+
+# ── Fichiers temporaires d'upload ────────────────────────────
+uploads/
+uploads_temp/
+
+# ── Logs runtime ─────────────────────────────────────────────
+logs/
+*.log
+
+# ── Frontend build ───────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── Données locales ──────────────────────────────────────────
+data/
+reports/
+
+# ── Fichiers de debug/test temporaires ───────────────────────
+add_patch.py
+benchmark_knn.py
+check_cols.py
+fix_fstring.py
+patch_agents.ps1
+arboresencesyst.txt
+arbsys.txt
+nvarbo.txt
+ocr_agent_dump.txt
+import_log.txt
+scan_errors.txt
+missing_files.txt
+xlm_log.txt
+classification_report.txt
+test_ner.py
+test_ner_v7.py
+eval_ner.py
+*.txt.bak
+
+# ── Screenshots et images locales ────────────────────────────
+*.png
+*.jpg
+*.jpeg
+!docs/*.png
+!docs/*.jpg
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
 Thumbs.db
 desktop.ini
 
-reports/
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
 
+# ── Dossier dupliqué ─────────────────────────────────────────
 Systeme darchivage intelligent/
 
-package-lock.json
-
-import_log.txt
-
-missing_files.txt
-
-nvarbo.txt
-
-add_patch.py
-
-# Modèles ML (trop lourds pour GitHub)
-backend/models/classifier_model.pkl
-backend/models/classifier_model.pkl.backup
-backend/models/distilbert_classifier/
-models/
-
-# Logs et données temporaires
-logs/
-data/
-
-# Node modules mal placé
-frontend/node_modules/
-
-# Fichiers de debug et patch
-ocr_agent_dump.txt
-scan_errors.txt
-patch_agents.ps1
-xlm_log.txt
+savoirfaire/
