@@ -5,6 +5,8 @@ from backend.models.check import AircraftCheck, CheckType, Alert, AlertSeverity,
 __all__ = [
     "Aircraft", 
     "Document", "DocumentType", "DocumentStatus",
-    "AircraftCheck", "CheckType",
+    "User", "UserRole", "AircraftCheck", "CheckType",
     "Alert", "AlertSeverity", "AlertType",
 ]
+
+from backend.models.user import User, UserRole

@@ -1,6 +1,3 @@
-"""
-Modèle User — Gestion des sessions et authentification
-"""
 from sqlalchemy import Column, String, Boolean, DateTime, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from backend.database import Base
