@@ -11,9 +11,15 @@ from backend.config import settings
 
 # ── Engine async ──────────────────────────────────────────────────────────────
 import os
+import ssl
 
 _db_url = settings.database_url
-_connect_args = {"ssl": "require"} if "neon.tech" in _db_url else {}
+_connect_args = {}
+if "neon.tech" in _db_url:
+    _ssl_ctx = ssl.create_default_context()
+    _ssl_ctx.check_hostname = False
+    _ssl_ctx.verify_mode = ssl.CERT_NONE
+    _connect_args = {"ssl": _ssl_ctx}
 
 engine = create_async_engine(
     _db_url,
@@ -23,14 +29,6 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_recycle=3600,
     connect_args=_connect_args,
-)
-
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
 )
 
 
