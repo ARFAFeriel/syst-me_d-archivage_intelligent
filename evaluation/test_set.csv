@@ -1,0 +1,216 @@
+id,true_type,pred_type,confidence,correct,filename
+2972,WORK_ORDER,Work Order,0.511,False,697519 Interjet On-Wing Borescope Workcards.pdf
+1839,WORK_ORDER,Work Order,0.9537,False,TS-INP_Check C_ES001392_JobCard_772.pdf
+1485,WORK_ORDER,Work Order,0.9121,False,TS-INP_Check C_ES001392_Defect Report_64.pdf
+1877,WORK_ORDER,Work Order,0.9391,False,TS-INP_Check C_ES001392_WorkOrder_ES00217068.pdf
+1971,WORK_ORDER,Work Order,0.9362,False,TS-INP_Check C_ES001392_WorkOrder_ES211510_MSN001597.pdf
+2014,WORK_ORDER,Work Order,0.937,False,TS-INP_Check C_ES001392_WorkOrder_ES216766_MSN001597.pdf
+3148,WORK_ORDER,Work Order,0.4087,False,779302 GE HPT Front Shaft (sn XAEH2717) Back to Birth Trace.pdf
+2134,WORK_ORDER,Work Order,0.8816,False,TS-INP_D&B chart_R0089.pdf
+204,WORK_ORDER,Work Order,0.7086,False,ZL-711-01-1-06.pdf
+1448,WORK_ORDER,Work Order,0.9149,False,TS-INP_Check C_ES001392_Defect Report_30.pdf
+1373,WORK_ORDER,Work Order,0.9005,False,TS-INP_Check A_ES001778_Jobcard_0110.pdf
+2064,WORK_ORDER,Work Order,0.8816,False,TS-INP_D&B chart_R0027.pdf
+1468,WORK_ORDER,Work Order,0.9113,False,TS-INP_Check C_ES001392_Defect Report_48.pdf
+2118,WORK_ORDER,Work Order,0.8816,False,TS-INP_D&B chart_R0073.pdf
+1821,WORK_ORDER,Work Order,0.9537,False,TS-INP_Check C_ES001392_JobCard_754.pdf
+3744,WORK_ORDER,Work Order,0.3589,False,TS-INQ_Old doc_Mods_Part 21 and Local Mods Air Arabia_GA25-0180G9.pdf
+133,WORK_ORDER,Work Order,0.6843,False,226000-01-1-01.pdf
+479,WORK_ORDER,Work Order,0.8046,False,RCT-ES001091-07012016095457.pdf
+3053,WORK_ORDER,Work Order,0.4102,False,697519 XL Airways_Thomas Cook ECM Data (Cruise).pdf
+1469,WORK_ORDER,Work Order,0.9043,False,TS-INP_Check C_ES001392_Defect Report_5.pdf
+504,WORK_ORDER,Work Order,0.8289,False,ES157029-29122015111333.pdf
+465,WORK_ORDER,Work Order,0.706,False,WO-ES000926.pdf
+1521,WORK_ORDER,Work Order,0.9537,False,TS-INP_Check C_ES001392_JobCard_203.pdf
+226,WORK_ORDER,Work Order,0.7081,False,212300-02-1-01.pdf
+1742,WORK_ORDER,Work Order,0.9463,False,TS-INP_Check C_ES001392_JobCard_660.pdf
+1840,WORK_ORDER,Work Order,0.9537,False,TS-INP_Check C_ES001392_JobCard_771.pdf
+18,WORK_ORDER,ATL,0.4968,False,0011874.pdf
+241,WORK_ORDER,Work Order,0.6829,False,261600-03-1-01.pdf
+507,WORK_ORDER,Work Order,0.8311,False,ES157051-29122015111613.pdf
+1308,WORK_ORDER,Work Order,0.8984,False,TS-INP_Check A_ES001778_Jobcard_004.pdf
+2476,AD,AD,0.8892,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_EASA_AD_2012-0012_1.pdf
+2427,AD,AD,0.7882,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_93-24-16.pdf
+3429,AD,AD,0.555,True,05.4.3.pdf
+3620,AD,AD,0.5317,True,Aviation ABC_Int-invoice 22-2014_NOUVELAIR.PDF
+3414,AD,AD,0.5353,True,05.2.4.pdf
+3423,AD,AD,0.5699,True,05.3.5.pdf
+2238,AD,AD,0.8513,True,TS-INQ_Old doc_AD_AD DFPs_2006-0136.pdf
+2488,AD,AD,0.8909,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_EASA_AD_2012-0198_1.pdf
+2283,AD,AD,0.8749,True,TS-INQ_Old doc_AD_AD DFPs_2010-0091.pdf
+3962,AD,AD,0.381,True,TS-INQ_Old doc_Weight & Balance_MSN 2158 ~ Weight Report ~ 09-03-2014.pdf
+2461,AD,AD,0.7429,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_EASA_AD_2006-0223_1.pdf
+2246,AD,AD,0.8681,True,TS-INQ_Old doc_AD_AD DFPs_2006-0222.pdf
+2466,AD,AD,0.8907,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_EASA_AD_2011-0137R1_1.pdf
+3176,AD,AD,0.335,True,779302 Vietnam Airlines Non-Operation Statement.pdf
+2481,AD,AD,0.9287,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_EASA_AD_2012-0083_1.pdf
+2445,AD,AD,0.8065,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_98-02-04.pdf
+3712,AD,AD,0.3611,True,TS-INQ_Old doc_Mods_CDSS ST01432LA_AFM Supplement AFMS232010006 REV A.pdf
+2449,AD,AD,0.8805,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_98-18-24.pdf
+3418,AD,AD,0.4491,True,05.3.1.pdf
+3468,AD,AD,0.2649,True,03-PERFORMANCESUMMARY+TESTRUN.pdf
+3386,AD,AD,0.3257,True,APMS - 575738 - BSI - 25 JAN 2014.pdf
+2393,AD,AD,0.8811,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_2012-26-15.pdf
+2446,AD,AD,0.8704,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_98-12-33.pdf
+2386,AD,AD,0.8945,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_2012-02-03.pdf
+2462,AD,AD,0.8285,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_EASA_AD_2009-0053_1.pdf
+2298,AD,AD,0.7697,True,TS-INQ_Old doc_AD_AD DFPs_2011-0024R1.pdf
+2322,AD,AD,0.8623,True,TS-INQ_Old doc_AD_AD DFPs_94-14-17.pdf
+2379,AD,AD,0.9199,True,TS-INQ_Old doc_AD_ADs Not Filed As Yet_2011-19-01 R1.pdf
+3587,AD,Specs,0.2862,False,TS-INQ_Old doc_Gear_MSN 2158 LG OVH_MSN 2158 ~ LH Sidestay ~ DCR488 ~ 28-10-2013.pdf
+3926,AD,AD,0.5659,True,TS-INQ_Old doc_Structural Repair_RDAS_RDAS 705070360222011.pdf
+3566,SPECS,Specs,0.4625,False,TS-INQ_Old doc_Engines_Title Engines_MSN 2158 ~ Engines ~ Up To Jan 2014_ESN 575739_ESN 575739 ~ RAK ~ LLP.pdf
+3459,SPECS,Specs,0.839,False,MOD 42.pdf
+3439,SPECS,Specs,0.8397,False,MOD 00 - ETIQUETTES JAUNES ACCESSOIRES 1 (3).pdf
+2532,SPECS,Specs,0.4772,False,TS-INQ_Old doc_AME Status + Statements_MSN 2158 General Overview.pdf
+3474,SPECS,Specs,0.3039,False,11-ACCESSORYREPORT.pdf
+3545,SPECS,Specs,0.7923,False,MOD 02 - BELLCRANKS (2).pdf
+3341,SPECS,Specs,0.3576,False,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_697519_STATEMENTS.pdf
+2723,SPECS,Specs,0.5999,False,RH RETRACTION ACTUATOR B1309 HISTORICAL STATUS.pdf
+2728,SPECS,Specs,0.6487,False,RH RETAINING RING PN 114193606.pdf
+2713,SPECS,Specs,0.631,False,LH PIN PN 114193610 SN B867.pdf
+3890,SPECS,Specs,0.9036,False,TS-INQ_Old doc_Structural Repair_Exterior Repair DFPs_MSN 2158~Exterior Repair - 32.pdf
+3905,SPECS,Specs,0.908,False,TS-INQ_Old doc_Structural Repair_Exterior Repair DFPs_MSN 2158~Exterior Repair - 44.pdf
+3882,SPECS,Specs,0.9016,False,TS-INQ_Old doc_Structural Repair_Exterior Repair DFPs_MSN 2158~Exterior Repair - 26.pdf
+2720,SPECS,Specs,0.567,False,LH RETRACTION ACTUATOR B867 TAM OVHL JUN 2009.pdf
+3898,SPECS,Specs,0.9091,False,TS-INQ_Old doc_Structural Repair_Exterior Repair DFPs_MSN 2158~Exterior Repair - 40.pdf
+3406,SPECS,Specs,0.8536,False,02.5 (6).pdf
+3874,SPECS,Specs,0.905,False,TS-INQ_Old doc_Structural Repair_Exterior Repair DFPs_MSN 2158~Exterior repair - 15.pdf
+3452,SPECS,Specs,0.7816,False,MOD 00.pdf
+3561,SPECS,Specs,0.7641,False,MOD 32 (3).pdf
+3560,SPECS,Specs,0.7675,False,MOD 31 (2).pdf
+3903,SPECS,Specs,0.9088,False,TS-INQ_Old doc_Structural Repair_Exterior Repair DFPs_MSN 2158~Exterior Repair - 46.pdf
+3444,SPECS,Specs,0.8397,False,MOD 00 - ETIQUETTES JAUNES ACCESSOIRES 2 (3).pdf
+2726,SPECS,Specs,0.6256,False,RH GLAND PN 114193642 SN S9002B1309.pdf
+2529,SPECS,Specs,0.4972,False,TS-INQ_Old doc_AME Status + Statements_MSN 2158 E1 LLP Sheet.pdf
+3384,SPECS,Specs,0.7823,False,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_OE 144447.pdf
+2711,SPECS,Specs,0.6246,False,LH CYLINDER PN 114193641 SN B867.pdf
+3368,SPECS,Specs,0.8318,False,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_LOG BOOK PAGE_DOC140514.pdf
+3454,SPECS,Specs,0.7849,False,MOD 00 - FUEL NOZZLE SET.pdf
+3836,SPECS,Specs,0.3203,False,TS-INQ_Old doc_Specs_MSN 2158 Specs.pdf
+3491,SPECS,Specs,0.6451,False,02_4.pdf
+2756,CERTIFICATE,Certificate,0.4732,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 25 Life Jacket.pdf
+2754,CERTIFICATE,Certificate,0.911,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 25 Escape slide off fwing SN A8580.pdf
+2800,CERTIFICATE,Certificate,0.9018,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 27 Yaw damper spring rod.pdf
+2783,CERTIFICATE,Certificate,0.9014,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 26 Fire ext SN 65428D1.pdf
+3322,CERTIFICATE,Certificate,0.4236,False,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_697519_EASA F1_EASA F1 697519.pdf
+2866,CERTIFICATE,Certificate,0.4451,False,TS-INQ_Old doc_Components_RAK_Life Vest_MSN 2158 ~ Life Vest F1's.pdf
+2736,CERTIFICATE,Certificate,0.8561,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA  32  NLG ACT CYLINDER sn L3272.pdf
+3158,CERTIFICATE,Certificate,0.4698,False,779302 GE QEC.Accessory Part Certificates.pdf
+2813,CERTIFICATE,Certificate,0.9132,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 35 PBE SN range 004-71100M to 004-711002.pdf
+3465,CERTIFICATE,Certificate,0.598,False,01-ENGINERELEASECERTIFICATE.pdf
+3956,CERTIFICATE,Certificate,0.4436,False,TS-INQ_Old doc_TS-INQ Certificates.pdf
+2852,CERTIFICATE,Certificate,0.4228,False,TS-INQ_Old doc_Components_MSN 2158 ~ Spare Seat Covers_5990-TD.pdf
+2811,CERTIFICATE,Certificate,0.9218,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 35 Oxy cylinder SN ALT281-12893.pdf
+3947,CERTIFICATE,Certificate,0.3749,False,TS-INQ_Old doc_MSN 2158 E&A + Att1 only.pdf
+2684,CERTIFICATE,Certificate,0.5665,False,TS-INQ_Old doc_Components_Burn Certs_Air Arabia_MSN 2158~Coin Matt.pdf
+2778,CERTIFICATE,Certificate,0.9014,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 26 Fire ext SN 23221D1.pdf
+2835,CERTIFICATE,Certificate,0.6006,False,TS-INQ_Old doc_Components_MSN 2158 ~ OCCM Form 1's ~ Delivery ~ March 2014_MSN 2158 ~ OCCM ~ ATA 28.pdf
+2683,CERTIFICATE,Certificate,0.6847,False,TS-INQ_Old doc_Components_Burn Certs_Air Arabia_MSN 2158~Carpet.pdf
+3727,CERTIFICATE,AD,0.2748,False,TS-INQ_Old doc_Mods_Part 21 and Local Mods Air Arabia_RAK LOPA Part 21 Approved_Part 21 Approval.pdf
+2750,CERTIFICATE,Certificate,0.8975,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 24 Main battery SN V02398.pdf
+2893,CERTIFICATE,Certificate,0.2351,False,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_APU ON_NIS-materiel certification letter P-3984.pdf
+2858,CERTIFICATE,Certificate,0.2831,False,TS-INQ_Old doc_Components_MSN 2158 ~ Spare Seat Covers_BT#S00774.pdf
+2808,CERTIFICATE,Certificate,0.9079,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 33 EPSU sn 101158.pdf
+2805,CERTIFICATE,Certificate,0.6166,False,TS-INQ_Old doc_Components_MSN 2158 HT Certs_ATA 32 LH RETRACTION ACTUATOR B867 TAM OVHL JUN 2009.pdf
+3328,CERTIFICATE,Certificate,0.6096,False,MSN 2158 Return Acceptance Certificate ESN 697519 signed.pdf
+3318,CERTIFICATE,Certificate,0.6037,False,WLF3 PN 1523M35P01 SN GFFR4623 ESN 779302 BTB Complete.pdf
+3319,CERTIFICATE,Certificate,0.6001,False,WLF3 PN 1590M59P01 SN GWNBM614 ESN 779302 BTB Complete.pdf
+3325,CERTIFICATE,Specs,0.3356,False,ESN 697519 LLP Disk Sheet .pdf
+3357,CERTIFICATE,Certificate,0.3794,False,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_779302_EASA F1 Original.pdf
+3685,CERTIFICATE,AD,0.3827,False,"TS-INQ_Old doc_LOPA_RAK LIVERY_Cert ATDCP0524 RAK Airways A320 (A6-RKB,RKC) Livery Scheme_Issue2.pdf"
+3774,SB,SB,0.9653,True,TS-INQ_Old doc_SB_SB Airbus_A320-22-1276.pdf
+2914,SB,SB,0.256,True,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_SB_49_1082_15.pdf
+2909,SB,SB,0.3464,True,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_APU interchangeability.pdf
+3684,SB,SB,0.4176,True,DAS-010-14_Rev.0.pdf
+3782,SB,SB,0.9667,True,TS-INQ_Old doc_SB_SB Airbus_A320-26-1067.pdf
+3799,SB,SB,0.9594,True,TS-INQ_Old doc_SB_SB Airbus_A320-31-1245.pdf
+3813,SB,SB,0.9625,True,TS-INQ_Old doc_SB_SB Airbus_A320-32-1305.pdf
+3818,SB,SB,0.9625,True,TS-INQ_Old doc_SB_SB Airbus_A320-32-1337.pdf
+3838,SB,SB,0.4479,True,TS-INQ_Old doc_SB_SB_53_1227_05.pdf
+3832,SB,SB,0.9018,True,TS-INQ_Old doc_SB_SB Airbus_A320-57-1154 Rear Spar Inspection.pdf
+3826,SB,SB,0.9589,True,TS-INQ_Old doc_SB_SB Airbus_A320-34-1335.pdf
+3779,SB,SB,0.9667,True,TS-INQ_Old doc_SB_SB Airbus_A320-26-1062.pdf
+3775,SB,SB,0.9588,True,TS-INQ_Old doc_SB_SB Airbus_A320-25-1535.pdf
+3821,SB,SB,0.9707,True,TS-INQ_Old doc_SB_SB Airbus_A320-32A1293.pdf
+3785,SB,SB,0.9648,True,TS-INQ_Old doc_SB_SB Airbus_A320-27-1191.pdf
+3773,SB,SB,0.9588,True,TS-INQ_Old doc_SB_SB Airbus_A320-25-1181.pdf
+3809,SB,SB,0.9625,True,TS-INQ_Old doc_SB_SB Airbus_A320-32-1282.pdf
+3778,SB,SB,0.9588,True,TS-INQ_Old doc_SB_SB Airbus_A320-25-1444.pdf
+3784,SB,SB,0.9215,True,TS-INQ_Old doc_SB_SB Airbus_A320-27-1164.pdf
+3794,SB,SB,0.9575,True,TS-INQ_Old doc_SB_SB Airbus_A320-29-1115.pdf
+3833,SB,SB,0.9018,True,TS-INQ_Old doc_SB_SB Airbus_A320-57-1155 Rear Spar Inspection.pdf
+3789,SB,SB,0.9643,True,TS-INQ_Old doc_SB_SB Airbus_A320-28-1138.pdf
+3683,SB,AMM,0.2675,False,EO-010-14_Rev0.pdf
+3800,SB,SB,0.9511,True,TS-INQ_Old doc_SB_SB Airbus_A320-29-1149.pdf
+3798,SB,SB,0.9575,True,TS-INQ_Old doc_SB_SB Airbus_A320-29-1132.pdf
+3824,SB,SB,0.9767,True,TS-INQ_Old doc_SB_SB Airbus_A320-32A1390.pdf
+3806,SB,SB,0.9594,True,TS-INQ_Old doc_SB_SB Airbus_A320-31-1315.pdf
+3835,SB,SB,0.6044,True,TS-INQ_Old doc_SB_MSN 2158~SB MOD Status~Oct 2011~Final Signed.pdf
+3834,SB,SB,0.425,True,TS-INQ_Old doc_SB_From the Air Arabia SB Status.pdf
+3825,SB,SB,0.9589,True,TS-INQ_Old doc_SB_SB Airbus_A320-34-1336.pdf
+4,ATL,ATL,0.9641,True,NO_0011849.pdf
+3499,ATL,ATL,0.3643,True,03_0.pdf
+29,ATL,ATL,0.7951,True,NO_0011828.pdf
+20,ATL,ATL,0.9645,True,NO_0003664.pdf
+24,ATL,ATL,0.9614,True,NO_0003672.pdf
+5,ATL,ATL,0.9501,True,NO_0011079.pdf
+6,ATL,ATL,0.9638,True,NO_0011080.pdf
+1302,ATL,ATL,0.6343,True,TS-INP_ATL_2025_TL01JUL-31DEC2025.pdf
+28,ATL,ATL,0.755,True,NO_0011826.pdf
+19,ATL,ATL,0.9668,True,NO_0003665.pdf
+3,ATL,ATL,0.9544,True,NO_0011848.pdf
+2,ATL,ATL,0.9563,True,NO_0011850.pdf
+17,ATL,ATL,0.674,True,0011875.pdf
+9,ATL,ATL,0.9587,True,0005376.pdf
+14,ATL,ATL,0.9505,True,0005378.pdf
+8,ATL,ATL,0.968,True,NO_0011082.pdf
+10,ATL,ATL,0.9633,True,0005377.pdf
+12,ATL,ATL,0.9644,True,0005399.pdf
+3957,ATL,ATL,0.9056,True,TS-INQ_Old doc_Problemes APU TS-INQ.pdf
+15,ATL,ATL,0.9634,True,0005400.pdf
+16,ATL,ATL,0.9643,True,0005426.pdf
+13,ATL,ATL,0.967,True,0005398.pdf
+1300,ATL,ATL,0.5866,True,TS-INP_ATL_2026_TL01JAN-13JAN2026.pdf
+3503,ATL,ATL,0.4593,True,03_3.pdf
+7,ATL,ATL,0.9507,True,NO_0011081.pdf
+26,ATL,ATL,0.9377,True,0008265.pdf
+21,ATL,ATL,0.9569,True,NO_0003670.pdf
+23,ATL,ATL,0.9587,True,NO_003668.pdf
+3508,ATL,Specs,0.3818,False,03_4.pdf
+27,ATL,ATL,0.756,True,NO_0011827.pdf
+2703,CMM,CMM,0.8273,True,TS-INQ_Old doc_Components_Life vest MSN 2158_256012_57399_CMM_009[1].pdf
+2691,CMM,CMM,0.9401,True,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_BEA TR-1.02  CMM 25-22-050 DOC ID# 2705.pdf
+3338,CMM,CMM,0.8723,True,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_697519_Monthly Engine Utilization report V02.pdf
+2690,CMM,CMM,0.8481,True,"TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_BEA 25-22-50  DOC ID# 2705 R.00 13Jan,2004.pdf"
+2698,CMM,CMM,0.8778,True,TS-INQ_Old doc_Components_CMM_CMM~Weber Business Class 859908-XXX.pdf
+3334,CMM,CMM,0.874,True,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_697519_Monthly engine utilisation ESN 697519 corrected.pdf
+2694,CMM,CMM,0.491,True,TS-INQ_Old doc_Components_CMM_SELL CMM_CMM_25_30_11_rail_coffeemaker.pdf
+2695,CMM,CMM,0.8584,True,250417_D2249_CMM_004.pdf
+2692,CMM,CMM,0.9217,True,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_TRR-3244 25-22-050-2705 TR-1.03 (read only).pdf
+2693,CMM,CMM,0.874,True,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_IPL.pdf
+2687,CMM,CMM,0.9408,True,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_BEA TR 1.0  CMM 25-22-050 DOC ID# 2705.pdf
+3614,AMM,AMM,0.8511,True,TS-INQ_Old doc_LOPA_Modif Cabin MSN 2158 & MSN 793_CAM MSN 2158_PO CAM programming V01.pdf
+3710,AMM,AMM,0.7142,True,TS-INQ_Old doc_Mods_CDSS ST01432LA_AMM Supplement AMM230088 REV B.pdf
+3615,AMM,AMM,0.8383,True,TS-INQ_Old doc_LOPA_Modif Cabin MSN 2158 & MSN 793_CAM MSN 2158_PO CAM programming.pdf
+3619,AMM,AMM,0.8329,True,TS-INQ_Old doc_LOPA_Modif Cabin MSN 2158 & MSN 793_EO MSN 2158 ABC DRAFT_MSN2158_EO-0XX-YY_draft.pdf
+3356,AMM,AMM,0.8942,True,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_779302_CFM 56-5 LRCD822.pdf
+3330,AMM,AMM,0.8943,True,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_697519_CFM 56-5 LRCD.pdf
+3629,AMM,AMM,0.9276,True,EO-009-11_Rev.0.pdf
+3627,AMM,AMM,0.8937,True,CIP-009-11_Rev.0.pdf
+2853,AMM,Certificate,0.3394,False,TS-INQ_Old doc_Components_MSN 2158 ~ Spare Seat Covers_5854-TD.pdf
+3638,AMM,AMM,0.9237,True,EO-009-11_Rev 0_draft1.pdf
+2924,DEFECT_REPORT,Defect Report,0.9277,False,TS-INQ_Old doc_Engines_BSI ~ 2324-03-2014_APU_SN_2740_APS_3200 SGI Borescope Inspection Log_20140322.pdf
+2929,DEFECT_REPORT,Defect Report,0.9468,False,TS-INQ_Old doc_Engines_BSI ~ 2324-03-2014_ESN_697519_CFM56-5B_SGI Borescope Inspection Log - 20140323.pdf
+3482,DEFECT_REPORT,Defect Report,0.8647,False,18-SHOPFINDINGSREPORT.pdf
+2904,DEFECT_REPORT,Defect Report,0.8871,False,2470 Nouvelair 5354099 PFR.pdf
+2926,DEFECT_REPORT,Defect Report,0.9473,False,TS-INQ_Old doc_Engines_BSI ~ 2324-03-2014_ESN_779302_CFM56-5B_SGI Borescope Inspection Log_20140322.pdf
+2911,DEFECT_REPORT,Defect Report,0.871,False,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_Historic LBT+Aercap APS3200 SN 2470 No.pdf
+3478,JOBCARD,AD,0.2427,False,16-BORESCOPEREPORTAFTERTESTRUN.pdf
+3391,JOBCARD,Jobcard,0.7222,False,00.pdf
+3485,JOBCARD,Jobcard,0.6679,False,01.pdf
+3267,JOBCARD,Jobcard,0.779,False,TS-INQ_Old doc_Engines_Lease Engines_779302_779302 MPD Tasks & Supporting Documents_779302 MPD Task 723200-C1-1.pdf
+3393,JOBCARD,Jobcard,0.7585,False,01.pdf
+3486,JOBCARD,Jobcard,0.7084,False,00.pdf
+3722,IPC,AMM,0.5547,False,TS-INQ_Old doc_Mods_CDSS ST01432LA_IPC Supplement IPC 230088 REV C.pdf
+2042,IPC,IPC,0.9673,True,TS-INP_D&B chart_2025_08_12_Dent-Repair_NP.PDF

@@ -2,22 +2,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, confBadge } from '../hooks/useApi';
-import { useApi } from '../hooks/useApi';
 import PDFModal from '../components/ui/PDFModal';
 
-// ── Normalisation robuste du type de check ────────────────────────────────
-// Tester D → C → A dans cet ordre pour éviter les faux positifs
-// Couvre tous les formats : "Check D", "D Check", "4D", "Heavy D", "D", etc.
 function extractCheckLetter(checkType) {
   if (!checkType) return null;
   const u = checkType.toUpperCase().trim();
-  // Priorité 1 : format DB exact CHECK_A / CHECK_C / CHECK_D
   const afterUnderscore = u.match(/_([ACD])$/);
   if (afterUnderscore) return afterUnderscore[1];
-  // Priorité 2 : "Check A", "A Check", "C-Check"...
   const explicit = u.match(/CHECK\s*([ACD])|([ACD])\s*CHECK/);
   if (explicit) return explicit[1] || explicit[2];
-  // Priorité 3 : lettre seule en fin de chaîne
   const last = u.slice(-1);
   if ('ACD'.includes(last)) return last;
   return null;
@@ -50,54 +43,27 @@ function CheckDocsModal({ check, meta, onClose }) {
     setLoading(true);
     setDocs([]);
 
-    const categoryLabel = `Check ${meta.label.slice(-1)}`;
-    const esRef = (check.es_reference || '').toUpperCase();
-
     (async () => {
       try {
         const BASE = 'http://localhost:8000/api/v1';
-        const PAGE_SIZE = 100; // taille sûre pour le backend
+        const esRef = (check.es_reference || '').trim();
 
-        // Fonction : charger toutes les pages d'un endpoint paginé
-        const fetchAll = async (baseUrl) => {
-          let page = 1, all = [], total = null;
-          while (true) {
-            const r = await fetch(`${baseUrl}&page=${page}&size=${PAGE_SIZE}`, { credentials: 'include' });
-            if (!r.ok) break;
-            const d = await r.json();
-            const items = d?.items || [];
-            all = [...all, ...items];
-            if (total === null) total = d?.total || 0;
-            if (all.length >= total || items.length < PAGE_SIZE) break;
-            page++;
-            if (page > 20) break; // sécurité anti-boucle infinie
-          }
-          return all;
-        };
-
-        // Stratégie 1 : filtrer par aircraft + category
-        let items = await fetchAll(
-          `${BASE}/documents/?aircraft=${encodeURIComponent(check.aircraft)}&category=${encodeURIComponent(categoryLabel)}`
-        );
-
-        // Stratégie 2 (fallback) : tout l'avion + filtre client
-        if (items.length === 0) {
-          const all = await fetchAll(`${BASE}/documents/?aircraft=${encodeURIComponent(check.aircraft)}`);
-          items = all.filter(d =>
-            (d.category || '').toLowerCase().includes(categoryLabel.toLowerCase())
+        let page = 1, all = [];
+        while (true) {
+          const r = await fetch(
+            `${BASE}/documents/?es_reference=${encodeURIComponent(esRef)}&aircraft=${encodeURIComponent(check.aircraft)}&page=${page}&size=100`,
+            { credentials: 'include' }
           );
+          if (!r.ok) break;
+          const d = await r.json();
+          const items = d?.items || [];
+          all = [...all, ...items];
+          if (all.length >= (d?.total || 0) || items.length < 100) break;
+          page++;
+          if (page > 20) break;
         }
 
-        // Sous-filtre ES ref si format ESxxxxxx
-        const looksLikeES = /^ES\d{4,}/i.test(check.es_reference || '');
-        if (looksLikeES && esRef && items.length > 1) {
-          const byES = items.filter(d =>
-            (d.es_reference || '').toUpperCase() === esRef
-          );
-          if (byES.length > 0) items = byES;
-        }
-
-        if (!cancelled) { setDocs(items); setLoading(false); }
+        if (!cancelled) { setDocs(all); setLoading(false); }
       } catch(e) {
         console.error('[CheckModal] fetch error:', e);
         if (!cancelled) setLoading(false);
@@ -105,7 +71,7 @@ function CheckDocsModal({ check, meta, onClose }) {
     })();
 
     return () => { cancelled = true; };
-  }, [check.aircraft, check.es_reference, meta.label]);
+  }, [check.aircraft, check.es_reference]);
 
   const filtered = search
     ? docs.filter(d =>
@@ -277,64 +243,35 @@ export default function Checks() {
   const [loading,    setLoading]    = useState(true);
   const [modalCheck, setModalCheck] = useState(null);
 
-  const { data: aircraftList } = useApi('/aircraft/');
-
   useEffect(() => {
-    if (!aircraftList) return;
     setLoading(true);
-
     (async () => {
-      const active = aircraftList
-        .filter(a => (a.doc_count || 0) > 0)
-        .map(a => a.registration);
+      const data = await apiFetch('/aircraft/checks/all');
+      if (!data?.length) { setLoading(false); return; }
 
-      const all = [];
-      for (const reg of active) {
-        const data = await apiFetch(`/aircraft/${reg}/checks`);
-        if (data?.length) data.forEach(c => all.push({ ...c, aircraft: reg }));
-      }
-
-      // Dédupliquer sur es_reference
-      const seen = {};
-      const deduped = all.filter(c => {
-        const key = (c.es_reference || '').toUpperCase().replace(/^ES/, '');
-        if (!key || seen[key]) return false;
-        seen[key] = true;
-        return true;
-      });
-
-      deduped.sort((a, b) => {
-        const da = a.start_date ? new Date(a.start_date) : new Date(0);
-        const db = b.start_date ? new Date(b.start_date) : new Date(0);
-        return db - da || (b.id||0) - (a.id||0);
-      });
-
-      const result = { A:{}, C:{}, D:{} };
+      const result = { A: {}, C: {}, D: {} };
       const nc = [];
 
-      for (const c of deduped) {
+      for (const c of data) {
         const t = extractCheckLetter(c.check_type);
+        const reg = c.aircraft_registration;
         if (t && result[t] !== undefined) {
-          if (!result[t][c.aircraft]) result[t][c.aircraft] = [];
-          result[t][c.aircraft].push(c);
+          if (!result[t][reg]) result[t][reg] = [];
+          result[t][reg].push({ ...c, aircraft: reg });
         } else {
-          nc.push(c);
+          nc.push({ ...c, aircraft: reg });
         }
       }
 
       setGrouped(result);
       setUnclassed(nc);
-
-      // Ouvrir l'onglet qui a des données
       const firstWithData = CHECK_TYPES.find(t => Object.keys(result[t]).length > 0);
       if (firstWithData) setActiveTab(firstWithData);
-
       setLoading(false);
     })();
-  }, [aircraftList]);
+  }, []);
 
   const TABS = [...CHECK_TYPES, ...(unclassed.length > 0 ? ['?'] : [])];
-
   const meta = CHECK_META[activeTab];
 
   const byAircraft = (() => {
@@ -486,7 +423,6 @@ export default function Checks() {
 }
 
 // ── Card check ────────────────────────────────────────────────────────────
-
 function Row({ label, children }) {
   return (
     <div style={{display:'flex', alignItems:'center', gap:4}}>
@@ -495,6 +431,7 @@ function Row({ label, children }) {
     </div>
   );
 }
+
 function CheckCard({ check: c, meta, onOpen, onSearch }) {
   const isRecent = c.start_date && (Date.now() - new Date(c.start_date)) < 30*24*3600*1000;
   return (

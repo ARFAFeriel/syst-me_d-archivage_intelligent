@@ -5,24 +5,24 @@ import { apiFetch } from '../hooks/useApi';
 
 // ── Données statiques flotte NouvelAir (18 aéronefs confirmés) ─────────────
 const FLEET_DATA = [
+  { reg: 'TS-INB', msn: '3312',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-INC', msn: '1744',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-IND', msn: '5016',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-INE', msn: '5310',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-INF', msn: '5867',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-ING', msn: '5878',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INH', msn: '5905',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INI', msn: '6017',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INJ', msn: '6084',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INK', msn: '6133',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INH', msn: '4623',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INI', msn: '3508',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INJ', msn: '13178', type: 'NEO', variant: 'A320-251N', engine: 'CFM LEAP-1A26' },
+  { reg: 'TS-INK', msn: '4564',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-INL', msn: '12280', type: 'NEO', variant: 'A320-251N', engine: 'CFM LEAP-1A26' },
   { reg: 'TS-INM', msn: '12308', type: 'NEO', variant: 'A320-251N', engine: 'CFM LEAP-1A26' },
-  { reg: 'TS-INN', msn: '6254',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-INO', msn: '6285',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
   { reg: 'TS-INP', msn: '1597',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INQ', msn: '6333',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INR', msn: '6362',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INT', msn: '6401',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
-  { reg: 'TS-INU', msn: '6435',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INQ', msn: '2158',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INR', msn: '3487',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INT', msn: '3798',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
+  { reg: 'TS-INU', msn: '3827',  type: 'CEO', variant: 'A320-214',  engine: 'CFM56-5B4'    },
 ];
 
 // ── Silhouette A320 top-view (SVG inline) ───────────────────────────────────
@@ -266,9 +266,10 @@ export default function Fleet() {
             Vue Flotte NouvelAir
           </h1>
           <p style={{ fontSize: 12, color: 'var(--tx3)' }}>
-            Flotte Airbus A320 Family — EASA Part-145 — DGAC Tunisie
+            Flotte Airbus A320 Family
           </p>
         </div>
+
 
         {/* KPI pills */}
         <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>

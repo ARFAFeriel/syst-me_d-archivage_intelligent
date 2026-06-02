@@ -281,6 +281,49 @@ async def aircraft_documents(
     docs = result.scalars().all()
     return [DocumentResponse.model_validate(d) for d in docs]
 
+@aircraft_router.get("/checks/all", summary="Tous les checks confirmés")
+async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
+    """Retourne uniquement les checks confirmés par RCT avec la registration de l'avion."""
+    result = await db.execute(
+        select(AircraftCheck, Aircraft.registration)
+        .join(Aircraft, Aircraft.id == AircraftCheck.aircraft_id)
+        .where(AircraftCheck.confirmed_by_rct == True)  # noqa
+        .order_by(AircraftCheck.check_type, Aircraft.registration)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": c.id,
+            "es_reference": c.es_reference,
+            "check_type": c.check_type.value if c.check_type else None,
+            "aircraft_registration": reg,
+            "total_documents": c.total_documents or 0,
+            "start_date": c.start_date.isoformat() if c.start_date else None,
+            "confirmed_by_rct": c.confirmed_by_rct,
+        }
+        for c, reg in rows
+    ]
+@aircraft_router.get("/checks/all", summary="Tous les checks confirmés")
+async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(AircraftCheck, Aircraft.registration)
+        .join(Aircraft, Aircraft.id == AircraftCheck.aircraft_id)
+        .where(AircraftCheck.confirmed_by_rct == True)  # noqa
+        .order_by(AircraftCheck.check_type, Aircraft.registration)
+    )
+    rows = result.all()
+    return [
+        {
+            "id": c.id,
+            "es_reference": c.es_reference,
+            "check_type": c.check_type.value if c.check_type else None,
+            "aircraft_registration": reg,
+            "total_documents": c.total_documents or 0,
+            "start_date": c.start_date.isoformat() if c.start_date else None,
+            "confirmed_by_rct": c.confirmed_by_rct,
+        }
+        for c, reg in rows
+    ]
 
 @aircraft_router.get("/{registration}/checks", summary="Checks par avion")
 async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db)):
@@ -334,6 +377,7 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
 
     out.sort(key=lambda x: x["total_documents"], reverse=True)
     return out
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════

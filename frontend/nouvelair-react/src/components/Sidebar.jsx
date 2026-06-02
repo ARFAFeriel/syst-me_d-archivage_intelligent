@@ -36,53 +36,39 @@ function ChecksAccordion() {
   const fetched = useRef(false);
 
   // Lazy-fetch au premier clic
-  useEffect(() => {
-    if (!open || fetched.current) return;
-    fetched.current = true;
-    setLoading(true);
+useEffect(() => {
+  if (!open || fetched.current) return;
+  fetched.current = true;
+  setLoading(true);
 
-    (async () => {
-      const aircraftList = await apiFetch('/aircraft/');
-      if (!aircraftList) { setLoading(false); return; }
+  (async () => {
+    try {
+      const data = await apiFetch('/aircraft/checks/all');
+      const confirmed = data || [];
+      if (!confirmed.length) { setLoading(false); return; }
 
-      const active = aircraftList
-        .filter(a => (a.doc_count || 0) > 0)
-        .map(a => a.registration);
-
-      const all = [];
-      for (const reg of active) {
-        const data = await apiFetch(`/aircraft/${reg}/checks`);
-        if (data?.length) data.forEach(c => all.push({ ...c, aircraft: reg }));
-      }
-
-      // Dédupliquer sur es_reference
-      const seen = {};
-      const deduped = all.filter(c => {
-        const key = (c.es_reference || '').toUpperCase().replace(/^ES/, '');
-        if (!key || seen[key]) return false;
-        seen[key] = true;
-        return true;
-      });
-
-      // Grouper par type (A / C / D) puis par avion
       const result = { A: {}, C: {}, D: {} };
-      for (const c of deduped) {
+      for (const c of confirmed) {
         const t = c.check_type?.match(/[ACD]/)?.[0];
         if (!t || !result[t]) continue;
-        if (!result[t][c.aircraft]) result[t][c.aircraft] = [];
-        result[t][c.aircraft].push(c);
+        const reg = c.aircraft_registration;
+        if (!reg) continue;
+        if (!result[t][reg]) result[t][reg] = [];
+        result[t][reg].push(c);
       }
 
       setGrouped(result);
-      // Ouvrir automatiquement les types qui ont des données
       const autoOpen = {};
       for (const t of ['A', 'C', 'D']) {
         if (Object.keys(result[t]).length > 0) autoOpen[t] = true;
       }
       setOpenType(autoOpen);
-      setLoading(false);
-    })();
-  }, [open]);
+    } catch {
+      // silencieux
+    }
+    setLoading(false);
+  })();
+}, [open]);
 
   const totalChecks = grouped
     ? Object.values(grouped).reduce((sum, byAc) =>
@@ -307,7 +293,7 @@ export default function Sidebar() {
 
       <div className="sdiv"></div>
       <div className="nsl">Flotte</div>
-      <NavItem to="/fleet" icon="fa-plane" badge={totalAircraft}>Vue Flotte</NavItem>
+      <NavItem to="/fleet" icon="fa-plane" >Vue Flotte</NavItem>
 
       {/* ── Checks A/C avec accordéon ── */}
       <ChecksAccordion />

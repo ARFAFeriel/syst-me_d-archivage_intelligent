@@ -1,0 +1,31 @@
+=================================================================
+  RAPPORT D'ÉVALUATION — CLASSIFIER TF-IDF + LR
+  Système d'archivage intelligent — NouvelAir MRO
+=================================================================
+
+Echantillon total  : 215 documents
+Accuracy           : 50.2%
+Weighted Precision : 49.9%
+Weighted Recall    : 50.2%
+Weighted F1-score  : 50.0%
+
+-----------------------------------------------------------------
+Classe                 Precision   Recall       F1  Support
+-----------------------------------------------------------------
+AD                         90.6%    96.7%    93.5%       30
+AMM                        81.8%    90.0%    85.7%       10
+ATL                        96.7%    96.7%    96.7%       30
+CERTIFICATE                 0.0%     0.0%     0.0%       30
+CMM                       100.0%   100.0%   100.0%       11
+Certificate                 0.0%     0.0%     0.0%        0
+DEFECT_REPORT               0.0%     0.0%     0.0%        6
+Defect Report               0.0%     0.0%     0.0%        0
+IPC                       100.0%    50.0%    66.7%        2
+JOBCARD                     0.0%     0.0%     0.0%        6
+Jobcard                     0.0%     0.0%     0.0%        0
+SB                        100.0%    96.7%    98.3%       30
+SPECS                       0.0%     0.0%     0.0%       30
+Specs                       0.0%     0.0%     0.0%        0
+WORK_ORDER                  0.0%     0.0%     0.0%       30
+Work Order                  0.0%     0.0%     0.0%        0
+=================================================================
