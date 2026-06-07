@@ -24,8 +24,7 @@ from backend.config import settings
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 
-# ── Upload ────────────────────────────────────────────────────────────────────
-
+# Upload
 @router.post("/upload", response_model=UploadResponse, summary="Upload + Pipeline IA")
 async def upload_document(
     file: UploadFile = File(...),
@@ -38,9 +37,6 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(400, "Nom de fichier manquant")
 
-    # ── Sauvegarde temporaire sur disque ──────────────────────────────────────
-    # Nécessaire pour que l'archiver puisse copier physiquement le fichier
-    # vers ORGANISED/ via shutil.copy2. Sans ça, le chemin est fictif.
     upload_dir = Path(settings.archive_root_path).parent / "uploads_temp"
     upload_dir.mkdir(parents=True, exist_ok=True)
     temp_path = upload_dir / file.filename
@@ -49,7 +45,7 @@ async def upload_document(
         with open(temp_path, "wb") as f:
             f.write(content)
         original_path = str(temp_path)
-        logger.info(f"[Upload] Fichier temporaire sauvegardé : {temp_path}")
+        logger.info(f"[Upload] Fichier temporaire sauvegarde : {temp_path}")
     except Exception as e:
         logger.error(f"[Upload] Impossible de sauvegarder le fichier temporaire : {e}")
         original_path = f"upload/{file.filename}"
@@ -64,13 +60,9 @@ async def upload_document(
         file_size_kb=len(content) / 1024,
     )
 
-    # ── Nettoyage du fichier temporaire ───────────────────────────────────────
-    # L'archiver a déjà copié le fichier vers ORGANISED/ à ce stade.
-    # On supprime le temp pour ne pas encombrer le disque.
     if temp_path and temp_path.exists():
         try:
             temp_path.unlink()
-            logger.debug(f"[Upload] Fichier temporaire supprimé : {temp_path}")
         except Exception:
             pass
 
@@ -83,7 +75,7 @@ async def upload_document(
         suggested = generate_filename_from_pipeline(result.model_dump(), file.filename)
 
     return UploadResponse(
-        message=f"Document {'dupliqué' if result.is_duplicate else 'archivé'} avec succès",
+        message=f"Document {'duplique' if result.is_duplicate else 'archive'} avec succes",
         document_id=result.document_id,
         pipeline_result=result,
         suggested_filename=suggested,
@@ -99,7 +91,6 @@ async def upload_batch(
     if len(files) > 50:
         raise HTTPException(400, "Maximum 50 fichiers par lot")
 
-    # Créer le dossier temporaire pour le lot
     upload_dir = Path(settings.archive_root_path).parent / "uploads_temp"
     upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -111,7 +102,6 @@ async def upload_batch(
         content = await file.read()
         filename = file.filename or "unknown.pdf"
 
-        # Sauvegarde temporaire
         temp_path = upload_dir / filename
         try:
             with open(temp_path, "wb") as f:
@@ -139,7 +129,6 @@ async def upload_batch(
             "errors": result.errors,
         })
 
-    # Nettoyage des fichiers temporaires du lot
     for tp in temp_paths:
         try:
             if tp and tp.exists():
@@ -149,15 +138,14 @@ async def upload_batch(
 
     success = sum(1 for r in results if r["status"] == "archived")
     return {
-        "message": f"Lot traité: {success}/{len(files)} archivés",
+        "message": f"Lot traite: {success}/{len(files)} archives",
         "total": len(files),
         "success": success,
         "results": results,
     }
 
 
-# ── CRUD ──────────────────────────────────────────────────────────────────────
-
+# CRUD
 @router.get("/", response_model=PaginatedDocuments, summary="Lister les documents")
 async def list_documents(
     aircraft: Optional[str] = Query(None),
@@ -168,7 +156,7 @@ async def list_documents(
     status: Optional[str] = Query(None),
     is_critical: Optional[bool] = Query(None),
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    size: int = Query(20, ge=1, le=500),
     sort: str = Query("created_at"),
     db: AsyncSession = Depends(get_db),
 ):
@@ -209,7 +197,175 @@ async def list_documents(
     )
 
 
-@router.api_route("/{doc_id}/file", methods=["GET", "HEAD"], summary="Télécharger / afficher le PDF original")
+# Export XLSX
+@router.get("/export/xlsx", summary="Exporter tous les documents en Excel")
+async def export_xlsx(db: AsyncSession = Depends(get_db)):
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import StreamingResponse
+    from datetime import date
+
+    result = await db.execute(select(Document).order_by(desc(Document.created_at)))
+    docs = result.scalars().all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Documents NouvelAir"
+
+    bleu_marine = "1B3A5C"
+    headers = ["ID", "Fichier", "Avion", "Type", "Categorie", "Ref.ES", "ATA", "OCR%", "Corrige", "Date"]
+    widths  = [6, 50, 10, 15, 18, 12, 8, 8, 9, 12]
+
+    for col, (h, w) in enumerate(zip(headers, widths), 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill      = PatternFill("solid", fgColor=bleu_marine)
+        cell.font      = Font(color="FFFFFF", bold=True, size=10, name="Arial")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    ws.row_dimensions[1].height = 20
+
+    TYPE_COLORS = {
+        "WORK_ORDER": "EBF5FB", "JOBCARD": "F4ECF7",
+        "AD":         "FADBD8", "RCT":    "D5F5E3",
+        "CERTIFICATE":"FEF9E7", "SB":     "FDEBD0",
+        "DB_CHART":   "EAF2FF", "SPECS":  "F0F0F0",
+    }
+
+    thin   = Side(style="thin", color="CCCCCC")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    rouge  = "FADBD8"
+    blanc  = "FFFFFF"
+
+    for row_idx, doc in enumerate(docs, 2):
+        dt = (doc.doc_type or "").upper().replace(" ", "_")
+        fill_color = TYPE_COLORS.get(dt, blanc)
+        if doc.needs_review:
+            fill_color = rouge
+
+        row_data = [
+            doc.id,
+            doc.filename or "",
+            doc.aircraft_registration or "",
+            doc.doc_type or "",
+            doc.category or "",
+            doc.es_reference or "",
+            doc.ata_chapter or "",
+            round(doc.ocr_confidence, 1) if doc.ocr_confidence else 0,
+            "Oui" if doc.manually_corrected else "Non",
+            doc.created_at.strftime("%Y-%m-%d") if doc.created_at else "",
+        ]
+
+        for col, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col, value=value)
+            cell.fill      = PatternFill("solid", fgColor=fill_color)
+            cell.font      = Font(size=9, name="Arial")
+            cell.alignment = Alignment(vertical="center")
+            cell.border    = border
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="documents_NouvelAir_{date.today()}.xlsx"'}
+    )
+
+
+# Import XLSX (sync Excel -> BDD)
+@router.post("/import/xlsx", summary="Importer corrections depuis Excel")
+async def import_xlsx(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    import io
+    from openpyxl import load_workbook
+
+    content = await file.read()
+    wb = load_workbook(io.BytesIO(content))
+    ws = wb.active
+
+    updated = 0
+    errors  = []
+    skipped = 0
+
+    TYPE_MAP = {
+        "work order": "WORK_ORDER", "workorder": "WORK_ORDER",
+        "jobcard": "JOBCARD", "job card": "JOBCARD",
+        "ad": "AD", "airworthiness directive": "AD",
+        "sb": "SB", "service bulletin": "SB",
+        "certificate": "CERTIFICATE", "rct": "RCT",
+        "atl": "ATL", "amm": "AMM", "cmm": "CMM",
+        "ipc": "IPC", "specs": "SPECS", "db_chart": "DB_CHART",
+        "d&b chart": "DB_CHART", "defect report": "DEFECT_REPORT",
+        "other": "OTHER",
+    }
+
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row or row[0] is None:
+            continue
+        try:
+            doc_id   = int(row[0])
+            avion    = str(row[2]).strip() if row[2] else None
+            doc_type = str(row[3]).strip() if row[3] else None
+            category = str(row[4]).strip() if row[4] else None
+            es_ref   = str(row[5]).strip() if row[5] else None
+            ata      = str(row[6]).strip() if row[6] else None
+
+            if doc_type:
+                doc_type_norm = TYPE_MAP.get(doc_type.lower(), doc_type.upper())
+            else:
+                doc_type_norm = None
+
+            result = await db.execute(select(Document).where(Document.id == doc_id))
+            doc = result.scalar_one_or_none()
+            if not doc:
+                skipped += 1
+                continue
+
+            changed = False
+            if avion and avion != (doc.aircraft_registration or ""):
+                doc.aircraft_registration = avion
+                changed = True
+            if doc_type_norm and doc_type_norm != (doc.doc_type or ""):
+                doc.doc_type = doc_type_norm
+                changed = True
+            if category and category != (doc.category or ""):
+                doc.category = category
+                changed = True
+            if es_ref and es_ref != (doc.es_reference or ""):
+                doc.es_reference = es_ref
+                changed = True
+            if ata and ata != (doc.ata_chapter or ""):
+                doc.ata_chapter = ata
+                changed = True
+
+            if changed:
+                doc.manually_corrected = True
+                doc.needs_review = False
+                updated += 1
+
+        except Exception as e:
+            errors.append(f"Ligne {row[0]}: {str(e)}")
+
+    await db.commit()
+
+    return {
+        "message": "Synchronisation terminee",
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors[:10],
+    }
+
+
+@router.api_route("/{doc_id}/file", methods=["GET", "HEAD"], summary="Telecharger / afficher le PDF original")
 async def serve_document_file(
     doc_id: int,
     db: AsyncSession = Depends(get_db),
@@ -238,7 +394,7 @@ async def serve_document_file(
         raise HTTPException(
             404,
             f"Fichier physique introuvable pour le document #{doc_id}. "
-            f"Chemin enregistré: {original_path}"
+            f"Chemin enregistre: {original_path}"
         )
 
     return FileResponse(
@@ -249,7 +405,7 @@ async def serve_document_file(
     )
 
 
-@router.get("/{doc_id}", response_model=DocumentResponse, summary="Détail document")
+@router.get("/{doc_id}", response_model=DocumentResponse, summary="Detail document")
 async def get_document(doc_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Document).where(Document.id == doc_id))
     doc = result.scalar_one_or_none()
@@ -277,7 +433,7 @@ async def update_document(
     doc.manually_corrected = True
     await db.commit()
     await db.refresh(doc)
-    logger.info(f"Document #{doc_id} corrigé manuellement: {update_data}")
+    logger.info(f"Document #{doc_id} corrige manuellement: {update_data}")
     return DocumentResponse.model_validate(doc)
 
 
@@ -288,13 +444,12 @@ async def delete_document(doc_id: int, db: AsyncSession = Depends(get_db)):
     if not doc:
         raise HTTPException(404, f"Document #{doc_id} introuvable")
 
-    # Supprimer d'abord les alertes liées (contrainte FK)
     from backend.models.check import Alert
     from sqlalchemy import delete
     await db.execute(delete(Alert).where(Alert.document_id == doc_id))
     await db.delete(doc)
     await db.commit()
-    return {"message": f"Document #{doc_id} supprimé"}
+    return {"message": f"Document #{doc_id} supprime"}
 
 
 @router.get("/{doc_id}/ocr-text", summary="Texte OCR brut")

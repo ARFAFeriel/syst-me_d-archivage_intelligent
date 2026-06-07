@@ -108,7 +108,6 @@ async def rag_answer(
             question=request.question,
         )
 
-    # ── Récupérer le texte OCR directement (requête légère, sans vecteur) ────
     doc_ids_ordered = [r.id for r in rows if r.sim > 0.3][:3]
     ids_str = ",".join(str(i) for i in doc_ids_ordered)
     ocr_rows = await db.execute(text(f"""
@@ -133,7 +132,6 @@ async def rag_answer(
         )
     context = "\n\n".join(context_parts)
 
-    # ── Appel Groq via repondre_question ─────────────────────────────────────
     answer = ""
     confidence = 0.0
     try:
@@ -192,16 +190,10 @@ aircraft_router = APIRouter(prefix="/aircraft", tags=["Aéronefs"])
 
 @aircraft_router.get("/", summary="Liste des aéronefs")
 async def list_aircraft(db: AsyncSession = Depends(get_db)):
-    """
-    Retourne tous les aéronefs de la table aircraft.
-    doc_count calculé via aircraft_registration (pas aircraft_id)
-    pour être cohérent avec la façon dont les documents sont liés.
-    """
     result = await db.execute(select(Aircraft).order_by(Aircraft.registration))
     aircraft_list = result.scalars().all()
     out = []
     for a in aircraft_list:
-        # Compter par registration (colonne réellement renseignée dans documents)
         doc_count = await db.scalar(
             select(func.count(Document.id)).where(
                 Document.aircraft_registration.ilike(a.registration)
@@ -281,28 +273,7 @@ async def aircraft_documents(
     docs = result.scalars().all()
     return [DocumentResponse.model_validate(d) for d in docs]
 
-@aircraft_router.get("/checks/all", summary="Tous les checks confirmés")
-async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
-    """Retourne uniquement les checks confirmés par RCT avec la registration de l'avion."""
-    result = await db.execute(
-        select(AircraftCheck, Aircraft.registration)
-        .join(Aircraft, Aircraft.id == AircraftCheck.aircraft_id)
-        .where(AircraftCheck.confirmed_by_rct == True)  # noqa
-        .order_by(AircraftCheck.check_type, Aircraft.registration)
-    )
-    rows = result.all()
-    return [
-        {
-            "id": c.id,
-            "es_reference": c.es_reference,
-            "check_type": c.check_type.value if c.check_type else None,
-            "aircraft_registration": reg,
-            "total_documents": c.total_documents or 0,
-            "start_date": c.start_date.isoformat() if c.start_date else None,
-            "confirmed_by_rct": c.confirmed_by_rct,
-        }
-        for c, reg in rows
-    ]
+
 @aircraft_router.get("/checks/all", summary="Tous les checks confirmés")
 async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -324,6 +295,7 @@ async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
         }
         for c, reg in rows
     ]
+
 
 @aircraft_router.get("/{registration}/checks", summary="Checks par avion")
 async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db)):
@@ -377,7 +349,6 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
 
     out.sort(key=lambda x: x["total_documents"], reverse=True)
     return out
-
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -536,7 +507,7 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
         select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)
     ) or 0
     avg_ocr = await db.scalar(
-select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
+        select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
     )
     active_alerts = await db.scalar(
         select(func.count(Alert.id)).where(Alert.resolved == False)  # noqa
@@ -544,8 +515,6 @@ select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
     critical_ads = await db.scalar(
         select(func.count(Document.id)).where(Document.is_critical == True)  # noqa
     ) or 0
-
-    # Nombre total d'avions dans la table aircraft (pas seulement ceux avec des docs)
     total_aircraft = await db.scalar(
         select(func.count(Aircraft.id))
     ) or 0
@@ -555,9 +524,11 @@ select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
         "archived": archived,
         "avg_ocr_confidence": round(float(avg_ocr or 0), 2),
         "active_alerts": active_alerts,
-        "needs_review": await db.scalar(select(func.count(Document.id)).where(Document.needs_review == True)) or 0,
+        "needs_review": await db.scalar(
+            select(func.count(Document.id)).where(Document.needs_review == True)
+        ) or 0,
         "total_aircraft": total_aircraft,
-                "archive_rate_pct": round(archived / max(total_docs, 1) * 100, 1),
+        "archive_rate_pct": round(archived / max(total_docs, 1) * 100, 1),
         "critical_ads": critical_ads,
     }
 
@@ -577,15 +548,15 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .order_by(desc("count"))
     )
 
-    # Par avion — tous les avions enregistrés dans aircraft avec leur nombre de docs
-    # (doc_count=0 pour les avions sans documents)
+    # Par avion — avec MSN
     by_aircraft_q = await db.execute(
         select(
             Aircraft.registration,
+            Aircraft.msn,
             func.count(Document.id).label("count"),
         )
         .outerjoin(Document, Document.aircraft_registration == Aircraft.registration)
-        .group_by(Aircraft.registration)
+        .group_by(Aircraft.registration, Aircraft.msn)
         .order_by(desc("count"))
     )
 
@@ -597,7 +568,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .order_by(desc("count"))
     )
 
-    # Nombre de types distincts dans la DB (dynamique, pas hardcodé)
+    # Nombre de types distincts
     total_doc_types = await db.scalar(
         select(func.count(func.distinct(Document.doc_type)))
         .where(Document.doc_type.isnot(None))
@@ -622,7 +593,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
             for r in by_type_q
         ],
         "by_aircraft": [
-            {"aircraft": r.registration, "count": r.count}
+            {"aircraft": r.registration, "msn": r.msn, "count": r.count}
             for r in by_aircraft_q
         ],
         "by_category": [
@@ -641,7 +612,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import case, extract
 
-    # ── Distribution OCR par tranche ─────────────────────────────────────────
+    # Distribution OCR par tranche
     ocr_dist_q = await db.execute(
         select(
             case(
@@ -659,7 +630,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     )
     ocr_distribution = [{"tranche": r.tranche, "count": r.count} for r in ocr_dist_q]
 
-    # ── Taux validation humaine ───────────────────────────────────────────────
+    # Validation humaine
     total_archived = await db.scalar(
         select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)
     ) or 0
@@ -671,12 +642,12 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     ) or 0
     human_validation_pct = round(manually_corrected / max(total_archived, 1) * 100, 1)
 
-    # ── Documents en attente ──────────────────────────────────────────────────
+    # Documents en attente
     pending_count = await db.scalar(
         select(func.count(Document.id)).where(Document.status == DocumentStatus.PENDING)
     ) or 0
 
-    # ── Évolution archivages par mois ─────────────────────────────────────────
+    # Évolution mensuelle
     monthly_q = await db.execute(
         select(
             extract('year',  Document.created_at).label("year"),
@@ -692,7 +663,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         for r in monthly_q
     ][-6:]
 
-    # ── Anomalies documentaires ───────────────────────────────────────────────
+    # Anomalies
     sans_avion = await db.scalar(
         select(func.count(Document.id)).where(
             Document.aircraft_registration.is_(None),
@@ -715,41 +686,44 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         select(func.count(Document.id)).where(Document.needs_review == True)  # noqa
     ) or 0
 
-    # ── Nombre de types de documents distincts (dynamique) ────────────────────
+    # Nombre de types distincts
     nb_doc_types = await db.scalar(
         select(func.count(func.distinct(Document.doc_type)))
         .where(Document.doc_type.isnot(None))
     ) or 1
 
-    # ── Couverture documentaire par avion ─────────────────────────────────────
+    # Couverture documentaire par avion — OCR moyen sur docs actifs (conf > 0) uniquement
     coverage_q = await db.execute(
         select(
             Aircraft.registration,
+            Aircraft.msn,
             func.count(Document.id).label("total"),
             func.count(func.distinct(Document.doc_type)).label("nb_types"),
-            func.avg(Document.ocr_confidence).label("avg_ocr"),
+            func.avg(Document.ocr_confidence).filter(
+                Document.ocr_confidence > 0
+            ).label("avg_ocr"),
             func.count(Document.id).filter(Document.manually_corrected == True).label("validated"),  # noqa
         )
         .outerjoin(Document, Document.aircraft_registration == Aircraft.registration)
-        .group_by(Aircraft.registration)
+        .group_by(Aircraft.registration, Aircraft.msn)
         .order_by(desc("total"))
     )
     coverage_by_aircraft = [
         {
             "aircraft":     r.registration,
+            "msn":          r.msn,
             "total_docs":   r.total,
             "nb_types":     r.nb_types,
             "avg_ocr":      round(float(r.avg_ocr), 1) if r.avg_ocr else 0,
             "validated":    r.validated,
-            # nb_doc_types calculé dynamiquement depuis la DB, pas hardcodé à 13
             "coverage_pct": round(r.nb_types / nb_doc_types * 100, 0) if r.nb_types else 0,
         }
         for r in coverage_q
     ]
 
-    # ── Score qualité global archive ──────────────────────────────────────────
+    # Score qualité global
     avg_ocr = await db.scalar(
-select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
+        select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
     ) or 0
     avg_cls = await db.scalar(
         select(func.avg(Document.classifier_confidence)).where(
@@ -767,7 +741,7 @@ select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
         1
     )
 
-    # ── Distribution ATA chapters (top 8) ─────────────────────────────────────
+    # Distribution ATA chapters (top 8)
     ata_q = await db.execute(
         select(Document.ata_chapter, func.count(Document.id).label("count"))
         .where(Document.ata_chapter.isnot(None))
@@ -793,7 +767,6 @@ select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
         "quality_score":        quality_score,
         "by_ata":               by_ata,
     }
-
 
 
 @analytics_router.get("/benchmark", summary="Benchmark modèles IA")
@@ -828,6 +801,7 @@ async def get_benchmark(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         return {"models": [], "error": str(e)}
 
+
 @analytics_router.get("/powerbi-token", summary="Token Power BI Embedded")
 async def get_powerbi_token():
     from backend.config import settings
@@ -843,10 +817,6 @@ async def get_powerbi_token():
         "embed_url": f"https://app.powerbi.com/reportEmbed?reportId={settings.powerbi_report_id}",
         "token": "PLACEHOLDER_TOKEN",
     }
-
-
-
-
 
 
 @analytics_router.get("/archive-tree", summary="Arborescence complete depuis DB")
@@ -882,5 +852,3 @@ async def get_archive_tree(db: AsyncSession = Depends(get_db)):
         tree[ac]["_count"] += 1
         total += 1
     return {"tree": tree, "stats": {"total": total, "aircraft": len(tree)}}
-
-
