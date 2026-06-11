@@ -33,7 +33,7 @@ class LLMAgent:
             return
         try:
             self._client = Groq(api_key=api_key)
-            logger.info(f"[{self.name}] Groq connecte â€” {GROQ_MODEL}")
+            logger.info(f"[{self.name}] Groq connecte — {GROQ_MODEL}")
         except Exception as e:
             logger.error(f"[{self.name}] Init erreur : {e}")
 
@@ -77,7 +77,6 @@ class LLMAgent:
         r = self._call(sys, usr, 800)
         if not r:
             return {"texte_corrige":texte_brut,"llm_utilise":False,"amelioration":"LLM sans reponse"}
-        # Rejeter si Groq répond avec une phrase d'erreur au lieu de corriger
         mots_erreur = ["je n'ai pas", "je ne peux pas", "désolé", "impossible", "accès"]
         if any(m in r.lower() for m in mots_erreur) or len(r) < 20:
             return {"texte_corrige":texte_brut,"llm_utilise":False,"amelioration":"LLM réponse invalide"}
@@ -92,7 +91,7 @@ class LLMAgent:
         if not manquantes or not self.disponible:
             return {**entites_existantes, "llm_ner_utilise":False}
         sys = ("Expert MRO NouvelAir Tunisie.\n"
-               "Flotte : TS-INP (MSN 2158), TS-INQ (MSN 3012).\n"
+               "Flotte : TS-INO (MSN 6285), TS-INP (MSN 1597), TS-INQ (MSN 2158).\n"
                "ES references : ES###### (ex ES001778).\n"
                "Reponds UNIQUEMENT en JSON valide, null si introuvable.")
         usr = (f"Fichier : {filename}\n"
@@ -110,7 +109,7 @@ class LLMAgent:
                 if v and not entites_existantes.get(k):
                     entites_existantes[k] = v
             entites_existantes["llm_ner_utilise"] = True
-            logger.info(f"[{self.name}] NER complete â€” {manquantes}")
+            logger.info(f"[{self.name}] NER complete — {manquantes}")
             return entites_existantes
         except Exception as e:
             logger.warning(f"[{self.name}] NER parse error : {e}")
@@ -155,7 +154,7 @@ class LLMAgent:
             cat  = p.get("category","Other")
             conf = float(p.get("confidence",0.80))
             if dt != tfidf_type: conf = min(conf, 0.88)
-            logger.info(f"[{self.name}] Classif: {dt} ({conf:.0%}) â€” {filename}")
+            logger.info(f"[{self.name}] Classif: {dt} ({conf:.0%}) — {filename}")
             return {"doc_type":dt,"category":cat,"confidence":round(conf,4),
                     "llm_utilise":True,"raison":p.get("raison","LLM"),
                     "needs_review": dt != tfidf_type}
@@ -170,22 +169,60 @@ class LLMAgent:
             return True
         return False
 
-    # 4. RAG
+    # 4. RAG — améliore pour exploiter les métadonnées quand OCR dégradé
     def repondre_question(self, question, documents_contexte, aircraft_filter=None):
         if not self.disponible or not documents_contexte:
-            return {"reponse":"LLM indisponible.","sources":[],"llm_utilise":False}
+            return {"reponse": "LLM indisponible.", "sources": [], "llm_utilise": False}
+
         ctx, sources = "", []
-        for i,doc in enumerate(documents_contexte[:5],1):
-            fn = doc.get("filename","?")
-            ctx += f"\n--- Doc {i}: {fn} ({doc.get('doc_type','?')} | {doc.get('aircraft_registration','?')}) ---\n"
-            ctx += (doc.get("ocr_text") or "")[:400] + "\n"
+        for i, doc in enumerate(documents_contexte[:5], 1):
+            fn       = doc.get("filename", "?")
+            dtype    = doc.get("doc_type", "?")
+            aircraft = doc.get("aircraft_registration", "?")
+            es_ref   = doc.get("es_reference", "") or ""
+            ata      = doc.get("ata_chapter", "") or ""
+            ocr_raw  = (doc.get("ocr_text") or "").strip()
+            ocr_conf = doc.get("ocr_confidence", 0) or 0
+
+            # Métadonnées toujours présentes
+            ctx += f"\n--- Doc {i} ---\n"
+            ctx += f"Fichier      : {fn}\n"
+            ctx += f"Type         : {dtype}\n"
+            ctx += f"Avion        : {aircraft}\n"
+            if es_ref:
+                ctx += f"Référence ES : {es_ref}\n"
+            if ata:
+                ctx += f"Chapitre ATA : {ata}\n"
+            ocr_label = "PDF natif (texte extrait directement)" if float(ocr_conf) == 0 else f"{round(float(ocr_conf))}%"
+            ctx += f"Confiance OCR: {ocr_label}\n"
+
+            # Texte OCR — avec indication si insuffisant
+            if ocr_raw and len(ocr_raw) > 50:
+                ctx += f"Contenu:\n{ocr_raw[:600]}\n"
+            else:
+                ctx += "Contenu: [Texte OCR insuffisant — utiliser les métadonnées]\n"
+
             sources.append(fn)
-        sys = ("Assistant expert MRO NouvelAir. Reponds en francais, concis,\n"
-               "en te basant UNIQUEMENT sur les documents fournis.")
-        f   = f"Filtre: {aircraft_filter}\n\n" if aircraft_filter else ""
-        usr = f"{f}DOCUMENTS:\n{ctx}\n\nQUESTION: {question}\n\nREPONSE:"
-        r = self._call(sys, usr, 512)
+
+        sys = (
+            "Tu es un assistant expert en documentation MRO aéronautique pour NouvelAir. "
+            "Réponds en français, de manière concise et précise. "
+            "Base-toi sur les documents fournis. "
+            "Les documents avec confiance OCR 0% sont des PDF natifs dont le texte est extrait directement — "
+            "ils sont fiables. Utilise leur contenu normalement. "
+            "Si le texte OCR est insuffisant, utilise les métadonnées disponibles "
+            "(nom de fichier, type documentaire, référence ES, chapitre ATA, immatriculation) "
+            "pour formuler une réponse partielle mais utile. "
+            "Ne dis jamais que tu ne peux pas répondre si les métadonnées permettent "
+            "d'apporter une information pertinente. "
+            "Si vraiment aucune information n'est disponible, dis-le clairement en une phrase."
+        )
+        f   = f"Filtre avion: {aircraft_filter}\n\n" if aircraft_filter else ""
+        usr = f"{f}DOCUMENTS DISPONIBLES:\n{ctx}\n\nQUESTION: {question}\n\nRÉPONSE:"
+
+        r = self._call(sys, usr, 600)
         if not r:
-            return {"reponse":"Pas de reponse.","sources":sources,"llm_utilise":False}
-        logger.info(f"[{self.name}] RAG â€” {question[:60]}")
-        return {"reponse":r,"sources":sources,"llm_utilise":True}
+            return {"reponse": "Pas de réponse.", "sources": sources, "llm_utilise": False}
+
+        logger.info(f"[{self.name}] RAG — {question[:60]}")
+        return {"reponse": r, "sources": sources, "llm_utilise": True}

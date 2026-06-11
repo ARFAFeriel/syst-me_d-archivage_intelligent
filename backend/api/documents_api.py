@@ -144,7 +144,36 @@ async def upload_batch(
         "results": results,
     }
 
+@router.get("/classification-stats")
+async def classification_stats(db: AsyncSession = Depends(get_db)):
+    total = await db.scalar(select(func.count()).select_from(Document))
+    high_conf = await db.scalar(select(func.count()).select_from(Document).where(Document.class_confidence >= 0.8))
+    low_conf = await db.scalar(select(func.count()).select_from(Document).where(Document.class_confidence < 0.5))
+    needs_review = await db.scalar(select(func.count()).select_from(Document).where(Document.needs_review == True))
+    duplicates = await db.scalar(select(func.count()).select_from(Document).where(Document.is_duplicate == True))
+    avg_ocr = await db.scalar(select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0))
 
+    ocr_rows = await db.execute(
+        select(Document.aircraft_registration,
+               func.avg(Document.ocr_confidence).label("avg_ocr"),
+               func.count().label("doc_count"))
+        .where(Document.ocr_confidence > 0)
+        .group_by(Document.aircraft_registration)
+        .order_by(Document.aircraft_registration)
+    )
+
+    return {
+        "total": total,
+        "high_confidence": high_conf,
+        "low_confidence": low_conf,
+        "needs_review": needs_review,
+        "duplicates": duplicates,
+        "avg_ocr": round(avg_ocr or 0, 1),
+        "ocr_by_aircraft": [
+            {"registration": r.aircraft_registration, "avg_ocr": round(r.avg_ocr, 1), "doc_count": r.doc_count}
+            for r in ocr_rows if r.aircraft_registration
+        ],
+    }
 # CRUD
 @router.get("/", response_model=PaginatedDocuments, summary="Lister les documents")
 async def list_documents(
@@ -154,7 +183,9 @@ async def list_documents(
     ata_chapter: Optional[str] = Query(None),
     es_reference: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
-    is_critical: Optional[bool] = Query(None),
+is_critical: Optional[bool] = Query(None),
+    needs_review: Optional[bool] = Query(None),
+    no_aircraft: Optional[bool] = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=500),
     sort: str = Query("created_at"),
@@ -175,6 +206,8 @@ async def list_documents(
         conditions.append(Document.status == status)
     if is_critical is not None:
         conditions.append(Document.is_critical == is_critical)
+    if no_aircraft:
+        conditions.append(Document.aircraft_registration.is_(None))
 
     count_q = select(func.count(Document.id))
     if conditions:
@@ -278,6 +311,81 @@ async def export_xlsx(db: AsyncSession = Depends(get_db)):
         headers={"Content-Disposition": f'attachment; filename="documents_NouvelAir_{date.today()}.xlsx"'}
     )
 
+
+# Export XLSX — Documents à réviser uniquement
+@router.get("/export/needs-review", summary="Exporter les documents à réviser")
+async def export_needs_review(db: AsyncSession = Depends(get_db)):
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import StreamingResponse
+    from datetime import date
+
+    result = await db.execute(
+        select(Document)
+        .where(Document.needs_review == True)
+        .order_by(desc(Document.ocr_confidence))
+    )
+    docs = result.scalars().all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "A Réviser"
+
+    bleu_marine = "1B3A5C"
+    orange      = "E67E22"
+    headers = ["ID", "Fichier", "Avion", "Type", "Categorie", "Ref.ES", "ATA", "OCR%", "Classifier%", "Corrige", "Date"]
+    widths  = [6, 50, 10, 15, 18, 12, 8, 8, 12, 9, 12]
+
+    for col, (h, w) in enumerate(zip(headers, widths), 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill      = PatternFill("solid", fgColor=bleu_marine)
+        cell.font      = Font(color="FFFFFF", bold=True, size=10, name="Arial")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    ws.row_dimensions[1].height = 20
+    thin   = Side(style="thin", color="CCCCCC")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for row_idx, doc in enumerate(docs, 2):
+        row_data = [
+            doc.id,
+            doc.filename or "",
+            doc.aircraft_registration or "",
+            doc.doc_type or "",
+            doc.category or "",
+            doc.es_reference or "",
+            doc.ata_chapter or "",
+            round(doc.ocr_confidence, 1) if doc.ocr_confidence else 0,
+            round(doc.classifier_confidence * 100, 1) if doc.classifier_confidence else 0,
+            "Oui" if doc.manually_corrected else "Non",
+            doc.created_at.strftime("%Y-%m-%d") if doc.created_at else "",
+        ]
+        for col, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col, value=value)
+            cell.fill      = PatternFill("solid", fgColor="FEF9E7")
+            cell.font      = Font(size=9, name="Arial")
+            cell.alignment = Alignment(vertical="center")
+            cell.border    = border
+
+    # Ligne résumé en bas
+    ws.append([])
+    ws.append(["", f"Total : {len(docs)} documents à réviser", "", "", "", "", "", "", "", "", ""])
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="a_reviser_NouvelAir_{date.today()}.xlsx"'}
+    )
 
 # Import XLSX (sync Excel -> BDD)
 @router.post("/import/xlsx", summary="Importer corrections depuis Excel")

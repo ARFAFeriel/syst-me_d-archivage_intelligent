@@ -1,20 +1,20 @@
-"""
-Agent OCR v5 — Tesseract + OpenCV combinés
-Système d'archivage intelligent — NouvelAir MRO
+﻿"""
+Agent OCR v5 â€” Tesseract + OpenCV combinÃ©s
+SystÃ¨me d'archivage intelligent â€” NouvelAir MRO
 
 OPTIMISATIONS v5.1 :
   - Fix signature : process() accepte maintenant (bytes, filename) au lieu de file_path
-  - Paramètre profile accepté (transmis par pipeline.py)
-  - ThreadPoolExecutor(max_workers=2) — traitement concurrent possible
-  - pdfplumber.open(BytesIO) — pas de fichier temporaire
-  - Fallback pdf2image via NamedTemporaryFile (uniquement si nécessaire)
+  - ParamÃ¨tre profile acceptÃ© (transmis par pipeline.py)
+  - ThreadPoolExecutor(max_workers=2) â€” traitement concurrent possible
+  - pdfplumber.open(BytesIO) â€” pas de fichier temporaire
+  - Fallback pdf2image via NamedTemporaryFile (uniquement si nÃ©cessaire)
 
-Stratégie par document :
-  1. pdfplumber       → texte natif PDF (le plus rapide et précis)
+StratÃ©gie par document :
+  1. pdfplumber       â†’ texte natif PDF (le plus rapide et prÃ©cis)
   2. Tesseract multi-PSM + OpenCV preprocessing
-  3. OpenCV enhanced  → activé si conf Tesseract < OPENCV_THRESHOLD
-  4. Fusion           → sélection du meilleur résultat par page
-  5. Score qualité    → needs_review si conf finale < CONF_REVIEW
+  3. OpenCV enhanced  â†’ activÃ© si conf Tesseract < OPENCV_THRESHOLD
+  4. Fusion           â†’ sÃ©lection du meilleur rÃ©sultat par page
+  5. Score qualitÃ©    â†’ needs_review si conf finale < CONF_REVIEW
 """
 
 import io
@@ -36,9 +36,9 @@ from PIL import Image
 from backend.config import settings
 from backend.schemas.document import OCRResult
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # CONFIGURATION
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 TESSERACT_LANG       = "fra+eng"
 MIN_NATIVE_CHARS     = 50
@@ -70,9 +70,9 @@ if os.path.exists(_TESS_CMD):
     pytesseract.pytesseract.tesseract_cmd = _TESS_CMD
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # PREPROCESSING OPENCV
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def preprocess_image(pil_img: Image.Image) -> Image.Image:
     img = np.array(pil_img.convert("RGB"))
@@ -99,9 +99,9 @@ def preprocess_image(pil_img: Image.Image) -> Image.Image:
     return Image.fromarray(binary)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # TESSERACT OCR
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def tesseract_ocr(pil_img: Image.Image) -> tuple[str, float]:
     best_text = ""
@@ -127,24 +127,24 @@ def tesseract_ocr(pil_img: Image.Image) -> tuple[str, float]:
     return best_text, best_conf
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # OPENCV ENHANCED OCR
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 def enhanced_ocr(pil_img: Image.Image) -> tuple[str, float]:
     """
-    OpenCV preprocessing amélioré + Tesseract multi-méthode.
-    Plus rapide que EasyOCR, déjà installé, suffisant pour documents MRO.
+    OpenCV preprocessing amÃ©liorÃ© + Tesseract multi-mÃ©thode.
+    Plus rapide que EasyOCR, dÃ©jÃ  installÃ©, suffisant pour documents MRO.
     """
     try:
         img = np.array(pil_img.convert('RGB'))
         gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-        # Preprocessing pipeline amélioré
+        # Preprocessing pipeline amÃ©liorÃ©
         results = []
 
-        # Méthode 1 : CLAHE + Otsu
+        # MÃ©thode 1 : CLAHE + Otsu
         clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
         _, binary1 = cv2.threshold(
@@ -164,7 +164,7 @@ def enhanced_ocr(pil_img: Image.Image) -> tuple[str, float]:
         conf1 = float(np.mean(confs1)) if confs1 else 0.0
         results.append((text1, conf1))
 
-        # Méthode 2 : Denoising + Adaptive threshold
+        # MÃ©thode 2 : Denoising + Adaptive threshold
         denoised = cv2.fastNlMeansDenoising(gray, h=10)
         binary2 = cv2.adaptiveThreshold(
             denoised, 255,
@@ -184,7 +184,7 @@ def enhanced_ocr(pil_img: Image.Image) -> tuple[str, float]:
         conf2 = float(np.mean(confs2)) if confs2 else 0.0
         results.append((text2, conf2))
 
-        # Méthode 3 : Upscaling × 2
+        # MÃ©thode 3 : Upscaling Ã— 2
         upscaled = cv2.resize(
             gray, None, fx=2, fy=2,
             interpolation=cv2.INTER_CUBIC
@@ -206,7 +206,7 @@ def enhanced_ocr(pil_img: Image.Image) -> tuple[str, float]:
         conf3 = float(np.mean(confs3)) if confs3 else 0.0
         results.append((text3, conf3))
 
-        # Retourner le meilleur résultat
+        # Retourner le meilleur rÃ©sultat
         best = max(results, key=lambda x: x[1])
         return best[0], best[1]
 
@@ -215,15 +215,16 @@ def enhanced_ocr(pil_img: Image.Image) -> tuple[str, float]:
         return "", 0.0
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # FUSION
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def fuse_ocr_results(
     tess_text: str, tess_conf: float,
     opencv_text: str, opencv_conf: float,
 ) -> tuple[str, float, str]:
-    tess_ok   = bool(tess_text.strip()) and tess_conf > 0
+    tess_has_text = bool(tess_text.strip())
+    tess_ok       = tess_has_text and tess_conf > 0
     opencv_ok = bool(opencv_text.strip()) and opencv_conf > 0
     if not tess_ok and not opencv_ok:
         return "", 0.0, "none"
@@ -245,9 +246,9 @@ def content_score(text: str) -> float:
     return min(hits * 2.0, 12.0)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # TRAITEMENT D'UNE PAGE
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def process_page(page, page_num: int, file_bytes: bytes, page_index: int) -> dict:
     """
@@ -262,7 +263,7 @@ def process_page(page, page_num: int, file_bytes: bytes, page_index: int) -> dic
         "method": "none",
     }
 
-    # Étape 1 : texte natif
+    # Ã‰tape 1 : texte natif
     try:
         native_text = (page.extract_text() or "").strip()
         if len(native_text) >= MIN_NATIVE_CHARS:
@@ -277,12 +278,12 @@ def process_page(page, page_num: int, file_bytes: bytes, page_index: int) -> dic
     except Exception as e:
         logger.debug(f"pdfplumber page {page_num} : {e}")
 
-    # Étape 2 : conversion en image
+    # Ã‰tape 2 : conversion en image
     pil_img = None
     try:
         pil_img = page.to_image(resolution=400).original
     except Exception as e:
-        logger.debug(f"pdfplumber to_image page {page_num} échoué ({e}), tentative pdf2image...")
+        logger.debug(f"pdfplumber to_image page {page_num} Ã©chouÃ© ({e}), tentative pdf2image...")
         try:
             from pdf2image import convert_from_bytes
             images = convert_from_bytes(
@@ -292,24 +293,24 @@ def process_page(page, page_num: int, file_bytes: bytes, page_index: int) -> dic
             )
             pil_img = images[0] if images else None
         except Exception as e2:
-            logger.warning(f"pdf2image page {page_num} échoué : {e2}")
+            logger.warning(f"pdf2image page {page_num} Ã©chouÃ© : {e2}")
 
     if pil_img is None:
         logger.warning(f"Impossible de convertir la page {page_num} en image.")
         return result
 
-    # Étape 3 : Tesseract brut
+    # Ã‰tape 3 : Tesseract brut
     tess_text, tess_conf = tesseract_ocr(pil_img)
-    # Étape 4 : Tesseract + preprocessing — toujours appliqué pour améliorer
+    # Ã‰tape 4 : Tesseract + preprocessing â€” toujours appliquÃ© pour amÃ©liorer
     try:
         preprocessed = preprocess_image(pil_img)
         tess_text2, tess_conf2 = tesseract_ocr(preprocessed)
         if tess_conf2 > tess_conf:
             tess_text, tess_conf = tess_text2, tess_conf2
     except Exception as e:
-            logger.debug(f"Prétraitement page {page_num} : {e}")
+            logger.debug(f"PrÃ©traitement page {page_num} : {e}")
 
-    # Étape 4b : Otsu simple — meilleur sur formulaires/tableaux
+    # Ã‰tape 4b : Otsu simple â€” meilleur sur formulaires/tableaux
     try:
         import numpy as np
         img_np = np.array(pil_img.convert("L"))
@@ -318,20 +319,20 @@ def process_page(page, page_num: int, file_bytes: bytes, page_index: int) -> dic
         tess_text3, tess_conf3 = tesseract_ocr(otsu_img)
         if tess_conf3 > tess_conf:
             tess_text, tess_conf = tess_text3, tess_conf3
-            logger.debug(f"Otsu améliore page {page_num}: {tess_conf3:.1f}%")
+            logger.debug(f"Otsu amÃ©liore page {page_num}: {tess_conf3:.1f}%")
     except Exception as e:
         logger.debug(f"Otsu page {page_num} : {e}")
-    # Étape 5 : OpenCV enhanced si conf Tesseract insuffisante
+    # Ã‰tape 5 : OpenCV enhanced si conf Tesseract insuffisante
     opencv_text, opencv_conf = "", 0.0
     if tess_conf < OPENCV_THRESHOLD:
         opencv_text, opencv_conf = enhanced_ocr(pil_img)
 
-    # Étape 6 : Fusion
+    # Ã‰tape 6 : Fusion
     final_text, final_conf, engine = fuse_ocr_results(
         tess_text, tess_conf, opencv_text, opencv_conf
     )
 
-    # Étape 7 : Bonus contenu
+    # Ã‰tape 7 : Bonus contenu
     final_conf = min(final_conf + content_score(final_text), 99.0)
 
     result.update({
@@ -347,21 +348,21 @@ def process_page(page, page_num: int, file_bytes: bytes, page_index: int) -> dic
     return result
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # CLASSE PRINCIPALE
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class OCRAgent:
     """
-    Agent OCR v5.1 — Tesseract + OpenCV combinés.
+    Agent OCR v5.1 â€” Tesseract + OpenCV combinÃ©s.
 
-    OPT : process() accepte (file_content: bytes, filename: str, ...) — aligné pipeline.py
-    OPT : ThreadPoolExecutor(max_workers=2) — traitement concurrent possible
-    OPT : pdfplumber.open(BytesIO) — pas d'écriture disque
+    OPT : process() accepte (file_content: bytes, filename: str, ...) â€” alignÃ© pipeline.py
+    OPT : ThreadPoolExecutor(max_workers=2) â€” traitement concurrent possible
+    OPT : pdfplumber.open(BytesIO) â€” pas d'Ã©criture disque
     """
 
     def __init__(self):
-        # OPT: 2 workers → deux documents peuvent être OCR-isés en parallèle
+        # OPT: 2 workers â†’ deux documents peuvent Ãªtre OCR-isÃ©s en parallÃ¨le
         self._executor = ThreadPoolExecutor(max_workers=2)
         from backend.agents.llm_agent import LLMAgent
         self._llm = LLMAgent()
@@ -371,10 +372,10 @@ class OCRAgent:
         file_content: bytes,      # OPT: bytes au lieu de file_path str
         filename: str = "",
         doc_type: str = "DEFAULT",
-        profile=None,             # OPT: paramètre profile accepté (ignoré fonctionnellement ici)
+        profile=None,             # OPT: paramÃ¨tre profile acceptÃ© (ignorÃ© fonctionnellement ici)
     ) -> OCRResult:
         """
-        Point d'entrée principal — appelé par pipeline.py.
+        Point d'entrÃ©e principal â€” appelÃ© par pipeline.py.
         Accepte le contenu binaire du PDF + son nom de fichier.
         """
         loop = asyncio.get_event_loop()
@@ -386,11 +387,11 @@ class OCRAgent:
         )
 
     def _process_sync(self, file_content: bytes, filename: str) -> OCRResult:
-        logger.info(f"OCR v5.1 → {filename}")
+        logger.info(f"OCR v5.1 â†’ {filename}")
 
         pages_results = []
         try:
-            # OPT: BytesIO direct — pas de fichier temporaire
+            # OPT: BytesIO direct â€” pas de fichier temporaire
             with pdfplumber.open(io.BytesIO(file_content)) as pdf:
                 total_pages = len(pdf.pages)
                 pages_to_process = min(MAX_PAGES, total_pages)
@@ -435,19 +436,19 @@ class OCRAgent:
         needs_review = avg_conf < CONF_REVIEW or not full_text.strip()
 
         logger.info(
-            f"OCR v5.1 terminé : {filename} | "
+            f"OCR v5.1 terminÃ© : {filename} | "
             f"conf={avg_conf:.1f}% | engine={dominant_engine} | "
             f"pages={len(pages_results)} | needs_review={needs_review}"
         )
 
-        # ── Correction LLM si confiance insuffisante ──────────────────────────
+        # â”€â”€ Correction LLM si confiance insuffisante â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if avg_conf < 75.0 and self._llm.disponible and full_text.strip():
             correction = self._llm.corriger_ocr(full_text, avg_conf, filename)
             if correction["llm_utilise"]:
                 full_text = correction["texte_corrige"]
                 needs_review = False
                 logger.info(f"OCR LLM correction : {correction['amelioration']}")
-        # ─────────────────────────────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         return OCRResult(
             text=full_text,
             confidence=round(avg_conf, 2),

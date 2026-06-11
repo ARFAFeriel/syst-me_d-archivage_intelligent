@@ -1,5 +1,6 @@
 // PipelineDemo.jsx — Simulation interactive du pipeline 6 agents
 import { useState, useRef } from 'react';
+import { useApi } from '../hooks/useApi';
 
 const STEPS = [
   {
@@ -50,7 +51,7 @@ const STEPS = [
     id: 3,
     icon: 'fa-brain',
     label: 'Classifier Agent',
-    subtitle: 'TF-IDF + Logistic Regression',
+    subtitle: 'TF-IDF + SVM · C=5.0 · ngram(1,2)',
     color: '#f59e0b',
     bg: 'rgba(245,158,11,.08)',
     border: 'rgba(245,158,11,.25)',
@@ -58,7 +59,7 @@ const STEPS = [
     metric: 'conf. 94%',
     detail: {
       title: 'Classification du document',
-      description: 'Texte OCR + filename + chemin combinés en vecteur TF-IDF. LR entraîné sur 2 146 documents NouvelAir. Accuracy 88.1%.',
+      description: 'Texte OCR + filename + chemin combinés en vecteur TF-IDF. SVM entraîné sur corpus NouvelAir. Boost ×5 sur token du dossier parent. F1 macro 95.2%.',
       output: [
         { key: 'WORK_ORDER', value: '94.2% ✓' },
         { key: 'JOBCARD', value: '3.1%' },
@@ -149,6 +150,9 @@ export default function PipelineDemo() {
   const [speed, setSpeed] = useState(1);
   const cancelRef = useRef(false);
 
+  const { data: kpis }     = useApi('/analytics/kpis');
+  const { data: pipeline } = useApi('/pipeline/status');
+
   const reset = () => {
     cancelRef.current = true;
     setRunning(false);
@@ -172,7 +176,10 @@ export default function PipelineDemo() {
       await new Promise(r => setTimeout(r, STEPS[i].duration / speed));
       if (cancelRef.current) break;
       setCompletedSteps(prev => [...prev, i]);
+      setExpandedStep(i);
       setActiveStep(null);
+      await new Promise(r => setTimeout(r, 800 / speed));
+      setExpandedStep(null);
       await new Promise(r => setTimeout(r, 100 / speed));
     }
 
@@ -184,6 +191,14 @@ export default function PipelineDemo() {
 
   const doc = SAMPLE_DOCS[selectedDoc];
   const progress = completedSteps.length / STEPS.length * 100;
+
+  const metrics = [
+    { label: 'Documents archivés',  value: kpis?.total_documents?.toLocaleString() || '—',                                                                          color: 'var(--nv)'  },
+    { label: 'F1 Macro Classifier', value: pipeline?.agents?.classifier?.confidence ? Math.round(pipeline.agents.classifier.confidence * 100) + '%' : '—',          color: '#f59e0b'    },
+    { label: 'Texte extractible',   value: kpis?.text_extractible_pct ? kpis.text_extractible_pct + '%' : '—',                                                      color: '#8b5cf6'    },
+    { label: 'Latence recherche',   value: '<300ms',                                                                                                                  color: '#06b6d4'    },
+    { label: 'Couverture embedding',value: pipeline?.agents?.embedding?.confidence ? Math.round(pipeline.agents.embedding.confidence * 100) + '%' : '—',             color: '#10b981'    },
+  ];
 
   return (
     <div className="page-enter" style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px' }}>
@@ -235,9 +250,9 @@ export default function PipelineDemo() {
           {/* Steps */}
           {STEPS.map((step, i) => {
             const isCompleted = completedSteps.includes(i);
-            const isActive = activeStep === i;
-            const isExpanded = expandedStep === i;
-            const isLocked = !isCompleted && !isActive && running;
+            const isActive    = activeStep === i;
+            const isExpanded  = expandedStep === i;
+            const isLocked    = !isCompleted && !isActive && running;
 
             return (
               <div key={step.id}>
@@ -311,12 +326,12 @@ export default function PipelineDemo() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {[
-                  { label: 'Type', value: doc.type },
-                  { label: 'Avion', value: doc.aircraft },
-                  { label: 'Check', value: doc.check },
-                  { label: 'Confiance', value: '94.2%' },
-                  { label: 'Embedding', value: '384 dims' },
-                  { label: 'Statut', value: 'ARCHIVED' },
+                  { label: 'Type',       value: doc.type      },
+                  { label: 'Avion',      value: doc.aircraft  },
+                  { label: 'Check',      value: doc.check     },
+                  { label: 'Confiance',  value: '94.2%'       },
+                  { label: 'Embedding',  value: '384 dims'    },
+                  { label: 'Statut',     value: 'ARCHIVED'    },
                 ].map((m, i) => (
                   <div key={i} style={{ background: 'var(--bg1)', borderRadius: 6, padding: '7px 10px' }}>
                     <div style={{ fontSize: 11, color: 'var(--tx3)' }}>{m.label}</div>
@@ -334,11 +349,11 @@ export default function PipelineDemo() {
           {/* Contrôles */}
           <div className="card" style={{ padding: 16, marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: 'var(--tx3)', fontWeight: 500, marginBottom: 12 }}>Contrôles</div>
-            <button onClick={running ? reset : run} className="btn-nv" style={{
+            <button onClick={running ? reset : run} style={{
               width: '100%', padding: '10px 0', border: 'none', borderRadius: 8, cursor: 'pointer',
               fontWeight: 500, fontSize: 13, marginBottom: 12,
               background: running ? 'rgba(239,68,68,.12)' : 'var(--nv)',
-              color: running ? '#2563eb' : '#fff'
+              color: running ? '#ef4444' : '#fff'
             }}>
               <i className={`fas ${running ? 'fa-stop' : done ? 'fa-redo' : 'fa-play'}`} style={{ marginRight: 7 }} />
               {running ? 'Arrêter' : done ? 'Rejouer' : 'Démarrer'}
@@ -360,14 +375,8 @@ export default function PipelineDemo() {
           {/* Métriques */}
           <div className="card" style={{ padding: 16, marginBottom: 14 }}>
             <div style={{ fontSize: 12, color: 'var(--tx3)', fontWeight: 500, marginBottom: 10 }}>Métriques système</div>
-            {[
-              { label: 'Documents archivés', value: '2 674', color: 'var(--nv)' },
-              { label: 'Accuracy classifieur', value: '88.1%', color: '#f59e0b' },
-              { label: 'F1 Macro', value: '64.5%', color: '#8b5cf6' },
-              { label: 'Latence recherche', value: '<300ms', color: '#06b6d4' },
-              { label: 'Couverture embedding', value: '100%', color: '#10b981' },
-            ].map((m, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < 4 ? '0.5px solid var(--bdr)' : 'none' }}>
+            {metrics.map((m, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < metrics.length - 1 ? '0.5px solid var(--bdr)' : 'none' }}>
                 <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{m.label}</span>
                 <span style={{ fontSize: 12, fontWeight: 500, color: m.color }}>{m.value}</span>
               </div>
@@ -377,7 +386,14 @@ export default function PipelineDemo() {
           {/* Stack */}
           <div className="card" style={{ padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--tx3)', fontWeight: 500, marginBottom: 10 }}>Stack technique</div>
-            {['FastAPI + PostgreSQL 15', 'pgvector · HNSW', 'Tesseract 5 + OpenCV 4.10', 'sentence-transformers', 'spaCy fr_core_news_sm', 'TF-IDF + Logistic Regression'].map((t, i) => (
+            {[
+              'FastAPI + PostgreSQL 15',
+              'pgvector · HNSW',
+              'Tesseract 5 + OpenCV 4.10',
+              'sentence-transformers',
+              'spaCy fr_core_news_sm',
+              'TF-IDF + SVM (C=5.0)',
+            ].map((t, i) => (
               <div key={i} style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--tx3)', padding: '3px 0' }}>
                 <i className="fas fa-circle" style={{ fontSize: 4, marginRight: 7, verticalAlign: 'middle' }} />{t}
               </div>

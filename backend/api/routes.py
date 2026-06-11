@@ -3,7 +3,7 @@ Routes Recherche, Aéronefs, Pipeline, Analytics
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, text
+from sqlalchemy import select, func, desc, text, or_
 from typing import Optional
 from loguru import logger
 from backend.database import get_db
@@ -66,6 +66,7 @@ async def rag_answer(
     request: RAGRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    
     from backend.agents.embedding_agent import EmbeddingAgent
     import numpy as np
     embedding_agent = EmbeddingAgent()
@@ -88,11 +89,16 @@ async def rag_answer(
                 LIMIT :k
             """), {"vec": vec_str, "k": request.top_k})
             rows = result.fetchall()
-            doc_ids = [r.id for r in rows if r.sim > 0.3]
+            doc_ids = [r.id for r in rows if r.sim > 0.45]
+
             if doc_ids:
+                
+
+                from sqlalchemy import and_
                 res = await db.execute(select(Document).where(Document.id.in_(doc_ids)))
                 docs = res.scalars().all()
                 sources = [DocumentResponse.model_validate(d) for d in docs]
+
         except Exception as e:
             try:
                 await db.rollback()
@@ -108,7 +114,7 @@ async def rag_answer(
             question=request.question,
         )
 
-    doc_ids_ordered = [r.id for r in rows if r.sim > 0.3][:3]
+    doc_ids_ordered = [r.id for r in rows if r.sim > 0.45][:3]
     ids_str = ",".join(str(i) for i in doc_ids_ordered)
     ocr_rows = await db.execute(text(f"""
         SELECT id, filename, doc_type, aircraft_registration,
@@ -124,11 +130,17 @@ async def rag_answer(
     for i, row in enumerate(ocr_docs):
         doc_type_clean = str(row.doc_type).split(".")[-1].replace("_", " ").title() if row.doc_type else "Inconnu"
         ocr_preview = (row.ocr_preview or "").replace("\n", " ").strip()
+        ocr_conf_val = float(row.ocr_confidence) if row.ocr_confidence else 0
+        ocr_label = "PDF natif (texte extrait directement)" if ocr_conf_val == 0 else f"{round(ocr_conf_val)}%"
+        ocr_info = ocr_preview if ocr_preview else "Texte OCR non disponible (document scanné à faible résolution)"
         context_parts.append(
-            f"[Doc {i+1}] {row.filename}\n"
-            f"Avion: {row.aircraft_registration or 'N/A'} | Type: {doc_type_clean} | "
-            f"Catégorie: {row.category or 'N/A'} | Référence ES: {row.es_reference or 'N/A'}\n"
-            f"Extrait contenu: {ocr_preview if ocr_preview else 'Texte non disponible'}"
+            f"[Doc {i+1}] Fichier: {row.filename}\n"
+            f"Avion: {row.aircraft_registration or 'N/A'} | "
+            f"Type: {doc_type_clean} | "
+            f"Catégorie: {row.category or 'N/A'} | "
+            f"Référence ES: {row.es_reference or 'N/A'} | "
+            f"Confiance OCR: {ocr_label}\n"
+            f"Contenu: {ocr_info}"
         )
     context = "\n\n".join(context_parts)
 
@@ -144,9 +156,12 @@ async def rag_answer(
                     "filename": s.filename,
                     "doc_type": str(s.doc_type).split(".")[-1] if s.doc_type else "?",
                     "aircraft_registration": s.aircraft_registration or "?",
+                    "es_reference": s.es_reference or "",
+                    "ata_chapter": s.ata_chapter or "",
+                    "ocr_confidence": float(s.ocr_confidence) if s.ocr_confidence else 0,
                     "ocr_text": context_parts[i] if i < len(context_parts) else "",
                 }
-                for s in sources[:3]
+                for i, s in enumerate(sources[:5])
             ]
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
@@ -279,7 +294,6 @@ async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AircraftCheck, Aircraft.registration)
         .join(Aircraft, Aircraft.id == AircraftCheck.aircraft_id)
-        .where(AircraftCheck.confirmed_by_rct == True)  # noqa
         .order_by(AircraftCheck.check_type, Aircraft.registration)
     )
     rows = result.all()
@@ -519,6 +533,15 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
         select(func.count(Aircraft.id))
     ) or 0
 
+    last_activity = await db.scalar(select(func.max(Document.updated_at)))
+    text_extractible = await db.scalar(
+        select(func.count(Document.id)).where(
+            Document.status == DocumentStatus.ARCHIVED,
+            or_(Document.ocr_confidence == 0, Document.ocr_confidence >= 60)
+        )
+    ) or 0
+    text_extractible_pct = round(text_extractible / max(archived, 1) * 100, 1)
+
     return {
         "total_documents": total_docs,
         "archived": archived,
@@ -530,6 +553,8 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
         "total_aircraft": total_aircraft,
         "archive_rate_pct": round(archived / max(total_docs, 1) * 100, 1),
         "critical_ads": critical_ads,
+        "last_activity": last_activity.isoformat() if last_activity else None,
+        "text_extractible_pct": text_extractible_pct,
     }
 
 
@@ -537,7 +562,6 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
 async def get_stats(db: AsyncSession = Depends(get_db)):
     """Distribution par type, catégorie, avion."""
 
-    # Par type avec confiance OCR moyenne
     by_type_q = await db.execute(
         select(
             Document.doc_type,
@@ -548,7 +572,6 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .order_by(desc("count"))
     )
 
-    # Par avion — avec MSN
     by_aircraft_q = await db.execute(
         select(
             Aircraft.registration,
@@ -560,7 +583,6 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .order_by(desc("count"))
     )
 
-    # Par catégorie
     by_cat = await db.execute(
         select(Document.category, func.count(Document.id).label("count"))
         .where(Document.category.isnot(None))
@@ -568,13 +590,11 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .order_by(desc("count"))
     )
 
-    # Nombre de types distincts
     total_doc_types = await db.scalar(
         select(func.count(func.distinct(Document.doc_type)))
         .where(Document.doc_type.isnot(None))
     ) or 1
 
-    # ATA chapters
     by_ata_q = await db.execute(
         select(Document.ata_chapter, func.count(Document.id).label("count"))
         .where(Document.ata_chapter.isnot(None))
@@ -612,7 +632,6 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import case, extract
 
-    # Distribution OCR par tranche
     ocr_dist_q = await db.execute(
         select(
             case(
@@ -630,7 +649,6 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     )
     ocr_distribution = [{"tranche": r.tranche, "count": r.count} for r in ocr_dist_q]
 
-    # Validation humaine
     total_archived = await db.scalar(
         select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)
     ) or 0
@@ -642,12 +660,10 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     ) or 0
     human_validation_pct = round(manually_corrected / max(total_archived, 1) * 100, 1)
 
-    # Documents en attente
     pending_count = await db.scalar(
         select(func.count(Document.id)).where(Document.status == DocumentStatus.PENDING)
     ) or 0
 
-    # Évolution mensuelle
     monthly_q = await db.execute(
         select(
             extract('year',  Document.created_at).label("year"),
@@ -663,11 +679,10 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         for r in monthly_q
     ][-6:]
 
-    # Anomalies
     sans_avion = await db.scalar(
         select(func.count(Document.id)).where(
             Document.aircraft_registration.is_(None),
-            Document.status == DocumentStatus.ARCHIVED,
+            
         )
     ) or 0
     sans_ata = await db.scalar(
@@ -686,13 +701,11 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         select(func.count(Document.id)).where(Document.needs_review == True)  # noqa
     ) or 0
 
-    # Nombre de types distincts
     nb_doc_types = await db.scalar(
         select(func.count(func.distinct(Document.doc_type)))
         .where(Document.doc_type.isnot(None))
     ) or 1
 
-    # Couverture documentaire par avion — OCR moyen sur docs actifs (conf > 0) uniquement
     coverage_q = await db.execute(
         select(
             Aircraft.registration,
@@ -721,7 +734,6 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         for r in coverage_q
     ]
 
-    # Score qualité global
     avg_ocr = await db.scalar(
         select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)
     ) or 0
@@ -734,14 +746,21 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     total_docs = await db.scalar(select(func.count(Document.id))) or 1
     anomaly_rate = (sans_avion + needs_review) / total_docs
 
+    text_extractible = await db.scalar(
+        select(func.count(Document.id)).where(
+            Document.status == DocumentStatus.ARCHIVED,
+            or_(Document.ocr_confidence == 0, Document.ocr_confidence >= 60)
+        )
+    ) or 0
+    text_extractible_pct = round(text_extractible / max(total_archived, 1) * 100, 1)
+
     quality_score = round(
-        float(avg_ocr) * 0.4 +
+        float(text_extractible_pct) * 0.4 +
         float(avg_cls) * 100 * 0.3 +
         (1 - anomaly_rate) * 100 * 0.3,
         1
     )
 
-    # Distribution ATA chapters (top 8)
     ata_q = await db.execute(
         select(Document.ata_chapter, func.count(Document.id).label("count"))
         .where(Document.ata_chapter.isnot(None))

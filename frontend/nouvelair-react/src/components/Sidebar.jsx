@@ -4,7 +4,6 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useApi, apiFetch } from '../hooks/useApi';
 
-// ── Couleurs par type de check ────────────────────────────────────────────
 const CHECK_META = {
   A: { label: 'Check A', color: '#059669', bg: '#d1fae5', icon: 'fa-circle-check', cls: 'g' },
   C: { label: 'Check C', color: '#2563eb', bg: '#dbeafe', icon: 'fa-circle-check', cls: 'b' },
@@ -13,10 +12,7 @@ const CHECK_META = {
 
 function NavItem({ to, icon, children, badge, badgeCls = '' }) {
   return (
-    <NavLink
-      to={to}
-      className={({ isActive }) => `ni${isActive ? ' active' : ''}`}
-    >
+    <NavLink to={to} className={({ isActive }) => `ni${isActive ? ' active' : ''}`}>
       <i className={`fas ${icon}`}></i>
       {children}
       {badge !== undefined && badge !== null && (
@@ -26,58 +22,52 @@ function NavItem({ to, icon, children, badge, badgeCls = '' }) {
   );
 }
 
-// ── Composant accordéon Checks A/C ────────────────────────────────────────
+// Checks accordion - affiche uniquement le total de docs par type
 function ChecksAccordion() {
   const navigate = useNavigate();
-  const [open, setOpen]         = useState(false);
-  const [openType, setOpenType] = useState({}); // { A: true, C: false, D: false }
-  const [grouped, setGrouped]   = useState(null); // { A: { 'TS-INP': [...checks] }, C: {...}, D: {...} }
-  const [loading, setLoading]   = useState(false);
+  const [open, setOpen]       = useState(false);
+  const [grouped, setGrouped] = useState(null);
+  const [loading, setLoading] = useState(false);
   const fetched = useRef(false);
 
-  // Lazy-fetch au premier clic
-useEffect(() => {
-  if (!open || fetched.current) return;
-  fetched.current = true;
-  setLoading(true);
+  useEffect(() => {
+    if (!open || fetched.current) return;
+    fetched.current = true;
+    setLoading(true);
 
-  (async () => {
-    try {
-      const data = await apiFetch('/aircraft/checks/all');
-      const confirmed = data || [];
-      if (!confirmed.length) { setLoading(false); return; }
+    (async () => {
+      try {
+        const data = await apiFetch('/aircraft/checks/all');
+        const checks = data || [];
 
-      const result = { A: {}, C: {}, D: {} };
-      for (const c of confirmed) {
-        const t = c.check_type?.match(/[ACD]/)?.[0];
-        if (!t || !result[t]) continue;
-        const reg = c.aircraft_registration;
-        if (!reg) continue;
-        if (!result[t][reg]) result[t][reg] = [];
-        result[t][reg].push(c);
+        // Grouper par type de check : { A: { totalChecks, totalDocs }, C: {...}, D: {...} }
+        const result = {
+          A: { totalChecks: 0, totalDocs: 0 },
+          C: { totalChecks: 0, totalDocs: 0 },
+          D: { totalChecks: 0, totalDocs: 0 },
+        };
+
+        for (const c of checks) {
+          const t = c.check_type?.match(/[ACD]/)?.[0];
+          if (!t || !result[t]) continue;
+          result[t].totalChecks += 1;
+          result[t].totalDocs += c.total_documents || 0;
+        }
+
+        setGrouped(result);
+      } catch {
+        // silencieux
       }
-
-      setGrouped(result);
-      const autoOpen = {};
-      for (const t of ['A', 'C', 'D']) {
-        if (Object.keys(result[t]).length > 0) autoOpen[t] = true;
-      }
-      setOpenType(autoOpen);
-    } catch {
-      // silencieux
-    }
-    setLoading(false);
-  })();
-}, [open]);
+      setLoading(false);
+    })();
+  }, [open]);
 
   const totalChecks = grouped
-    ? Object.values(grouped).reduce((sum, byAc) =>
-        sum + Object.values(byAc).reduce((s2, arr) => s2 + arr.length, 0), 0)
+    ? Object.values(grouped).reduce((sum, v) => sum + v.totalChecks, 0)
     : null;
 
   return (
     <div>
-      {/* ── Entrée principale ─────────────────────────────── */}
       <div
         className={`ni${open ? ' active' : ''}`}
         style={{ cursor: 'pointer', userSelect: 'none', justifyContent: 'space-between' }}
@@ -88,17 +78,12 @@ useEffect(() => {
           <span>Checks A/C</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {totalChecks !== null && (
-            <span className="nb">{totalChecks}</span>
-          )}
-          <i
-            className={`fas fa-chevron-${open ? 'down' : 'right'}`}
-            style={{ fontSize: 9, color: 'var(--tx3)', transition: 'transform .2s' }}
-          ></i>
+          {totalChecks !== null && <span className="nb">{totalChecks}</span>}
+          <i className={`fas fa-chevron-${open ? 'down' : 'right'}`}
+            style={{ fontSize: 9, color: 'var(--tx3)', transition: 'transform .2s' }}></i>
         </div>
       </div>
 
-      {/* ── Panneau accordéon ─────────────────────────────── */}
       {open && (
         <div style={{
           background: 'var(--bg)',
@@ -107,145 +92,54 @@ useEffect(() => {
           marginBottom: 2,
           borderRadius: '0 0 6px 6px',
           overflow: 'hidden',
-          animation: 'fadeIn .15s ease',
         }}>
           {loading && (
             <div style={{ padding: '10px 14px', fontSize: 11, color: 'var(--tx3)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <i className="fas fa-spinner fa-spin" style={{ fontSize: 10 }}></i>
-              Chargement des checks...
+              Chargement...
             </div>
           )}
 
           {!loading && grouped && ['A', 'C', 'D'].map(type => {
-            const meta    = CHECK_META[type];
-            const byAc    = grouped[type];
-            const hasData = Object.keys(byAc).length > 0;
-            const isOpen  = openType[type];
-            const totalByType = Object.values(byAc).reduce((s, arr) => s + arr.length, 0);
+            const meta = CHECK_META[type];
+            const info = grouped[type];
+            const hasData = info.totalChecks > 0;
 
             return (
-              <div key={type}>
-                {/* ── Header du type (Check A / C / D) ── */}
-                <div
-                  onClick={() => setOpenType(p => ({ ...p, [type]: !p[type] }))}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 7,
-                    padding: '7px 12px',
-                    cursor: 'pointer',
-                    background: isOpen ? meta.bg : 'transparent',
-                    borderTop: '1px solid var(--bdr)',
-                    transition: 'background .15s',
-                  }}
-                >
-                  <i
-                    className={`fas fa-chevron-${isOpen ? 'down' : 'right'}`}
-                    style={{ fontSize: 8, color: meta.color, width: 10, flexShrink: 0 }}
-                  ></i>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700,
-                    color: meta.color,
-                    letterSpacing: .3,
-                    flex: 1,
-                  }}>
-                    {meta.label}
-                  </span>
-                  {hasData ? (
-                    <span style={{
-                      fontSize: 9, fontWeight: 700,
-                      background: meta.bg, color: meta.color,
-                      border: `1px solid ${meta.color}33`,
-                      borderRadius: 10, padding: '1px 6px',
-                    }}>
-                      {totalByType}
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 9, color: 'var(--tx3)' }}>—</span>
-                  )}
-                </div>
+              <div
+                key={type}
+                onClick={() => navigate('/checks', { state: { checkType: type } })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  borderTop: 'none',
+                  transition: 'background .15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = meta.bg}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                {/* Indicateur couleur */}
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: meta.color, flexShrink: 0,
+                }}></div>
 
-                {/* ── Avions + checks ── */}
-                {isOpen && hasData && Object.entries(byAc).map(([reg, checks]) => (
-                  <div key={reg}>
-                    {/* Sous-titre avion */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '5px 12px 5px 28px',
-                      background: 'var(--bg2)',
-                      borderTop: '1px solid var(--bdr)',
-                    }}>
-                      <i className="fas fa-plane" style={{ fontSize: 9, color: 'var(--nv)' }}></i>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--nv)', letterSpacing: .5 }}>
-                        {reg}
-                      </span>
-                      <span style={{ fontSize: 9, color: 'var(--tx3)', marginLeft: 'auto' }}>
-                        {checks.length} check{checks.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
+                {/* Label */}
+                <span style={{
+                  fontSize: 11, fontWeight: 700,
+                  color: meta.color, flex: 1,
+                }}>
+                  {meta.label}
+                </span>
 
-                    {/* Liste des checks de cet avion */}
-                    {checks.map((c, i) => (
-                      <div
-                        key={i}
-                        onClick={() => navigate('/documents', {
-                          state: { aircraft: reg, category: `Check ${type}` }
-                        })}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          padding: '6px 12px 6px 36px',
-                          cursor: 'pointer',
-                          borderTop: '1px solid rgba(208,221,232,.2)',
-                          transition: 'background .1s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = meta.bg}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        {/* Indicateur doc count */}
-                        <div style={{
-                          width: 5, height: 5, borderRadius: '50%',
-                          background: meta.color, flexShrink: 0, opacity: .7,
-                        }}></div>
-
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontSize: 10, fontWeight: 600,
-                            color: 'var(--tx)',
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>
-                            {c.es_reference}
-                          </div>
-                          {c.start_date && (
-                            <div style={{ fontSize: 9, color: 'var(--tx3)' }}>
-                              {c.start_date.split('T')[0]}
-                            </div>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-                          <span style={{
-                            fontSize: 9, fontWeight: 600,
-                            color: meta.color,
-                            background: meta.bg,
-                            border: `1px solid ${meta.color}33`,
-                            borderRadius: 8, padding: '0px 4px',
-                          }}>
-                            {c.total_documents || 0} docs
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-
-                {isOpen && !hasData && (
-                  <div style={{ padding: '8px 12px 8px 28px', fontSize: 10, color: 'var(--tx3)', fontStyle: 'italic' }}>
-                    Aucun check {meta.label} trouvé
-                  </div>
-                )}
+                {/* Stats */}
+                
               </div>
             );
           })}
 
-          {/* Lien vers la page complète */}
+          {/* Lien vers page complète */}
           {!loading && grouped && (
             <div
               onClick={() => navigate('/checks')}
@@ -253,15 +147,16 @@ useEffect(() => {
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 12px',
                 cursor: 'pointer',
-                borderTop: '1px solid var(--bdr)',
-                background: 'transparent',
+                borderTop: 'none',
                 transition: 'background .1s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <i className="fas fa-external-link-alt" style={{ fontSize: 9, color: 'var(--tx3)' }}></i>
-              <span style={{ fontSize: 10, color: 'var(--tx3)' }}>Voir tous les checks →</span>
+              <span style={{ fontSize: 10, color: 'var(--tx3)' }}>
+  Voir tous les checks · {Object.values(grouped).reduce((s, v) => s + v.totalDocs, 0).toLocaleString()} docs
+</span>
             </div>
           )}
         </div>
@@ -270,14 +165,14 @@ useEffect(() => {
   );
 }
 
-// ── Sidebar principale ────────────────────────────────────────────────────
+// Sidebar principale
 export default function Sidebar() {
   const { canAccess } = useAuth();
   const { data: kpis } = useApi('/analytics/kpis');
 
-  const totalDocs     = kpis?.total_documents?.toLocaleString() ?? '—';
-  const totalAircraft = kpis?.total_aircraft ?? '—';
-  const activeAlerts  = kpis?.active_alerts  ?? '—';
+  const totalDocs     = kpis?.total_documents?.toLocaleString() ?? '--';
+  const totalAircraft = kpis?.total_aircraft ?? '--';
+  const activeAlerts  = kpis?.active_alerts  ?? '--';
 
   return (
     <aside id="sb">
@@ -286,6 +181,9 @@ export default function Sidebar() {
       {canAccess('upload') && (
         <NavItem to="/upload" icon="fa-cloud-upload-alt">Upload Documents</NavItem>
       )}
+      <NavItem to="/analyse-documents" icon="fa-robot">
+        Analyse Documents
+      </NavItem>
       <NavItem to="/documents" icon="fa-folder-open" badge={totalDocs}>
         Consultation
       </NavItem>
@@ -293,12 +191,11 @@ export default function Sidebar() {
 
       <div className="sdiv"></div>
       <div className="nsl">Flotte</div>
-      <NavItem to="/fleet" icon="fa-plane" >Vue Flotte</NavItem>
+      <NavItem to="/fleet" icon="fa-plane">Vue Flotte</NavItem>
 
-      {/* ── Checks A/C avec accordéon ── */}
       <ChecksAccordion />
 
-      <NavItem to="/recent-uploads" icon="fa-history">Documents Uploadés</NavItem>
+      <NavItem to="/recent-uploads" icon="fa-history">Documents Uploades</NavItem>
 
       <div className="sdiv"></div>
       <div className="nsl">Intelligence</div>
@@ -315,12 +212,10 @@ export default function Sidebar() {
         })}
       >
         <i className="fas fa-project-diagram"></i>
-        Pipeline Agents IA
+        Pipeline & Modéles IA
         <span className="nb" style={{ background: '#2563eb', color: '#fff', marginLeft: 'auto' }}>Live</span>
       </NavLink>
-      <NavItem to="/pipeline-demo" icon="fa-play-circle">
-        Simulation Pipeline
-      </NavItem>
+      <NavItem to="/pipeline-demo" icon="fa-play-circle">Simulation Pipeline</NavItem>
       {canAccess('monitoring') && (
         <NavItem to="/monitoring" icon="fa-shield-alt" badge={activeAlerts} badgeCls="r">
           Monitoring

@@ -50,65 +50,8 @@ export default function Analytics() {
         <p>Analyse de la qualité documentaire · Performance OCR · Distribution par type</p>
       </div>
 
-      <div className="g2" style={{ marginBottom: 18 }}>
-        {/* ── Couverture ── */}
-        <div className="card">
-          <div className="ch">
-            <h3><i className="fas fa-chart-bar" style={{ color: 'var(--acc)' }}></i>Couverture Documentaire</h3>
-          </div>
-          <div className="cb">
-            {kpis ? (
-              <>
-                {[
-                  {
-                    label: "Taux d'archivage automatique",
-                    val: archRate,
-                    color: 'var(--nv)',
-                    help: "Pourcentage de documents importés ayant été archivés avec succès dans PostgreSQL.",
-                  },
-                  {
-                    label: 'Précision OCR moyenne',
-                    val: ocrRate,
-                    color: ocrRate >= 80 ? 'var(--acc)' : ocrRate >= 65 ? 'var(--warn)' : 'var(--danger)',
-                    help: "Confiance moyenne de Tesseract sur l'ensemble du corpus. Calculée via AVG(ocr_confidence) en DB.",
-                  },
-                ].map(bar => (
-                  <div key={bar.label} className="aib">
-                    <div className="aib-h">
-                      <span title={bar.help} style={{ cursor: 'help', borderBottom: '1px dashed var(--bdr)' }}>
-                        {bar.label}
-                      </span>
-                      <strong style={{ color: bar.color }}>
-                        {typeof bar.val === 'number' ? bar.val.toFixed(1) + '%' : bar.val}
-                      </strong>
-                    </div>
-                    <div className="bar-t">
-                      <div className="bar-f" style={{ width: `${bar.val}%`, background: bar.color }}></div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Résumé */}
-                <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-                  {[
-                    { v: (kpis.total_documents || 0).toLocaleString(), l: 'Documents archivés', c: 'var(--nv)' },
-                    { v: kpis.total_aircraft || 0,                     l: 'Aéronefs gérés',    c: '#0891b2'   },
-                    { v: kpis.active_alerts  || 0,                     l: 'Alertes actives',   c: kpis.active_alerts > 0 ? 'var(--warn)' : '#059669' },
-                  ].map(item => (
-                    <div key={item.l} style={{ textAlign: 'center', padding: '10px 8px', background: 'var(--bg)', borderRadius: 8 }}>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: item.c }}>{item.v}</div>
-                      <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 3 }}>{item.l}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div style={{ padding: 20, textAlign: 'center', color: 'var(--tx3)', fontSize: 12 }}>
-                <i className="fas fa-spinner fa-spin"></i> Chargement...
-              </div>
-            )}
-          </div>
-        </div>
+      <div  style={{ marginBottom: 18 }}>
+        
 
         {/* ── Power BI ── */}
         <div className="card">
@@ -116,22 +59,12 @@ export default function Analytics() {
             <h3><i className="fas fa-chart-pie"></i>Rapports Power BI</h3>
           </div>
           <div style={{ padding: 0 }}>
-            <div style={{
-              borderRadius: 10, overflow: 'hidden', height: 280,
-              background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 11,
-            }}>
-              <i className="fas fa-chart-pie" style={{ fontSize: 48, color: '#F2C811' }}></i>
-              <div style={{ color: '#fff', fontFamily: "'Barlow Condensed',sans-serif", fontSize: 18, fontWeight: 600, letterSpacing: 1 }}>
-                Power BI Embedded
-              </div>
-              <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12 }}>
-                Configurez votre rapport dans Power BI Service
-              </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', padding: '0 20px', textAlign: 'center' }}>
-                Intégration via vues PostgreSQL : v_kpis_dashboard, v_docs_by_type, v_ocr_quality...
-              </div>
-            </div>
+            <iframe
+              src="/Projet_PFE.pdf"
+              width="100%"
+              height="800px"
+              style={{ border: 'none', borderRadius: '0 0 16px 16px' }}
+            />
           </div>
         </div>
       </div>
@@ -140,9 +73,7 @@ export default function Analytics() {
       <div className="card">
         <div className="ch">
           <h3><i className="fas fa-table"></i>Statistiques par Type de Document</h3>
-          <button className="btn btn-blue btn-sm" onClick={exportCSV}>
-            <i className="fas fa-download"></i>Export CSV
-          </button>
+
         </div>
         <div className="tbl-wrap">
           <table className="tbl">

@@ -36,7 +36,7 @@ input, select, textarea { font-family: 'Barlow', sans-serif; }
 .ph p { color: var(--tx2); font-size: 13px; margin-top: 4px; }
 
 /* Grids */
-.kpig { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 22px; }
+.kpig { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 22px; }
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
 .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
 .g64 { display: grid; grid-template-columns: 6fr 4fr; gap: 18px; margin-bottom: 18px; }

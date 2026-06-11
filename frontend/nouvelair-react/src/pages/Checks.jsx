@@ -148,6 +148,37 @@ function CheckDocsModal({ check, meta, onClose }) {
           </button>
         </div>
 
+        {/* Résumé par type */}
+        {!loading && docs.length > 0 && (
+          <div style={{
+            display: 'flex', gap: 8, padding: '10px 18px',
+            background: 'var(--bg2)', borderBottom: '1px solid var(--bdr)',
+            flexWrap: 'wrap',
+          }}>
+            {Object.entries(
+              docs.reduce((acc, d) => {
+                const t = d.doc_type || 'OTHER';
+                acc[t] = (acc[t] || 0) + 1;
+                return acc;
+              }, {})
+            )
+            .sort((a, b) => b[1] - a[1])
+            .map(([type, count]) => (
+              <div key={type} style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'var(--bg)', borderRadius: 8,
+                padding: '4px 10px', border: '1px solid var(--bdr)',
+              }}>
+                <span className={`tag ${TYPE_CLS[type] || 'gr'}`} style={{ fontSize: 9 }}>
+                  {type.replace('_', ' ')}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx)' }}>
+                  {count}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         {/* Liste */}
         <div style={{overflowY:'auto', flex:1}}>
           {loading && (

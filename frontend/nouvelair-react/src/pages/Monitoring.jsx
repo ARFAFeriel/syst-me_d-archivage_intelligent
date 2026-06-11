@@ -55,7 +55,7 @@ export default function Monitoring() {
   const [corrModal, setCorrModal]     = useState(null);
   const [corrForm,  setCorrForm]      = useState({});
   const [corrLoading, setCorrLoading] = useState(false);
-  const [feedPaused, setFeedPaused]   = useState(false);
+  
 
   // ── États révision manuelle ────────────────────────────────────────────────
   const [reviewDocs, setReviewDocs]       = useState([]);
@@ -65,16 +65,15 @@ export default function Monitoring() {
   const [reviewSaving, setReviewSaving]   = useState(false);
   const [reviewPage, setReviewPage]       = useState(0);
   const [reviewFilter, setReviewFilter]   = useState('');
+  const [pendingDocs, setPendingDocs]     = useState([]);
+  const [noAircraftDocs, setNoAircraftDocs] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [noAircraftLoading, setNoAircraftLoading] = useState(false);
 
   const agents = statusData?.agents || {};
   const alerts = alertData || [];
 
-  const kpis = [
-    { value: statusData?.uptime_s ? (statusData.uptime_s / 3600).toFixed(1) + 'h' : '—', label: 'Uptime Système',  icon: 'fa-check-circle', color: 'g' },
-    { value: statusData?.pipeline?.avg_processing_time_s ? statusData.pipeline.avg_processing_time_s.toFixed(1) + 's' : '—', label: 'Latence Moy.', icon: 'fa-bolt', color: 'b' },
-    { value: kpiData?.active_alerts ?? '—', label: 'Alertes Actives', icon: 'fa-exclamation', color: 'a' },
-    { value: reviewDocs.length || '—', label: 'À Réviser', icon: 'fa-edit', color: 'a' },
-  ];
+  
 
   // ── Charger documents à réviser ────────────────────────────────────────────
   const fetchReviewDocs = async () => {
@@ -87,8 +86,27 @@ export default function Monitoring() {
     }
     setReviewLoading(false);
   };
+  const fetchPendingDocs = async () => {
+    setPendingLoading(true);
+    try {
+      const data = await apiFetch('/documents/?status=PENDING&size=500');
+      setPendingDocs(data?.items || []);
+    } catch { setPendingDocs([]); }
+    setPendingLoading(false);
+  };
 
-  useEffect(() => { fetchReviewDocs(); }, []);
+  const fetchNoAircraftDocs = async () => {
+    setNoAircraftLoading(true);
+    try {
+      const data = await apiFetch('/documents/?no_aircraft=true&size=500');
+      setNoAircraftDocs(data?.items || []);
+    } catch { setNoAircraftDocs([]); }
+    setNoAircraftLoading(false);
+  };
+  useEffect(() => { fetchReviewDocs(); 
+    fetchPendingDocs();
+    fetchNoAircraftDocs();
+  }, []);
 
   // ── Ouvrir modal révision ──────────────────────────────────────────────────
   const openReviewModal = (doc) => {
@@ -200,7 +218,7 @@ export default function Monitoring() {
     (reviewPage + 1) * REVIEW_PAGE_SIZE
   );
 
-  const activityAlerts = alerts.slice(0, 10);
+  
 
   return (
     <div className="page-enter">
@@ -210,68 +228,43 @@ export default function Monitoring() {
             <h2><i className="fas fa-shield-alt"></i>Monitoring Système</h2>
             <p>Supervision opérationnelle du pipeline IA · Santé des agents · Gestion des alertes MRO</p>
           </div>
-          <button className="btn btn-out btn-sm" onClick={() => { refetchStatus(); refetchAlerts(); fetchReviewDocs(); }}>
+          <button className="btn btn-out btn-sm" onClick={() => { refetchStatus(); refetchAlerts(); fetchReviewDocs(); fetchPendingDocs(); fetchNoAircraftDocs(); }}>
             <i className="fas fa-sync-alt"></i>Rafraîchir
           </button>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="kpig">
-        {kpis.map(k => <KPICard key={k.label} value={k.value} label={k.label} icon={k.icon} color={k.color} />)}
+      {/* Santé des agents */}
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="ch">
+          <h3><i className="fas fa-heartbeat" style={{ color: 'var(--danger)' }}></i>Santé des Agents</h3>
+          <span className="tag g">{AGENT_LIST.length} / {AGENT_LIST.length} opérationnels</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, padding: 16 }}>
+          {AGENT_LIST.map(a => {
+            const status = agents[a.key]?.status || 'ready';
+            return (
+              <div key={a.key} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 14px', borderRadius: 10,
+                background: 'var(--bg2)', border: '1px solid var(--bdr)',
+              }}>
+                <div className={`sdot ${DOT_MAP[status] || 'g'}`}></div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>{a.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--tx3)' }}>{LABEL_MAP[status] || status}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="g64">
-        {/* Journal d'activité */}
-        <div className="card">
-          <div className="ch">
-            <h3><i className="fas fa-stream"></i>Journal d'Activité</h3>
-            <button className="btn btn-out btn-sm" onClick={() => setFeedPaused(p => !p)}>
-              <i className={`fas fa-${feedPaused ? 'play' : 'pause'}`}></i>
-              {feedPaused ? 'Reprendre' : 'Pause'}
-            </button>
-          </div>
-          <div>
-            {!feedPaused && activityAlerts.length ? (
-              activityAlerts.map(a => (
-                <div key={a.id} className="aitem">
-                  <div className="abul" style={{ background: SEV_BG[a.severity], color: SEV_COLOR[a.severity] }}>
-                    <i className={`fas ${SEV_ICON[a.severity] || 'fa-circle'}`}></i>
-                  </div>
-                  <div className="atx">
-                    <p>{a.title}</p>
-                    <span>{a.message || ''} · {timeAgo(a.created_at)}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div style={{ padding: 24, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
-                {feedPaused ? 'Feed en pause' : <><i className="fas fa-check-circle" style={{ color: 'var(--acc)' }}></i> Système opérationnel</>}
-              </div>
-            )}
-          </div>
-        </div>
+        
+      
 
-        {/* Santé des agents */}
-        <div className="card">
-          <div className="ch">
-            <h3><i className="fas fa-heartbeat" style={{ color: 'var(--danger)' }}></i>Santé des Agents</h3>
-          </div>
-          <div className="cb" style={{ padding: '8px 16px' }}>
-            {AGENT_LIST.map(a => {
-              const status = agents[a.key]?.status || 'ready';
-              return (
-                <div key={a.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--bdr)' }}>
-                  <span style={{ fontSize: 12, fontWeight: 500 }}>{a.name}</span>
-                  <div className="pss">
-                    <div className={`sdot ${DOT_MAP[status] || 'g'}`}></div>
-                    <span style={{ fontSize: 11, color: 'var(--tx2)' }}>{LABEL_MAP[status] || status}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        
       </div>
 
       {/* ── Documents à réviser ─────────────────────────────────────────────── */}
@@ -766,6 +759,126 @@ export default function Monitoring() {
           </div>
         </div>
       )}
+      {/* Documents en attente */}
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="ch">
+          <h3><i className="fas fa-clock" style={{ color: '#d97706' }}></i>
+            Documents en Attente
+            {pendingDocs.length > 0 && <span className="tag a" style={{ marginLeft: 8, fontSize: 11 }}>{pendingDocs.length}</span>}
+          </h3>
+          <button className="btn btn-out btn-sm" onClick={fetchPendingDocs}>
+            <i className="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        {pendingLoading ? (
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--tx3)' }}>
+            <i className="fas fa-spinner fa-spin"></i> Chargement...
+          </div>
+        ) : !pendingDocs.length ? (
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
+            <i className="fas fa-check-circle" style={{ color: 'var(--acc)', fontSize: 28, display: 'block', marginBottom: 10 }}></i>
+            Aucun document en attente ✅
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--bdr)', background: 'var(--bg2)' }}>
+                  {['#', 'Fichier', 'Avion', 'Type', 'Date'].map(h => (
+                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--tx3)', fontSize: 11, textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pendingDocs.map(doc => (
+                  <tr key={doc.id} style={{ borderBottom: '1px solid var(--bdr)' }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>#{doc.id}</td>
+                    <td style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <i className="fas fa-file-pdf" style={{ color: '#dc2626', marginRight: 6, fontSize: 11 }}></i>
+                      {doc.filename}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span className="tag b" style={{ fontSize: 10 }}>{doc.aircraft_registration || '—'}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span className="tag a" style={{ fontSize: 10 }}>{doc.doc_type || '—'}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>
+                      {doc.created_at ? doc.created_at.slice(0, 10) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Documents sans immatriculation */}
+      <div className="card">
+        <div className="ch">
+          <h3><i className="fas fa-plane-slash" style={{ color: 'var(--danger)' }}></i>
+            Documents sans Immatriculation
+            {noAircraftDocs.length > 0 && <span className="tag r" style={{ marginLeft: 8, fontSize: 11 }}>{noAircraftDocs.length}</span>}
+          </h3>
+          <button className="btn btn-out btn-sm" onClick={fetchNoAircraftDocs}>
+            <i className="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        {noAircraftLoading ? (
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--tx3)' }}>
+            <i className="fas fa-spinner fa-spin"></i> Chargement...
+          </div>
+        ) : !noAircraftDocs.length ? (
+          <div style={{ padding: 32, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
+            <i className="fas fa-check-circle" style={{ color: 'var(--acc)', fontSize: 28, display: 'block', marginBottom: 10 }}></i>
+            Tous les documents ont une immatriculation ✅
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--bdr)', background: 'var(--bg2)' }}>
+                  {['#', 'Fichier', 'Type', 'Catégorie', 'Date', 'Action'].map(h => (
+                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--tx3)', fontSize: 11, textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {noAircraftDocs.map(doc => (
+                  <tr key={doc.id} style={{ borderBottom: '1px solid var(--bdr)' }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>#{doc.id}</td>
+                    <td style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <i className="fas fa-file-pdf" style={{ color: '#dc2626', marginRight: 6, fontSize: 11 }}></i>
+                      {doc.filename}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span className="tag a" style={{ fontSize: 10 }}>{doc.doc_type || '—'}</span>
+                    </td>
+                    <td style={{ padding: '10px 12px', color: 'var(--tx2)', fontSize: 11 }}>{doc.category || '—'}</td>
+                    <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>
+                      {doc.created_at ? doc.created_at.slice(0, 10) : '—'}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <button
+                        onClick={() => openReviewModal(doc)}
+                        style={{
+                          background: 'var(--nv)', color: '#fff', border: 'none',
+                          borderRadius: 7, padding: '5px 14px', fontSize: 11,
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+                          fontWeight: 600, whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <i className="fas fa-edit"></i>Corriger
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

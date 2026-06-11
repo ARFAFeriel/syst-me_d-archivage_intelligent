@@ -7,15 +7,25 @@ import PDFModal from '../components/ui/PDFModal';
 
 const HISTORY_KEY = 'nouvellair_search_history';
 const MAX_HISTORY = 10;
+const RAG_HISTORY_KEY = 'nouvellair_rag_history';
+const MAX_RAG_HISTORY = 10;
 
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
   catch { return []; }
 }
-
 function saveHistory(q, prev) {
   const next = [q, ...prev.filter(h => h !== q)].slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  return next;
+}
+function loadRagHistory() {
+  try { return JSON.parse(localStorage.getItem(RAG_HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveRagHistory(q, prev) {
+  const next = [q, ...prev.filter(h => h !== q)].slice(0, MAX_RAG_HISTORY);
+  localStorage.setItem(RAG_HISTORY_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -34,6 +44,7 @@ export default function Search() {
   const [limit, setLimit] = useState(20);
   const [history, setHistory] = useState(loadHistory);
   const [showHistory, setShowHistory] = useState(false);
+  const [ragHistory, setRagHistory] = useState(loadRagHistory);
   const inputRef = useRef(null);
   const historyRef = useRef(null);
 
@@ -68,14 +79,17 @@ export default function Search() {
     setResults(data.results || []);
     setMeta({ total: data.total, mode: data.mode, time: data.search_time_ms || elapsed });
     if (data.extracted_entities) setNerEntities(data.extracted_entities);
-    // Sauvegarder dans l'historique
     setHistory(prev => saveHistory(q.trim(), prev));
   };
 
   const askRAG = async () => {
     if (!ragQ.trim()) return;
     setRagLoading(true);
-    const data = await apiFetch('/search/rag', { method: 'POST', body: JSON.stringify({ question: ragQ, top_k: 5 }) });
+    setRagHistory(prev => saveRagHistory(ragQ.trim(), prev));
+    const data = await apiFetch('/search/rag', {
+      method: 'POST',
+      body: JSON.stringify({ question: ragQ, top_k: 5 })
+    });
     setRagLoading(false);
     setRagAns(data);
   };
@@ -99,6 +113,11 @@ export default function Search() {
     localStorage.removeItem(HISTORY_KEY);
     setHistory([]);
     setShowHistory(false);
+  };
+
+  const clearRagHistory = () => {
+    localStorage.removeItem(RAG_HISTORY_KEY);
+    setRagHistory([]);
   };
 
   const highlight = (text, q) => {
@@ -154,7 +173,7 @@ export default function Search() {
           </button>
         </div>
 
-        {/* Dropdown historique */}
+        {/* Dropdown historique recherche */}
         {showHistory && history.length > 0 && (
           <div style={{
             position: 'absolute', top: '100%', left: 0, right: 0,
@@ -162,7 +181,6 @@ export default function Search() {
             borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)',
             zIndex: 1000, overflow: 'hidden', marginTop: 4,
           }}>
-            {/* En-tête */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '8px 14px', borderBottom: '1px solid var(--bdr)',
@@ -172,19 +190,13 @@ export default function Search() {
                 <i className="fas fa-history" style={{ marginRight: 5 }}></i>
                 Recherches récentes
               </span>
-              <button
-                onClick={clearHistory}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 11, color: 'var(--tx3)', padding: '2px 6px',
-                  borderRadius: 4,
-                }}
-              >
+              <button onClick={clearHistory} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 11, color: 'var(--tx3)', padding: '2px 6px', borderRadius: 4,
+              }}>
                 Tout effacer
               </button>
             </div>
-
-            {/* Liste */}
             {history.map((h, i) => (
               <div
                 key={i}
@@ -207,13 +219,10 @@ export default function Search() {
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     color: 'var(--tx3)', fontSize: 13, padding: '0 4px',
-                    lineHeight: 1, flexShrink: 0,
-                    borderRadius: 4,
+                    lineHeight: 1, flexShrink: 0, borderRadius: 4,
                   }}
                   title="Supprimer"
-                >
-                  ×
-                </button>
+                >×</button>
               </div>
             ))}
           </div>
@@ -320,14 +329,11 @@ export default function Search() {
             <div className="ch">
               <h3><i className="fas fa-history" style={{ color: '#0284c7' }}></i>Historique</h3>
               {history.length > 0 && (
-                <button
-                  onClick={clearHistory}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: 11, color: 'var(--tx3)', padding: '3px 8px',
-                    borderRadius: 6, border: '1px solid var(--bdr)',
-                  }}
-                >
+                <button onClick={clearHistory} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 11, color: 'var(--tx3)', padding: '3px 8px',
+                  borderRadius: 6, border: '1px solid var(--bdr)',
+                }}>
                   Effacer
                 </button>
               )}
@@ -369,38 +375,101 @@ export default function Search() {
           <div className="card">
             <div className="ch">
               <h3><i className="fas fa-question-circle"></i>Q&amp;A Documentaire (RAG)</h3>
+              {ragHistory.length > 0 && (
+                <button onClick={clearRagHistory} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 11, color: 'var(--tx3)', padding: '3px 8px',
+                  borderRadius: 6, border: '1px solid var(--bdr)',
+                }}>
+                  Effacer
+                </button>
+              )}
             </div>
             <div className="cb">
               <p style={{ fontSize: 12, color: 'var(--tx2)', marginBottom: 10 }}>
                 Posez une question sur vos documents archivés
               </p>
+
+              {/* Historique RAG */}
+              {ragHistory.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 6 }}>
+                    <i className="fas fa-history" style={{ marginRight: 4 }}></i>
+                    Questions récentes
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {ragHistory.map((h, i) => (
+                      <div
+                        key={i}
+                        onClick={() => setRagQ(h)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                          border: '1px solid var(--bdr)', background: 'var(--bg)',
+                          transition: 'background .1s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'var(--bg)'}
+                      >
+                        <i className="fas fa-robot" style={{ color: 'var(--nv)', fontSize: 11, flexShrink: 0 }}></i>
+                        <span style={{
+                          flex: 1, fontSize: 12, color: 'var(--tx)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                        }}>
+                          {h}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <textarea
                 value={ragQ}
                 onChange={e => setRagQ(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) askRAG(); }}
                 rows={3}
                 placeholder="Ex: Quels Work Orders concernent le Check A ES001778 de TS-INP ?"
                 style={{
                   width: '100%', padding: 10, border: '1.5px solid var(--bdr)',
                   borderRadius: 8, fontSize: 13, resize: 'none', outline: 'none',
                   fontFamily: 'Barlow,sans-serif', color: 'var(--tx)',
+                  background: 'var(--bg)',
                 }}
               />
+              <div style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 6, marginTop: 4 }}>
+                Ctrl+Entrée pour envoyer
+              </div>
               <button
                 className="btn btn-blue btn-sm"
-                style={{ marginTop: 8, width: '100%' }}
+                style={{ width: '100%' }}
                 onClick={askRAG}
                 disabled={ragLoading}
               >
                 <i className={`fas ${ragLoading ? 'fa-spinner fa-spin' : 'fa-robot'}`}></i>
                 {ragLoading ? 'Analyse...' : 'Interroger (RAG)'}
               </button>
+
               {ragAns && (
                 <div style={{ marginTop: 10, padding: 12, background: 'var(--sky)', borderRadius: 8, fontSize: 13 }}>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <i className="fas fa-robot" style={{ color: 'var(--nv)', marginTop: 2 }}></i>
-                    <div>
+                    <i className="fas fa-robot" style={{ color: 'var(--nv)', marginTop: 2, flexShrink: 0 }}></i>
+                    <div style={{ flex: 1 }}>
                       <p style={{ fontWeight: 600, marginBottom: 6 }}>Réponse IA (RAG)</p>
                       <p>{ragAns.answer}</p>
+                      {ragAns.sources && ragAns.sources.length > 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          <p style={{ fontSize: 11, color: 'var(--tx3)', marginBottom: 4 }}>
+                            Sources utilisées :
+                          </p>
+                          {ragAns.sources.slice(0, 3).map((s, i) => (
+                            <div key={i} style={{ fontSize: 11, color: 'var(--tx2)', padding: '2px 0' }}>
+                              <i className="fas fa-file-pdf" style={{ marginRight: 4, color: 'var(--danger)' }}></i>
+                              {s.filename || s}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <p style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 6 }}>
                         Confiance: {ragAns.confidence ? (ragAns.confidence * 100).toFixed(0) + '%' : '—'}
                       </p>
