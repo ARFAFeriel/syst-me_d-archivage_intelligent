@@ -82,6 +82,9 @@ async def rag_answer(
     _m_ac = _re.search(r'\b(TS-IN[A-Z])\b', request.question, _re.IGNORECASE)
     aircraft_filter = _m_ac.group(1).upper() if _m_ac else None
 
+    _m_es = _re.search(r'\bES[\s-]*(\d{4,8})\b', request.question, _re.IGNORECASE)
+    es_filter = _m_es.group(1) if _m_es else None
+
     _m_ata = _re.search(r'\bATA[\s-]*(\d{2})\b', request.question, _re.IGNORECASE)
     ata_filter = _m_ata.group(1) if _m_ata else None
 
@@ -176,6 +179,55 @@ async def rag_answer(
             confidence=confidence,
             question=request.question,
         )
+
+    if es_filter:
+        es_res = await db.execute(
+            text("SELECT id, filename, doc_type, aircraft_registration, category, es_reference, ata_chapter, ocr_confidence, ocr_text FROM documents WHERE es_reference ILIKE :es_val AND status = 'ARCHIVED' LIMIT 3"),
+            {"es_val": f"%{es_filter}%"}
+        )
+        es_docs = es_res.fetchall()
+        if es_docs:
+            doc_ids_es = [d.id for d in es_docs]
+            res_es = await db.execute(select(Document).where(Document.id.in_(doc_ids_es)))
+            sources_es = [DocumentResponse.model_validate(d) for d in res_es.scalars().all()]
+
+            ctx_es_parts = []
+            for d in es_docs:
+                dtype_clean = str(d.doc_type).split(".")[-1].replace("_", " ").title() if d.doc_type else "Inconnu"
+                ocr_txt = (d.ocr_text or "").strip()
+                ocr_conf_val = float(d.ocr_confidence) if d.ocr_confidence else 0
+                ocr_label = "PDF natif" if ocr_conf_val == 0 else f"{round(ocr_conf_val)}%"
+                contenu = ocr_txt[:800] if ocr_txt and len(ocr_txt) > 30 else "[Texte OCR insuffisant - utiliser les metadonnees]"
+                ctx_es_parts.append(f"Fichier: {d.filename} | Avion: {d.aircraft_registration or 'N/A'} | Type: {dtype_clean} | Categorie: {d.category or 'N/A'} | Ref ES: {d.es_reference} | ATA: {d.ata_chapter or 'N/A'} | OCR: {ocr_label}\nContenu: {contenu}")
+            ctx_es_str = "\n\n".join(ctx_es_parts)
+
+            answer_es = ""
+            confidence_es = 0.0
+            try:
+                if _llm_agent.disponible:
+                    sys_es = "Tu es un assistant qui repond a des questions sur des documents de maintenance aeronautique. Reponds en francais de maniere directe et naturelle, comme un collegue. Base-toi uniquement sur le contenu fourni."
+                    usr_es = f"QUESTION: {request.question}\n\nDOCUMENT TROUVE (reference ES exacte demandee):\n{ctx_es_str}\n\nReponds a la question en utilisant ce document."
+                    llm_es = _llm_agent._call(sys_es, usr_es, 500)
+                    if llm_es:
+                        answer_es = llm_es.strip()
+                        confidence_es = 0.9
+                    else:
+                        raise ValueError("LLM non utilise")
+                else:
+                    raise ValueError("Groq non disponible")
+            except Exception as e:
+                logger.warning(f"[RAG] ES lookup LLM fallback: {e}")
+                d0 = es_docs[0]
+                dtype_clean = str(d0.doc_type).split(".")[-1].replace("_", " ").title() if d0.doc_type else "Inconnu"
+                answer_es = f"Document trouve : {d0.filename} - Avion {d0.aircraft_registration or 'N/A'}, Type {dtype_clean}, Reference {d0.es_reference}."
+                confidence_es = 0.7
+
+            return RAGResponse(
+                answer=answer_es,
+                sources=sources_es,
+                confidence=confidence_es,
+                question=request.question,
+            )
 
     # ── Recherche semantique standard ───────────────────────────────────────
     embedding_agent = _embedding_agent
@@ -1041,6 +1093,7 @@ async def get_archive_tree(db: AsyncSession = Depends(get_db)):
         tree[ac]["_count"] += 1
         total += 1
     return {"tree": tree, "stats": {"total": total, "aircraft": len(tree)}}
+
 
 
 
