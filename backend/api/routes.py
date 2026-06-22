@@ -1,5 +1,5 @@
-"""
-Routes Recherche, Aéronefs, Pipeline, Analytics
+﻿"""
+Routes Recherche, AÃ©ronefs, Pipeline, Analytics
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,18 +14,27 @@ from backend.schemas.search import SearchRequest, SearchResponse, RAGRequest, RA
 from backend.schemas.document import DocumentResponse
 from backend.services.search_service import SearchService
 from backend.core.pipeline import get_pipeline
+from backend.agents.embedding_agent import EmbeddingAgent
+from backend.agents.llm_agent import LLMAgent
 
-# ══════════════════════════════════════════════════════════════════════════════
+_embedding_agent = EmbeddingAgent()
+_llm_agent = LLMAgent()
+
+from backend.core.aggregation_intent import detect_aggregation_intent, handle_aggregation_query
+from backend.core.fallback_text_search import fallback_text_search
+
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SEARCH ROUTER
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 search_router = APIRouter(prefix="/search", tags=["Recherche"])
+aircraft_router = APIRouter(prefix="/aircraft", tags=["Aeronefs"])
 _search_service = SearchService()
 
 
 @search_router.get("/", response_model=SearchResponse, summary="Recherche hybride")
 async def search(
-    q: str = Query(..., min_length=1, description="Requête de recherche"),
+    q: str = Query(..., min_length=1, description="RequÃªte de recherche"),
     aircraft: Optional[str] = Query(None),
     doc_type: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -37,7 +46,7 @@ async def search(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    """Recherche hybride FTS + pgvector avec extraction NER de la requête."""
+    """Recherche hybride FTS + pgvector avec extraction NER de la requÃªte."""
     request = SearchRequest(
         query=q,
         aircraft_registration=aircraft,
@@ -66,10 +75,110 @@ async def rag_answer(
     request: RAGRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    
-    from backend.agents.embedding_agent import EmbeddingAgent
     import numpy as np
-    embedding_agent = EmbeddingAgent()
+    import re as _re
+
+    # ── Detection avion, ATA et type doc depuis la question (regex) ────────
+    _m_ac = _re.search(r'\b(TS-IN[A-Z])\b', request.question, _re.IGNORECASE)
+    aircraft_filter = _m_ac.group(1).upper() if _m_ac else None
+
+    _m_ata = _re.search(r'\bATA[\s-]*(\d{2})\b', request.question, _re.IGNORECASE)
+    ata_filter = _m_ata.group(1) if _m_ata else None
+
+    doc_type_filter = None
+    q_lower = request.question.lower()
+    if any(w in q_lower for w in ["work order", "wo ", "ordre de travail"]):
+        doc_type_filter = "WORK_ORDER"
+    elif any(w in q_lower for w in ["job card", "jobcard", "carte de tache"]):
+        doc_type_filter = "JOBCARD"
+    elif any(w in q_lower for w in [" ad ", "airworthiness", "directive"]):
+        doc_type_filter = "AD"
+    elif any(w in q_lower for w in ["service bulletin", " sb "]):
+        doc_type_filter = "SB"
+    elif any(w in q_lower for w in ["defect", "defaut", "anomalie"]):
+        doc_type_filter = "DEFECT_REPORT"
+
+    if aircraft_filter:
+        logger.info(f"[RAG] Filtre avion: {aircraft_filter}")
+    if ata_filter:
+        logger.info(f"[RAG] Filtre ATA: {ata_filter}")
+    if doc_type_filter:
+        logger.info(f"[RAG] Filtre type: {doc_type_filter}")
+
+    # ── Detection d'intention d'agregation (existence/comptage) ────────────
+    agg_intent = detect_aggregation_intent(request.question)
+    if agg_intent:
+        logger.info(f"[RAG] Intention agregation detectee: {agg_intent}")
+        agg_result = await handle_aggregation_query(db, agg_intent, aircraft_filter)
+        champ_label = {
+            "aircraft_registration": "immatriculation",
+            "doc_type": "type de document",
+            "ata_chapter": "chapitre ATA",
+            "category": "categorie",
+        }.get(agg_result["field"], agg_result["field"])
+
+        liste_docs = ""
+        if agg_result["examples"]:
+            lignes_doc = []
+            for ex in agg_result["examples"]:
+                nom = ex.get("filename", "?")
+                avion = ex.get("aircraft_registration") or "non renseigne"
+                dtype = ex.get("doc_type") or "?"
+                lignes_doc.append(f"- {nom} (avion: {avion}, type: {dtype})")
+            liste_docs = "\n".join(lignes_doc)
+
+        answer = ""
+        confidence = 0.95
+        try:
+            if _llm_agent.disponible:
+                sys_agg = (
+                    "Tu es un assistant qui repond a des questions sur une base documentaire "
+                    "aeronautique, comme le ferait un collegue qui consulte la base de donnees. "
+                    "Reponds de maniere directe et naturelle, en francais. "
+                    "Ne mentionne JAMAIS de termes techniques comme 'resultat d'agregation', "
+                    "'critere', 'valeur vide', 'absence de valeur' - formule la reponse comme "
+                    "une phrase humaine normale. "
+                    "Si une liste de documents precis t'est fournie, cite leurs noms de fichiers "
+                    "explicitement dans ta reponse."
+                )
+                if agg_result["total"] == 0:
+                    usr_agg = (
+                        f"QUESTION: {request.question}\n\n"
+                        f"Il n'y a aucun document correspondant dans la base. "
+                        f"Formule une reponse claire en une phrase."
+                    )
+                else:
+                    usr_agg = (
+                        f"QUESTION: {request.question}\n\n"
+                        f"REPONSE FACTUELLE: Oui, il y a exactement {agg_result['total']} document(s) qui correspondent a cette question. Tu DOIS commencer ta reponse par OUI.\n"
+                        f"Liste des documents :\n{liste_docs}\n\n"
+                        f"Formule une reponse naturelle qui repond a la question et cite "
+                        f"les documents par leur nom."
+                    )
+                llm_txt = _llm_agent._call(sys_agg, usr_agg, 400)
+                if llm_txt:
+                    answer = llm_txt.strip()
+                else:
+                    raise ValueError("LLM non utilise")
+            else:
+                raise ValueError("Groq non disponible")
+        except Exception as e:
+            logger.warning(f"[RAG] Aggregation LLM fallback: {e}")
+            if agg_result["total"] == 0:
+                answer = f"Aucun document trouve pour ce critere ({champ_label})."
+            else:
+                noms = ", ".join(ex.get("filename", "?") for ex in agg_result["examples"])
+                answer = f"{agg_result['total']} document(s) trouve(s) : {noms}."
+
+        return RAGResponse(
+            answer=answer,
+            sources=[],
+            confidence=confidence,
+            question=request.question,
+        )
+
+    # ── Recherche semantique standard ───────────────────────────────────────
+    embedding_agent = _embedding_agent
     query_vec = await embedding_agent.embed_query(request.question)
     sources = []
     rows = []
@@ -80,22 +189,39 @@ async def rag_answer(
             vec = vec.flatten().tolist()
         vec = [float(x) for x in vec]
         vec_str = f"[{','.join(str(v) for v in vec)}]"
+
         try:
-            result = await db.execute(text("""
+            params = {"vec": vec_str, "k": request.top_k}
+            where_clauses = [
+                "embedding IS NOT NULL",
+                "status = 'ARCHIVED'",
+            ]
+            if aircraft_filter:
+                where_clauses.append("aircraft_registration ILIKE :aircraft")
+                params["aircraft"] = f"%{aircraft_filter}%"
+            if ata_filter:
+                where_clauses.append("ata_chapter ILIKE :ata")
+                params["ata"] = f"%{ata_filter}%"
+            if doc_type_filter:
+                where_clauses.append("doc_type::text ILIKE :doc_type")
+                params["doc_type"] = f"%{doc_type_filter}%"
+
+            where_sql = " AND ".join(where_clauses)
+            sql_query = f"""
                 SELECT id, 1 - (embedding <=> CAST(:vec AS vector)) as sim
                 FROM documents
-                WHERE embedding IS NOT NULL AND status = 'ARCHIVED'
+                WHERE {where_sql}
                 ORDER BY embedding <=> CAST(:vec AS vector)
                 LIMIT :k
-            """), {"vec": vec_str, "k": request.top_k})
+            """
+            result = await db.execute(text(sql_query), params)
             rows = result.fetchall()
-            doc_ids = [r.id for r in rows if r.sim > 0.45]
+            doc_ids = [r.id for r in rows if r.sim > 0.30]
 
             if doc_ids:
-                
-
-                from sqlalchemy import and_
-                res = await db.execute(select(Document).where(Document.id.in_(doc_ids)))
+                res = await db.execute(
+                    select(Document).where(Document.id.in_(doc_ids))
+                )
                 docs = res.scalars().all()
                 sources = [DocumentResponse.model_validate(d) for d in docs]
 
@@ -107,14 +233,51 @@ async def rag_answer(
             logger.warning(f"[RAG] Semantic error: {e}")
 
     if not sources:
+        text_results = await fallback_text_search(db, request.question)
+        if not text_results:
+            return RAGResponse(
+                answer="Aucun document correspondant n'a ete trouve dans les archives.",
+                sources=[],
+                confidence=0.0,
+                question=request.question,
+            )
+
+        liste_docs_txt = []
+        for row in text_results:
+            dtype_clean = str(row.doc_type).split(".")[-1].replace("_", " ").title() if row.doc_type else "Inconnu"
+            liste_docs_txt.append(f"- {row.filename} (avion: {row.aircraft_registration or 'N/A'}, type: {dtype_clean}, ref: {row.es_reference or 'N/A'})")
+        liste_docs_txt_str = "\n".join(liste_docs_txt)
+
+        answer_txt = ""
+        try:
+            if _llm_agent.disponible:
+                sys_txt = "Tu es un assistant qui repond a des questions sur une base documentaire aeronautique. Reponds de maniere naturelle et directe en francais. Cite les documents trouves par leur nom."
+                usr_txt = f"QUESTION: {request.question}\n\nDocuments trouves :\n{liste_docs_txt_str}\n\nFormule une reponse naturelle presentant ces documents."
+                llm_txt_result = _llm_agent._call(sys_txt, usr_txt, 400)
+                if llm_txt_result:
+                    answer_txt = llm_txt_result.strip()
+                else:
+                    raise ValueError("LLM non utilise")
+            else:
+                raise ValueError("Groq non disponible")
+        except Exception as e:
+            logger.warning(f"[RAG] Fallback texte LLM erreur: {e}")
+            noms_txt = ", ".join(row.filename for row in text_results)
+            answer_txt = f"{len(text_results)} document(s) trouve(s) : {noms_txt}."
+
+        sources_txt = []
+        for row in text_results[:5]:
+            doc_res = await db.execute(select(Document).where(Document.id == row.id))
+            doc_obj = doc_res.scalar_one()
+            sources_txt.append(DocumentResponse.model_validate(doc_obj))
+
         return RAGResponse(
-            answer="Aucun document correspondant n'a été trouvé dans les archives.",
-            sources=[],
-            confidence=0.0,
+            answer=answer_txt,
+            sources=sources_txt,
+            confidence=0.5,
             question=request.question,
         )
-
-    doc_ids_ordered = [r.id for r in rows if r.sim > 0.45][:3]
+    doc_ids_ordered = [r.id for r in rows if r.sim > 0.30][:3]
     ids_str = ",".join(str(i) for i in doc_ids_ordered)
     ocr_rows = await db.execute(text(f"""
         SELECT id, filename, doc_type, aircraft_registration,
@@ -128,28 +291,36 @@ async def rag_answer(
 
     context_parts = []
     for i, row in enumerate(ocr_docs):
-        doc_type_clean = str(row.doc_type).split(".")[-1].replace("_", " ").title() if row.doc_type else "Inconnu"
+        doc_type_clean = (
+            str(row.doc_type).split(".")[-1].replace("_", " ").title()
+            if row.doc_type else "Inconnu"
+        )
         ocr_preview = (row.ocr_preview or "").replace("\n", " ").strip()
         ocr_conf_val = float(row.ocr_confidence) if row.ocr_confidence else 0
-        ocr_label = "PDF natif (texte extrait directement)" if ocr_conf_val == 0 else f"{round(ocr_conf_val)}%"
-        ocr_info = ocr_preview if ocr_preview else "Texte OCR non disponible (document scanné à faible résolution)"
+        ocr_label = (
+            "PDF natif (texte extrait directement)"
+            if ocr_conf_val == 0
+            else f"{round(ocr_conf_val)}%"
+        )
+        ocr_info = (
+            ocr_preview if ocr_preview
+            else "Texte OCR non disponible (document scanne a faible resolution)"
+        )
         context_parts.append(
             f"[Doc {i+1}] Fichier: {row.filename}\n"
             f"Avion: {row.aircraft_registration or 'N/A'} | "
             f"Type: {doc_type_clean} | "
-            f"Catégorie: {row.category or 'N/A'} | "
-            f"Référence ES: {row.es_reference or 'N/A'} | "
+            f"Categorie: {row.category or 'N/A'} | "
+            f"Reference ES: {row.es_reference or 'N/A'} | "
             f"Confiance OCR: {ocr_label}\n"
             f"Contenu: {ocr_info}"
         )
-    context = "\n\n".join(context_parts)
 
     answer = ""
     confidence = 0.0
     try:
-        from backend.agents.llm_agent import LLMAgent
         import asyncio
-        llm = LLMAgent()
+        llm = _llm_agent
         if llm.disponible:
             docs_contexte = [
                 {
@@ -165,26 +336,34 @@ async def rag_answer(
             ]
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                None, llm.repondre_question, request.question, docs_contexte, None
+                None,
+                llm.repondre_question,
+                request.question,
+                docs_contexte,
+                aircraft_filter,
             )
             if result.get("llm_utilise"):
                 answer = result["reponse"].strip()
                 confidence = 0.88
             else:
-                raise ValueError("LLM non utilisé")
+                raise ValueError("LLM non utilise")
         else:
             raise ValueError("Groq non disponible")
     except Exception as e:
         logger.warning(f"[RAG] Groq fallback: {e}")
         s = sources[0]
-        doc_type_clean = str(s.doc_type).split(".")[-1].replace("_", " ").title() if s.doc_type else "Inconnu"
+        doc_type_clean = (
+            str(s.doc_type).split(".")[-1].replace("_", " ").title()
+            if s.doc_type else "Inconnu"
+        )
         answer = (
-            f"{len(sources)} document(s) pertinent(s) trouvé(s) pour '{request.question}'. "
-            f"Document principal : {s.filename} — "
+            f"{len(sources)} document(s) pertinent(s) trouve(s) "
+            f"pour '{request.question}'. "
+            f"Document principal : {s.filename} - "
             f"Avion {s.aircraft_registration or 'N/A'}, "
             f"Type : {doc_type_clean}, "
-            f"Catégorie : {s.category or 'N/A'}, "
-            f"Référence : {s.es_reference or 'N/A'}."
+            f"Categorie : {s.category or 'N/A'}, "
+            f"Reference : {s.es_reference or 'N/A'}."
         )
         confidence = round(rows[0].sim if rows else 0.5, 2)
 
@@ -194,16 +373,7 @@ async def rag_answer(
         confidence=confidence,
         question=request.question,
     )
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# AIRCRAFT ROUTER
-# ══════════════════════════════════════════════════════════════════════════════
-
-aircraft_router = APIRouter(prefix="/aircraft", tags=["Aéronefs"])
-
-
-@aircraft_router.get("/", summary="Liste des aéronefs")
+@aircraft_router.get("/", summary="Liste des aÃ©ronefs")
 async def list_aircraft(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Aircraft).order_by(Aircraft.registration))
     aircraft_list = result.scalars().all()
@@ -230,7 +400,7 @@ async def list_aircraft(db: AsyncSession = Depends(get_db)):
     return out
 
 
-@aircraft_router.patch("/{aircraft_id}", summary="Modifier un aéronef")
+@aircraft_router.patch("/{aircraft_id}", summary="Modifier un aÃ©ronef")
 async def update_aircraft(
     aircraft_id: int,
     payload: dict,
@@ -239,7 +409,7 @@ async def update_aircraft(
     result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))
     aircraft = result.scalar_one_or_none()
     if not aircraft:
-        raise HTTPException(404, f"Aéronef #{aircraft_id} introuvable")
+        raise HTTPException(404, f"AÃ©ronef #{aircraft_id} introuvable")
 
     allowed = {"aircraft_type", "msn", "variant", "delivery_date", "lessor", "notes", "model"}
     for field, value in payload.items():
@@ -289,7 +459,7 @@ async def aircraft_documents(
     return [DocumentResponse.model_validate(d) for d in docs]
 
 
-@aircraft_router.get("/checks/all", summary="Tous les checks confirmés")
+@aircraft_router.get("/checks/all", summary="Tous les checks confirmÃ©s")
 async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(AircraftCheck, Aircraft.registration)
@@ -319,7 +489,7 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
     )
     aircraft = aircraft_q.scalar_one_or_none()
     if not aircraft:
-        raise HTTPException(404, f"Aéronef {registration} introuvable")
+        raise HTTPException(404, f"AÃ©ronef {registration} introuvable")
 
     result = await db.execute(
         select(AircraftCheck).where(AircraftCheck.aircraft_id == aircraft.id)
@@ -365,9 +535,9 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
     return out
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # PIPELINE ROUTER
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 pipeline_router = APIRouter(prefix="/pipeline", tags=["Pipeline IA"])
 
@@ -433,7 +603,7 @@ async def get_alerts(
     return alerts
 
 
-@pipeline_router.post("/alerts/{alert_id}/resolve", summary="Résoudre une alerte")
+@pipeline_router.post("/alerts/{alert_id}/resolve", summary="RÃ©soudre une alerte")
 async def resolve_alert(alert_id: int, db: AsyncSession = Depends(get_db)):
     from datetime import datetime
     result = await db.execute(select(Alert).where(Alert.id == alert_id))
@@ -443,7 +613,7 @@ async def resolve_alert(alert_id: int, db: AsyncSession = Depends(get_db)):
     alert.resolved = True
     alert.resolved_at = datetime.utcnow()
     await db.commit()
-    return {"message": f"Alerte #{alert_id} résolue"}
+    return {"message": f"Alerte #{alert_id} rÃ©solue"}
 
 
 @pipeline_router.post("/scan", summary="Scanner arborescence locale")
@@ -507,9 +677,9 @@ async def get_tree(path: str = Query(None)):
     return tree_agent.get_tree_json()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # ANALYTICS ROUTER
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 analytics_router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
@@ -558,9 +728,9 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
     }
 
 
-@analytics_router.get("/stats", summary="Statistiques détaillées")
+@analytics_router.get("/stats", summary="Statistiques dÃ©taillÃ©es")
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    """Distribution par type, catégorie, avion."""
+    """Distribution par type, catÃ©gorie, avion."""
 
     by_type_q = await db.execute(
         select(
@@ -628,7 +798,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     }
 
 
-@analytics_router.get("/advanced", summary="Statistiques avancées pour dashboard")
+@analytics_router.get("/advanced", summary="Statistiques avancÃ©es pour dashboard")
 async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import case, extract
 
@@ -788,7 +958,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     }
 
 
-@analytics_router.get("/benchmark", summary="Benchmark modèles IA")
+@analytics_router.get("/benchmark", summary="Benchmark modÃ¨les IA")
 async def get_benchmark(db: AsyncSession = Depends(get_db)):
     try:
         r = await db.execute(text("""
@@ -827,7 +997,7 @@ async def get_powerbi_token():
     if not settings.powerbi_workspace_id:
         return {
             "status": "not_configured",
-            "message": "Power BI non configuré. Renseignez POWERBI_WORKSPACE_ID dans .env",
+            "message": "Power BI non configurÃ©. Renseignez POWERBI_WORKSPACE_ID dans .env",
         }
     return {
         "status": "configured",
@@ -871,3 +1041,7 @@ async def get_archive_tree(db: AsyncSession = Depends(get_db)):
         tree[ac]["_count"] += 1
         total += 1
     return {"tree": tree, "stats": {"total": total, "aircraft": len(tree)}}
+
+
+
+
