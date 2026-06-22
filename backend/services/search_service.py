@@ -35,6 +35,17 @@ class SearchService:
                     all_results[doc_id] = {"fts_score": 0.0, "sem_score": 0.0}
                 all_results[doc_id]["fts_score"] = score
 
+        # ── FIX : enrichir request avec entités NER détectées dans la requête ──
+        if not request.aircraft_registration and query_entities.aircraft_registration:
+            request.aircraft_registration = query_entities.aircraft_registration
+            logger.info(f"[SearchService] Filtre avion NER: {request.aircraft_registration}")
+        if not request.ata_chapter and query_entities.ata_chapter:
+            request.ata_chapter = query_entities.ata_chapter
+            logger.info(f"[SearchService] Filtre ATA NER: {request.ata_chapter}")
+        if not request.doc_type and query_entities.work_order_number:
+            request.doc_type = "WORK_ORDER"
+            logger.info(f"[SearchService] Filtre type NER: WORK_ORDER")
+
         # 2. Sémantique
         if request.use_semantic:
             query_vec = await self.embedding_agent.embed_query(request.query)
@@ -172,18 +183,42 @@ class SearchService:
     async def _semantic_search(self, db: AsyncSession, request: SearchRequest, query_vector: list[float]) -> list[tuple[int, float]]:
         try:
             import numpy as _np
-            _v = query_vector if 'query_vector' in dir() else query_vec
+            _v = query_vector
             if isinstance(_v, _np.ndarray): _v = _v.flatten().tolist()
-            elif isinstance(_v, (list, tuple)) and _v and isinstance(_v[0], (list, tuple)): _v = [float(x) for x in _v[0] if isinstance(x, (int, float))]
+            elif isinstance(_v, (list, tuple)) and _v and isinstance(_v[0], (list, tuple)):
+                _v = [float(x) for x in _v[0] if isinstance(x, (int, float))]
             _v = [float(x) for x in _v]
             vec_str = "[" + ",".join(str(x) for x in _v) + "]"
-            sql = text(
-                "SELECT id, 1 - (embedding <=> CAST(:vec AS vector)) as sim "
-                "FROM documents WHERE embedding IS NOT NULL "
-                "ORDER BY embedding <=> CAST(:vec AS vector) LIMIT :lim"
-            )
-            rows = (await db.execute(sql, {"vec": vec_str, "lim": request.limit * 3})).fetchall()
+
+            # ── FIX : filtre avion dans la recherche vectorielle ──────────────
+            aircraft_filter = request.aircraft_registration or ""
+
+            if aircraft_filter:
+                sql = text(
+                    "SELECT id, 1 - (embedding <=> CAST(:vec AS vector)) as sim "
+                    "FROM documents "
+                    "WHERE embedding IS NOT NULL "
+                    "  AND aircraft_registration ILIKE :aircraft "
+                    "ORDER BY embedding <=> CAST(:vec AS vector) LIMIT :lim"
+                )
+                rows = (await db.execute(sql, {
+                    "vec": vec_str,
+                    "aircraft": f"%{aircraft_filter}%",
+                    "lim": request.limit * 3
+                })).fetchall()
+            else:
+                sql = text(
+                    "SELECT id, 1 - (embedding <=> CAST(:vec AS vector)) as sim "
+                    "FROM documents WHERE embedding IS NOT NULL "
+                    "ORDER BY embedding <=> CAST(:vec AS vector) LIMIT :lim"
+                )
+                rows = (await db.execute(sql, {
+                    "vec": vec_str,
+                    "lim": request.limit * 3
+                })).fetchall()
+
             return [(r.id, float(r.sim)) for r in rows if r.sim > 0.3]
+
         except Exception as e:
             logger.warning(f"[SearchService] Semantic error: {e}")
             try:
@@ -205,7 +240,3 @@ class SearchService:
                 snippet = ocr_text[start:end].replace("\n", " ").strip()
                 return ("…" if start > 0 else "") + snippet + ("…" if end < len(ocr_text) else "")
         return ocr_text[:window] + "..."
-
-
-
-

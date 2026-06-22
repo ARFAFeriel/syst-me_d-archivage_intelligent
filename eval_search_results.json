@@ -1,0 +1,300 @@
+{
+  "aggregates": {
+    "nb_queries": 15,
+    "MAP_at_5": 0.0,
+    "MAP_at_10": 0.0,
+    "MRR": 0.0,
+    "mean_P_at_1": 0.0,
+    "mean_P_at_3": 0.0,
+    "mean_latency_ms": 14181.233,
+    "queries_with_hit_top1": 0,
+    "queries_with_hit_top5": 0
+  },
+  "per_query": [
+    {
+      "id": "Q01",
+      "query": "certificats ATA 26 protection incendie TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 99862.3,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q02",
+      "query": "certificats equipements cabine ATA 25 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 10915.4,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q03",
+      "query": "oxygen system certificate ATA 35 aircraft TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 786.6,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q04",
+      "query": "air conditioning pressurisation ATA 21 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 661.2,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q05",
+      "query": "airworthiness directive equipements ATA 25 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 620.6,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q06",
+      "query": "AD train atterrissage landing gear ATA 32 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 646.8,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q07",
+      "query": "airworthiness directive time limits maintenance checks ATA 05",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 18949.0,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q08",
+      "query": "AD flight controls commandes de vol ATA 27 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 701.1,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q09",
+      "query": "structural repair fuselage ATA 53 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 20981.0,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q10",
+      "query": "AD wings structure ATA 57 TS-INQ voilure",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 810.6,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q11",
+      "query": "certificat train atterrissage roues freins ATA 32 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 19887.9,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q12",
+      "query": "electrical power generation ATA 24 certificate TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 721.8,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q13",
+      "query": "lighting eclairage cabine ATA 33 certificat TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 20771.5,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q14",
+      "query": "work order travaux equipements cabine ATA 25 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 664.4,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "Q15",
+      "query": "fuel carburant system AD ATA 28 TS-INQ",
+      "nb_returned": 10,
+      "nb_relevant_top10": 0,
+      "precision_at_1": 0.0,
+      "precision_at_3": 0.0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "mrr": 0.0,
+      "recall_10": 0.0,
+      "latency_ms": 15738.3,
+      "first_relevant_rank": null,
+      "top3_types": [
+        "",
+        "",
+        ""
+      ]
+    }
+  ]
+}

@@ -49,6 +49,9 @@ export default function Admin() {
       droits: {
         consultation: true, upload: newUser.role !== 'consultant',
         monitoring: newUser.role === 'admin', analytics: true, admin: newUser.role === 'admin',
+        dashboard: true, documents: true, search: true,
+        fleet: newUser.role !== 'consultant', checks: newUser.role !== 'consultant',
+        pipeline: newUser.role === 'admin',
       },
       actif: true,
     };
@@ -58,7 +61,7 @@ export default function Admin() {
     toast(`Utilisateur ${u.nom} créé`, 'ok');
   };
 
-  const droitCols = ['upload', 'monitoring', 'analytics', 'admin'];
+  const droitCols = ['dashboard', 'documents', 'search', 'upload', 'fleet', 'checks', 'monitoring', 'analytics', 'pipeline', 'admin'];
 
   return (
     <div className="page-enter">

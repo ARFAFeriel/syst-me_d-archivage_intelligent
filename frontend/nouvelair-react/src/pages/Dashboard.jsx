@@ -302,7 +302,7 @@ export default function Dashboard() {
       {/* ══ ONGLET 1 — VUE GÉNÉRALE ══ */}
       {activeTab === 'overview' && (
         <>
-          <div className="g64" style={{ marginBottom: 18 }}>
+          <div  style={{ marginBottom: 18 }}>
 
             {/* Documents par aéronef */}
             <div className="card">
@@ -329,19 +329,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Agents IA */}
-            <div className="card">
-              <div className="ch">
-                <h3><i className="fas fa-brain" style={{ color: '#7c3aed' }}></i>Agents IA</h3>
-              </div>
-              <div className="cb">
-                <Bar label="Texte extractible (PDF natif + OCR ≥ 60%)" value={kpis?.text_extractible_pct || 0} max={100} color="var(--acc)" suffix="%" note="% docs avec texte exploitable — PDFs natifs + scans de qualité suffisante" />
-                <Bar label="NER — Extraction d'entités aéronautiques" value={nerConf ?? 0}  max={100} color="var(--nv)"  suffix="%" note="% docs avec immatriculation reconnue" />
-                <Bar label="Classifier (TF-IDF + SVM)"                value={clsConf ?? 0}  max={100} color="#7c3aed"   suffix="%" note="Confiance moyenne de classification sur 12 classes" />
-                <Bar label="Embeddings sémantiques (MiniLM-L6 384d)"  value={embConf ?? 100} max={100} color="var(--warn)" suffix="%" note="% docs avec vecteur stocké dans pgvector" />
-                
-              </div>
-            </div>
+        
           </div>
 
           <div className="g2">
@@ -490,12 +478,7 @@ export default function Dashboard() {
                 <h3><i className="fas fa-chart-pie" style={{ color: 'var(--acc)' }}></i>Distribution Qualité OCR</h3>
               </div>
               <div className="cb">
-                <div className="al i" style={{ marginBottom: 14 }}>
-                  <i className="fas fa-info-circle al-ic"></i>
-                  <div className="al-body">
-                    <span>Les PDFs numériques ont un score 0% — le texte est extrait directement par pdfplumber sans Tesseract.</span>
-                  </div>
-                </div>
+                
                 {[
                   { tranche: '90-100%', desc: 'Excellent — scan net ou PDF natif' },
                   { tranche: '75-89%',  desc: 'Bon — archivage fiable' },

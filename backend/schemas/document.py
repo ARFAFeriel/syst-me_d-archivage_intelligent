@@ -32,6 +32,7 @@ class DocumentStatusEnum(str, Enum):
     ARCHIVED = "archived"
     ERROR = "error"
     DUPLICATE = "duplicate"
+    TESTED = "tested"  
 
 
 # ── Réponse Document ──────────────────────────────────────────────────────────

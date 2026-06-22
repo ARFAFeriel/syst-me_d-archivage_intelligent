@@ -7,19 +7,28 @@ const DEFAULT_USERS = [
   {
     id: 1, email: 'admin@nouvelair.com.tn', password: 'admin123',
     nom: 'Administrateur', role: 'admin',
-    droits: { consultation: true, upload: true, admin: true, monitoring: true, analytics: true },
+    droits: {
+      consultation: true, upload: true, admin: true, monitoring: true, analytics: true,
+      dashboard: true, documents: true, search: true, fleet: true, checks: true, pipeline: true,
+    },
     actif: true,
   },
   {
     id: 2, email: 'technicien@nouvelair.com.tn', password: 'tech123',
     nom: 'Technicien MRO', role: 'technicien',
-    droits: { consultation: true, upload: true, admin: false, monitoring: false, analytics: false },
+    droits: {
+      consultation: true, upload: true, admin: false, monitoring: false, analytics: false,
+      dashboard: true, documents: true, search: true, fleet: true, checks: true, pipeline: false,
+    },
     actif: true,
   },
   {
     id: 3, email: 'consultant@nouvelair.com.tn', password: 'cons123',
     nom: 'Consultant', role: 'consultant',
-    droits: { consultation: true, upload: false, admin: false, monitoring: false, analytics: true },
+    droits: {
+      consultation: true, upload: false, admin: false, monitoring: false, analytics: true,
+      dashboard: true, documents: true, search: true, fleet: false, checks: false, pipeline: false,
+    },
     actif: true,
   },
 ];

@@ -400,7 +400,193 @@ class PipelineOrchestrator:
             processing_time_s=duration,
             errors=errors,
         )
+    # ── PATCH pour backend/core/pipeline.py ──────────────────────────────────────
+#
+# Ajouter cette méthode DANS la classe PipelineOrchestrator,
+# juste après process_document() et avant process_batch().
+# Ne modifie rien d'existant — méthode 100% nouvelle.
+#
+# Dépend des mêmes imports déjà présents en haut du fichier :
+# re, time, logger, AsyncSession, PipelineResult, DocumentStatusEnum,
+# DocumentTypeEnum, ClassifierResult, ProfileRegistry, PATH_TO_ENUM,
+# _resolve_aircraft_from_db, resolve_linked_wp_category
 
+    async def test_document(
+        self,
+        db: AsyncSession,
+        file_content: bytes,
+        filename: str,
+        original_path: str = "",
+    ) -> PipelineResult:
+        """
+        Exécute le pipeline en mode TEST (dry-run) : OCR → NER → AircraftResolver
+        → Classifier → LinkedWP → Embedding — SANS ARCHIVAGE.
+
+        Différences avec process_document() :
+          - Aucun appel à self.archive.archive()
+          - Aucun db.commit() / db.rollback() lié à une écriture
+          - Aucune entrée créée/modifiée dans la table `documents`
+          - Le AircraftResolver et LinkedWP font uniquement des lectures (SELECT)
+          - Statut retourné : DocumentStatusEnum.TESTED
+          - document_id retourné = 0 (aucun document réel n'existe)
+
+        Usage : simulation / bac à sable pour tester la classification
+        d'un PDF sans polluer la base de données.
+        """
+        start = time.perf_counter()
+        errors = []
+
+        logger.info(f"[Pipeline][TEST] ► Démarrage (dry-run): {filename}")
+
+        # ── Profil de traitement ──────────────────────────────────────────────
+        doc_type, infer_conf = ProfileRegistry.infer_from_path(
+            original_path or filename
+        )
+        profile = ProfileRegistry.get(doc_type)
+        logger.info(
+            f"[Pipeline][TEST] Profil détecté: '{profile.display_name}' "
+            f"(conf={infer_conf:.0%}) ← {original_path or filename}"
+        )
+
+        # ── OCR ────────────────────────────────────────────────────────────────
+        logger.info(f"[Pipeline][TEST] [1/4] OCR: {filename}")
+        try:
+            ocr_result = await self.ocr.process(
+                file_content, filename,
+                doc_type=doc_type,
+                profile=profile,
+            )
+        except Exception as e:
+            logger.error(f"[Pipeline][TEST] OCR échoué: {e}")
+            errors.append(f"OCR: {e}")
+            ocr_result = None
+
+        if not ocr_result or not ocr_result.text:
+            logger.warning(f"[Pipeline][TEST] OCR texte vide pour {filename}")
+            from backend.schemas.document import OCRResult
+            ocr_result = OCRResult(
+                text="", confidence=0.0, pages=0, engine="error",
+                entities={}, needs_review=True, quality_score=0.0,
+                validation_warnings=["OCR échoué — révision manuelle requise"],
+            )
+
+        # ── NER ────────────────────────────────────────────────────────────────
+        logger.info(f"[Pipeline][TEST] [2/4] NER: {filename}")
+        try:
+            ner_result = await self.ner.process(
+                ocr_result.text, filename, profile=profile,
+            )
+            if not ner_result.aircraft_registration and original_path:
+                ner_result.aircraft_registration = \
+                    self.ner.infer_aircraft_from_path(original_path)
+            if not ner_result.aircraft_registration:
+                m = re.search(r"(TS-IN[A-Z])", filename, re.IGNORECASE)
+                if m:
+                    ner_result.aircraft_registration = m.group(1).upper()
+        except Exception as e:
+            logger.error(f"[Pipeline][TEST] NER échoué: {e}")
+            errors.append(f"NER: {e}")
+            from backend.schemas.document import NERResult
+            ner_result = NERResult()
+
+        # ── AircraftResolver (lecture DB uniquement, aucune écriture) ──────────
+        if not ner_result.aircraft_registration:
+            logger.info(
+                f"[Pipeline][TEST] [2b] AircraftResolver lookup DB "
+                f"via ES='{ner_result.es_reference}'..."
+            )
+            try:
+                resolved = await _resolve_aircraft_from_db(
+                    db,
+                    es_reference=ner_result.es_reference,
+                    filename=filename,
+                )
+                if resolved:
+                    ner_result.aircraft_registration = resolved
+                    logger.info(
+                        f"[Pipeline][TEST] [2b] ✓ Avion résolu via DB: '{resolved}'"
+                    )
+            except Exception as e:
+                logger.warning(f"[Pipeline][TEST] AircraftResolver ignoré: {e}")
+
+        # ── Classification ───────────────────────────────────────────────────
+        logger.info(f"[Pipeline][TEST] [3/4] Classification: {filename}")
+        try:
+            classifier_result = await self.classifier.process(
+                ocr_result.text, filename, original_path, ner_result
+            )
+
+            if classifier_result.predicted_type.value != doc_type:
+                if doc_type != 'unknown':
+                    enum_value = PATH_TO_ENUM.get(doc_type.lower())
+                    if enum_value:
+                        try:
+                            classifier_result.predicted_type = \
+                                DocumentTypeEnum(enum_value)
+                            classifier_result.predicted_category = enum_value
+                        except ValueError:
+                            pass
+        except Exception as e:
+            logger.error(f"[Pipeline][TEST] Classifier échoué: {e}")
+            errors.append(f"Classifier: {e}")
+            classifier_result = ClassifierResult(
+                predicted_type=DocumentTypeEnum.OTHER,
+                predicted_category="Other",
+                confidence=0.5,
+            )
+
+        # ── LinkedWP (lecture DB uniquement) ────────────────────────────────
+        if classifier_result.predicted_type == DocumentTypeEnum.WORK_ORDER:
+            try:
+                resolved_category = await resolve_linked_wp_category(
+                    db, ocr_result.text, filename=filename
+                )
+                if resolved_category:
+                    classifier_result.predicted_category = resolved_category
+            except Exception as e:
+                logger.warning(f"[Pipeline][TEST] LinkedWP resolver ignoré: {e}")
+
+        # ── Embedding (calcul seulement, PAS de stockage pgvector) ──────────
+        logger.info(f"[Pipeline][TEST] [4/4] Embedding: {filename}")
+        embedding = None
+        try:
+            embedding = await self.embedding.embed_document(
+                ocr_text=ocr_result.text,
+                filename=filename,
+                doc_type=classifier_result.predicted_type.value,
+                category=classifier_result.predicted_category,
+                aircraft=ner_result.aircraft_registration or "",
+                es_ref=ner_result.es_reference or "",
+                ata=ner_result.ata_chapter or "",
+                sb_ad=ner_result.sb_ad_reference or "",
+                semantic_prefix=profile.embedding.semantic_prefix,
+            )
+        except Exception as e:
+            logger.warning(f"[Pipeline][TEST] Embedding ignoré: {e}")
+            errors.append(f"Embedding: {e}")
+
+        duration = round(time.perf_counter() - start, 3)
+        logger.info(
+            f"[Pipeline][TEST] ✓ {filename} [DRY-RUN] "
+            f"[{classifier_result.predicted_type.value}] "
+            f"avion={ner_result.aircraft_registration or '?'} "
+            f"conf={classifier_result.confidence:.0%} "
+            f"ocr={ocr_result.confidence:.1f}% "
+            f"t={duration}s — rien archivé"
+        )
+
+        return PipelineResult(
+            document_id=0,
+            filename=filename,
+            status=DocumentStatusEnum.TESTED,
+            ocr=ocr_result,
+            ner=ner_result,
+            classification=classifier_result,
+            embedding_generated=embedding is not None,
+            is_duplicate=False,
+            processing_time_s=duration,
+            errors=errors,
+        )
     async def process_batch(
         self,
         db_factory,

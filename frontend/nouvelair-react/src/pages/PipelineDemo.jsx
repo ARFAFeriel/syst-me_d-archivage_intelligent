@@ -36,7 +36,7 @@ const STEPS = [
     metric: '6 entités',
     detail: {
       title: "Extraction d'entités nommées",
-      description: "Patterns regex compilés à l'initialisation pour ~30% de gain. spaCy fr_core_news_sm complète pour les dates.",
+      description: "Patterns regex compilés à l'initialisation pour ~30% de gain. spaCy fr_core_news_md complète pour les dates.",
       output: [
         { key: 'aircraft_registration', value: 'TS-INP' },
         { key: 'es_reference', value: 'ES00217082' },
@@ -51,7 +51,7 @@ const STEPS = [
     id: 3,
     icon: 'fa-brain',
     label: 'Classifier Agent',
-    subtitle: 'TF-IDF + SVM · C=5.0 · ngram(1,2)',
+    subtitle: 'CalibratedClassifierCV (LinearSVC) · 11 classes',
     color: '#f59e0b',
     bg: 'rgba(245,158,11,.08)',
     border: 'rgba(245,158,11,.25)',
@@ -59,7 +59,7 @@ const STEPS = [
     metric: 'conf. 94%',
     detail: {
       title: 'Classification du document',
-      description: 'Texte OCR + filename + chemin combinés en vecteur TF-IDF. SVM entraîné sur corpus NouvelAir. Boost ×5 sur token du dossier parent. F1 macro 95.2%.',
+      description: 'Cascade à 5 niveaux : règles de chemin → filename ES###### → TF-IDF + LinearSVC calibré (cv=3) → fallback mots-clés/NER → LLM Groq si confiance <0.85 ou conflit. pipeline.py applique ensuite un override final basé sur le chemin si désaccord.',
       output: [
         { key: 'WORK_ORDER', value: '94.2% ✓' },
         { key: 'JOBCARD', value: '3.1%' },
@@ -122,7 +122,7 @@ const STEPS = [
     metric: '0 alertes',
     detail: {
       title: 'Surveillance et reporting',
-      description: '9 vues PostgreSQL alimentant Power BI sur 4 axes : Global, Fleet & Checks, AI Quality, Alerts & Monitoring.',
+      description: '10 vues PostgreSQL alimentant Power BI sur 4 axes : Global, Fleet & Checks, AI Quality, Alerts & Monitoring.',
       output: [
         { key: 'Confiance OCR', value: '87.3% >= 60% OK' },
         { key: 'Confiance classifieur', value: '94.2% >= 50% OK' },
@@ -134,10 +134,10 @@ const STEPS = [
 ];
 
 const SAMPLE_DOCS = [
-  { name: 'TS-INP_Check C_ES001392_WorkOrder_ES00217082.pdf', aircraft: 'TS-INP', check: 'CHECK_C', type: 'WORK_ORDER' },
-  { name: 'TS-INQ_CHECK C_ES001440_RCT-ES001440.pdf', aircraft: 'TS-INQ', check: 'CHECK_C', type: 'RCT' },
-  { name: 'TS-INP_Check A_ES001778_Jobcard_0043.pdf', aircraft: 'TS-INP', check: 'CHECK_A', type: 'JOBCARD' },
-  { name: 'TS-INQ_Old doc_AD_AD DFPs_2011-0142.pdf', aircraft: 'TS-INQ', check: '-', type: 'AD' },
+  { name: 'TS-INP_Check C_ES001392_WorkOrder_ES00217082.pdf', aircraft: 'TS-INP', check: 'CHECK_C', type: 'WORK_ORDER', source: 'sample' },
+  { name: 'TS-INQ_CHECK C_ES001440_RCT-ES001440.pdf', aircraft: 'TS-INQ', check: 'CHECK_C', type: 'RCT', source: 'sample' },
+  { name: 'TS-INP_Check A_ES001778_Jobcard_0043.pdf', aircraft: 'TS-INP', check: 'CHECK_A', type: 'JOBCARD', source: 'sample' },
+  { name: 'TS-INQ_Old doc_AD_AD DFPs_2011-0142.pdf', aircraft: 'TS-INQ', check: '-', type: 'AD', source: 'sample' },
 ];
 
 export default function PipelineDemo() {
@@ -148,10 +148,20 @@ export default function PipelineDemo() {
   const [done, setDone] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const [customDocs, setCustomDocs] = useState([]);
+  const [uploadError, setUploadError] = useState('');
+  const [apiResult, setApiResult] = useState(null);
+  const [apiError, setApiError] = useState('');
+  const [apiLoading, setApiLoading] = useState(false);
   const cancelRef = useRef(false);
+  const fileInputRef = useRef(null);
 
   const { data: kpis }     = useApi('/analytics/kpis');
   const { data: pipeline } = useApi('/pipeline/status');
+
+  const allDocs = [...SAMPLE_DOCS, ...customDocs];
+  const doc = allDocs[selectedDoc] || allDocs[0];
+  const isUploadedDoc = doc?.source === 'upload';
 
   const reset = () => {
     cancelRef.current = true;
@@ -160,6 +170,36 @@ export default function PipelineDemo() {
     setActiveStep(null);
     setExpandedStep(null);
     setDone(false);
+    setApiResult(null);
+    setApiError('');
+    setApiLoading(false);
+  };
+
+  // Appelle le vrai endpoint dry-run pour un document importé.
+  // Tourne en parallèle de l'animation visuelle — résultats appliqués
+  // une fois les deux terminés.
+  const callRealPipeline = async (file) => {
+    setApiLoading(true);
+    setApiError('');
+    setApiResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/v1/pipeline/test', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.detail || `Erreur serveur (${res.status})`);
+      }
+      const data = await res.json();
+      setApiResult(data);
+    } catch (e) {
+      setApiError(e.message || 'Échec de la connexion au pipeline réel.');
+    } finally {
+      setApiLoading(false);
+    }
   };
 
   const run = async () => {
@@ -169,6 +209,14 @@ export default function PipelineDemo() {
     setActiveStep(null);
     setExpandedStep(null);
     setDone(false);
+    setApiResult(null);
+    setApiError('');
+
+    // Si le document sélectionné est un import réel, on lance l'appel API
+    // en parallèle de l'animation (sans attendre l'un pour l'autre).
+    if (doc?.source === 'upload' && doc.file) {
+      callRealPipeline(doc.file);
+    }
 
     for (let i = 0; i < STEPS.length; i++) {
       if (cancelRef.current) break;
@@ -189,16 +237,102 @@ export default function PipelineDemo() {
     }
   };
 
-  const doc = SAMPLE_DOCS[selectedDoc];
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError('');
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadError('Seuls les fichiers PDF sont acceptés.');
+      e.target.value = '';
+      return;
+    }
+
+    const newDoc = {
+      name: file.name,
+      aircraft: 'À déterminer',
+      check: 'À déterminer',
+      type: 'À déterminer',
+      source: 'upload',
+      sizeKb: Math.round(file.size / 1024),
+      file,
+    };
+
+    setCustomDocs(prev => [...prev, newDoc]);
+    if (!running) {
+      reset();
+      setSelectedDoc(allDocs.length); // index du nouveau doc une fois ajouté
+    }
+    e.target.value = '';
+  };
+
   const progress = completedSteps.length / STEPS.length * 100;
 
   const metrics = [
-    { label: 'Documents archivés',  value: kpis?.total_documents?.toLocaleString() || '—',                                                                          color: 'var(--nv)'  },
-    { label: 'F1 Macro Classifier', value: pipeline?.agents?.classifier?.confidence ? Math.round(pipeline.agents.classifier.confidence * 100) + '%' : '—',          color: '#f59e0b'    },
-    { label: 'Texte extractible',   value: kpis?.text_extractible_pct ? kpis.text_extractible_pct + '%' : '—',                                                      color: '#8b5cf6'    },
-    { label: 'Latence recherche',   value: '<300ms',                                                                                                                  color: '#06b6d4'    },
-    { label: 'Couverture embedding',value: pipeline?.agents?.embedding?.confidence ? Math.round(pipeline.agents.embedding.confidence * 100) + '%' : '—',             color: '#10b981'    },
+    { label: 'Documents archivés',     value: kpis?.total_documents?.toLocaleString() || '—',                                                                          color: 'var(--nv)'  },
+    { label: 'Confiance classifier',   value: pipeline?.agents?.classifier?.confidence ? Math.round(pipeline.agents.classifier.confidence * 100) + '%' : '—',          color: '#f59e0b'    },
+    { label: 'Texte extractible',      value: kpis?.text_extractible_pct ? kpis.text_extractible_pct + '%' : '—',                                                      color: '#8b5cf6'    },
+    { label: 'Latence recherche',      value: '<300ms',                                                                                                                  color: '#06b6d4'    },
+    { label: 'Couverture embedding',   value: pipeline?.agents?.embedding?.confidence ? Math.round(pipeline.agents.embedding.confidence * 100) + '%' : '—',             color: '#10b981'    },
   ];
+
+  // Construit les détails d'étape RÉELS à partir de la réponse de
+  // POST /pipeline/test, pour remplacer les données mockées des steps 1-4
+  // quand le document simulé est un vrai PDF importé.
+  const buildRealStepDetail = (stepId) => {
+    if (!apiResult) return null;
+    const { ocr, ner, classification } = apiResult;
+
+    if (stepId === 1 && ocr) {
+      return {
+        title: 'Extraction du texte (résultat réel)',
+        description: 'Résultat retourné par le vrai endpoint /pipeline/test (dry-run, aucune écriture en base).',
+        output: [
+          { key: 'Texte extrait (aperçu)', value: (ocr.text || '').slice(0, 90) + ((ocr.text || '').length > 90 ? '...' : '') || '(vide)' },
+          { key: 'Confiance OCR', value: `${ocr.confidence?.toFixed?.(1) ?? ocr.confidence}%` },
+          { key: 'Pages traitées', value: String(ocr.pages) },
+          { key: 'Moteur', value: ocr.engine || '—' },
+        ],
+      };
+    }
+    if (stepId === 2 && ner) {
+      return {
+        title: "Extraction d'entités nommées (résultat réel)",
+        description: 'Résultat retourné par le vrai endpoint /pipeline/test.',
+        output: [
+          { key: 'aircraft_registration', value: ner.aircraft_registration || '—' },
+          { key: 'es_reference', value: ner.es_reference || '—' },
+          { key: 'linked_wp', value: ner.linked_wp || '—' },
+          { key: 'ata_chapter', value: ner.ata_chapter || '—' },
+          { key: 'check_type', value: ner.check_type || '—' },
+          { key: 'document_date', value: ner.document_date || '—' },
+        ],
+      };
+    }
+    if (stepId === 3 && classification) {
+      const scoreEntries = Object.entries(classification.scores || {});
+      return {
+        title: 'Classification du document (résultat réel)',
+        description: 'Cascade complète (chemin → filename ES → TF-IDF+LinearSVC calibré → fallback NER → LLM Groq si besoin).',
+        output: [
+          ...scoreEntries.slice(0, 3).map(([k, v]) => ({ key: k, value: `${(v * 100).toFixed(1)}%` })),
+          { key: 'Décision', value: `doc_type = ${classification.predicted_type}` },
+          { key: 'Confiance finale', value: `${(classification.confidence * 100).toFixed(1)}%` },
+        ],
+      };
+    }
+    if (stepId === 4) {
+      return {
+        title: "Génération d'embedding sémantique (résultat réel)",
+        description: 'Vecteur calculé pour le test, mais non stocké dans pgvector (dry-run).',
+        output: [
+          { key: 'Embedding généré', value: apiResult.embedding_generated ? 'Oui (non stocké, dry-run)' : 'Non' },
+          { key: 'Modèle', value: 'sentence-transformers/all-MiniLM-L6-v2' },
+        ],
+      };
+    }
+    return null;
+  };
 
   return (
     <div className="page-enter" style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px' }}>
@@ -221,8 +355,35 @@ export default function PipelineDemo() {
         <div>
           {/* Sélecteur doc */}
           <div className="card" style={{ padding: 14, marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: 'var(--tx3)', marginBottom: 8, fontWeight: 500 }}>Document simulé</div>
-            {SAMPLE_DOCS.map((d, i) => (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--tx3)', fontWeight: 500 }}>Document simulé</div>
+              <button
+                onClick={() => !running && fileInputRef.current?.click()}
+                disabled={running}
+                style={{
+                  fontSize: 11, padding: '4px 9px', borderRadius: 5, border: '0.5px solid var(--bdr2)',
+                  background: 'var(--bg2)', color: 'var(--tx2)', cursor: running ? 'default' : 'pointer',
+                  opacity: running ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                <i className="fas fa-upload" style={{ fontSize: 10 }} />
+                Importer un PDF
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+            </div>
+
+            {uploadError && (
+              <div style={{ fontSize: 11, color: 'var(--danger)', marginBottom: 8 }}>
+                <i className="fas fa-circle-exclamation" style={{ marginRight: 5 }} />{uploadError}
+              </div>
+            )}
+
+            {allDocs.map((d, i) => (
               <div key={i}
                 onClick={() => { if (!running) { reset(); setSelectedDoc(i); } }}
                 style={{
@@ -234,10 +395,34 @@ export default function PipelineDemo() {
                 }}>
                 <i className="fas fa-file-pdf" style={{ color: 'var(--danger)', fontSize: 11, flexShrink: 0 }} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                {d.source === 'upload' && (
+                  <span style={{ fontSize: 9, color: 'var(--tx3)', flexShrink: 0 }}>{d.sizeKb} Ko</span>
+                )}
                 <span className="tag" style={{ fontSize: 10, flexShrink: 0 }}>{d.type}</span>
               </div>
             ))}
           </div>
+
+          {isUploadedDoc && (
+            <div style={{
+              fontSize: 11, color: apiError ? 'var(--danger)' : 'var(--tx3)',
+              background: apiError ? 'rgba(239,68,68,.06)' : 'var(--bg2)',
+              border: `0.5px solid ${apiError ? 'rgba(239,68,68,.3)' : 'var(--bdr)'}`,
+              borderRadius: 8, padding: '8px 12px', marginBottom: 14,
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <i className={`fas ${apiError ? 'fa-triangle-exclamation' : apiLoading ? 'fa-spinner fa-spin' : apiResult ? 'fa-circle-check' : 'fa-circle-info'}`} style={{ marginTop: 1, flexShrink: 0, color: apiResult && !apiError ? '#10b981' : undefined }} />
+              <span>
+                {apiError
+                  ? `Le pipeline réel a échoué : ${apiError}`
+                  : apiLoading
+                  ? 'Appel en cours au vrai pipeline (OCR → NER → Classifier → Embedding), aucune écriture en base...'
+                  : apiResult
+                  ? "Résultats réels reçus du pipeline (mode test, rien n'a été archivé en base)."
+                  : "Document importé. Au démarrage, ce PDF sera réellement traité par le pipeline (mode test, sans archivage) — l'animation ci-dessous reste une visualisation indépendante du vrai temps de traitement."}
+              </span>
+            </div>
+          )}
 
           {/* Barre progression */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -295,18 +480,35 @@ export default function PipelineDemo() {
                     )}
                   </div>
 
-                  {isExpanded && isCompleted && (
-                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--bdr)' }}>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--tx2)', marginBottom: 4 }}>{step.detail.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--tx3)', lineHeight: 1.6, marginBottom: 10 }}>{step.detail.description}</div>
-                      {step.detail.output.map((o, j) => (
-                        <div key={j} style={{ display: 'flex', gap: 8, fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ color: 'var(--tx3)', minWidth: 170, flexShrink: 0 }}>{o.key}</span>
-                          <code style={{ fontSize: 11, background: 'var(--bg2)', padding: '1px 6px', borderRadius: 3, color: 'var(--tx1)' }}>{o.value}</code>
+                  {isExpanded && isCompleted && (() => {
+                    const realDetail = isUploadedDoc ? buildRealStepDetail(step.id) : null;
+                    const detail = realDetail || step.detail;
+                    const showRealBadge = !!realDetail;
+                    return (
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--bdr)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{detail.title}</div>
+                          {showRealBadge && (
+                            <span style={{ fontSize: 9, padding: '1px 6px', background: 'rgba(16,185,129,.12)', color: '#10b981', borderRadius: 3, fontWeight: 600 }}>RÉEL</span>
+                          )}
+                          {isUploadedDoc && !realDetail && (step.id === 5 || step.id === 6) && (
+                            <span style={{ fontSize: 9, padding: '1px 6px', background: 'var(--bg2)', color: 'var(--tx3)', borderRadius: 3, fontWeight: 600 }}>NON EXÉCUTÉ (DRY-RUN)</span>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div style={{ fontSize: 12, color: 'var(--tx3)', lineHeight: 1.6, marginBottom: 10 }}>
+                          {isUploadedDoc && !realDetail && (step.id === 5 || step.id === 6)
+                            ? "Le mode test (dry-run) s'arrête après l'embedding : aucun archivage ni monitoring réel n'est exécuté pour ce document importé."
+                            : detail.description}
+                        </div>
+                        {(!isUploadedDoc || realDetail) && detail.output.map((o, j) => (
+                          <div key={j} style={{ display: 'flex', gap: 8, fontSize: 12, marginBottom: 4 }}>
+                            <span style={{ color: 'var(--tx3)', minWidth: 170, flexShrink: 0 }}>{o.key}</span>
+                            <code style={{ fontSize: 11, background: 'var(--bg2)', padding: '1px 6px', borderRadius: 3, color: 'var(--tx1)' }}>{o.value}</code>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {i < STEPS.length - 1 && (
@@ -320,18 +522,21 @@ export default function PipelineDemo() {
 
           {/* Résultat */}
           {done && (
-            <div style={{ marginTop: 16, padding: 16, background: 'rgba(16,185,129,.06)', border: '0.5px solid rgba(16,185,129,.3)', borderRadius: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: '#10b981', marginBottom: 10 }}>
-                <i className="fas fa-check-circle" style={{ marginRight: 6 }} />Document archivé avec succès
+            <div style={{ marginTop: 16, padding: 16, background: isUploadedDoc && apiError ? 'rgba(239,68,68,.06)' : 'rgba(16,185,129,.06)', border: `0.5px solid ${isUploadedDoc && apiError ? 'rgba(239,68,68,.3)' : 'rgba(16,185,129,.3)'}`, borderRadius: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: isUploadedDoc && apiError ? '#ef4444' : '#10b981', marginBottom: 10 }}>
+                <i className={`fas ${isUploadedDoc && apiError ? 'fa-circle-exclamation' : 'fa-check-circle'}`} style={{ marginRight: 6 }} />
+                {isUploadedDoc
+                  ? apiError ? 'Le pipeline réel a rencontré une erreur' : 'Pipeline réel exécuté avec succès (rien archivé — mode test)'
+                  : 'Document archivé avec succès'}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {[
-                  { label: 'Type',       value: doc.type      },
-                  { label: 'Avion',      value: doc.aircraft  },
-                  { label: 'Check',      value: doc.check     },
-                  { label: 'Confiance',  value: '94.2%'       },
-                  { label: 'Embedding',  value: '384 dims'    },
-                  { label: 'Statut',     value: 'ARCHIVED'    },
+                  { label: 'Type',       value: isUploadedDoc ? (apiResult?.classification?.predicted_type ?? '—') : doc.type },
+                  { label: 'Avion',      value: isUploadedDoc ? (apiResult?.ner?.aircraft_registration ?? '—') : doc.aircraft },
+                  { label: 'Check',      value: isUploadedDoc ? (apiResult?.ner?.check_type ?? '—') : doc.check },
+                  { label: 'Confiance',  value: isUploadedDoc ? (apiResult?.classification?.confidence != null ? `${(apiResult.classification.confidence * 100).toFixed(1)}%` : '—') : '94.2%' },
+                  { label: 'Embedding',  value: isUploadedDoc ? (apiResult?.embedding_generated ? '384 dims (non stocké)' : '—') : '384 dims' },
+                  { label: 'Statut',     value: isUploadedDoc ? (apiResult?.status?.toUpperCase() ?? (apiError ? 'ERREUR' : '—')) : 'ARCHIVED' },
                 ].map((m, i) => (
                   <div key={i} style={{ background: 'var(--bg1)', borderRadius: 6, padding: '7px 10px' }}>
                     <div style={{ fontSize: 11, color: 'var(--tx3)' }}>{m.label}</div>
@@ -359,17 +564,7 @@ export default function PipelineDemo() {
               {running ? 'Arrêter' : done ? 'Rejouer' : 'Démarrer'}
             </button>
 
-            <div style={{ fontSize: 12, color: 'var(--tx3)', marginBottom: 6 }}>Vitesse</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[{ label: 'x1', val: 1 }, { label: 'x2', val: 2 }, { label: 'x5', val: 5 }].map(s => (
-                <button key={s.val} onClick={() => setSpeed(s.val)} style={{
-                  flex: 1, padding: '6px 0', borderRadius: 6,
-                  border: '0.5px solid var(--bdr2)', cursor: 'pointer', fontSize: 12,
-                  background: speed === s.val ? 'var(--nv)' : 'transparent',
-                  color: speed === s.val ? '#fff' : 'var(--tx2)'
-                }}>{s.label}</button>
-              ))}
-            </div>
+            
           </div>
 
           {/* Métriques */}
@@ -388,11 +583,12 @@ export default function PipelineDemo() {
             <div style={{ fontSize: 12, color: 'var(--tx3)', fontWeight: 500, marginBottom: 10 }}>Stack technique</div>
             {[
               'FastAPI + PostgreSQL 15',
-              'pgvector · HNSW',
+              'pgvector · HNSW (m=16, ef=64)',
               'Tesseract 5 + OpenCV 4.10',
-              'sentence-transformers',
-              'spaCy fr_core_news_sm',
-              'TF-IDF + SVM (C=5.0)',
+              'sentence-transformers (MiniLM-L6-v2)',
+              'spaCy fr_core_news_md',
+              'TF-IDF + CalibratedClassifierCV(LinearSVC)',
+              'Groq LLaMA 3.1 8B (fallback NER + LLM cascade)',
             ].map((t, i) => (
               <div key={i} style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--tx3)', padding: '3px 0' }}>
                 <i className="fas fa-circle" style={{ fontSize: 4, marginRight: 7, verticalAlign: 'middle' }} />{t}

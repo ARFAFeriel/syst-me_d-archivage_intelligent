@@ -1,0 +1,953 @@
+[1mdiff --git a/backend/api/routes.py b/backend/api/routes.py[m
+[1mindex 08f064a..cbd1877 100644[m
+[1m--- a/backend/api/routes.py[m
+[1m+++ b/backend/api/routes.py[m
+[36m@@ -1,5 +1,5 @@[m
+[31m-"""[m
+[31m-Routes Recherche, Aéronefs, Pipeline, Analytics[m
+[32m+[m[32m﻿"""[m
+[32m+[m[32mRoutes Recherche, AÃ©ronefs, Pipeline, Analytics[m
+ """[m
+ from fastapi import APIRouter, Depends, HTTPException, Query[m
+ from sqlalchemy.ext.asyncio import AsyncSession[m
+[36m@@ -14,10 +14,17 @@[m [mfrom backend.schemas.search import SearchRequest, SearchResponse, RAGRequest, RA[m
+ from backend.schemas.document import DocumentResponse[m
+ from backend.services.search_service import SearchService[m
+ from backend.core.pipeline import get_pipeline[m
+[32m+[m[32mfrom backend.agents.embedding_agent import EmbeddingAgent[m
+[32m+[m[32mfrom backend.agents.llm_agent import LLMAgent[m
+[32m+[m
+[32m+[m[32m_embedding_agent = EmbeddingAgent()[m
+[32m+[m[32m_llm_agent = LLMAgent()[m
+ [m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[32m+[m[32mfrom backend.core.aggregation_intent import detect_aggregation_intent, handle_aggregation_query[m
+[32m+[m
+[32m+[m[32m# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•[m
+ # SEARCH ROUTER[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[32m+[m[32m# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•[m
+ [m
+ search_router = APIRouter(prefix="/search", tags=["Recherche"])[m
+ _search_service = SearchService()[m
+[36m@@ -25,7 +32,7 @@[m [m_search_service = SearchService()[m
+ [m
+ @search_router.get("/", response_model=SearchResponse, summary="Recherche hybride")[m
+ async def search([m
+[31m-    q: str = Query(..., min_length=1, description="Requête de recherche"),[m
+[32m+[m[32m    q: str = Query(..., min_length=1, description="RequÃªte de recherche"),[m
+     aircraft: Optional[str] = Query(None),[m
+     doc_type: Optional[str] = Query(None),[m
+     category: Optional[str] = Query(None),[m
+[36m@@ -37,7 +44,7 @@[m [masync def search([m
+     offset: int = Query(0, ge=0),[m
+     db: AsyncSession = Depends(get_db),[m
+ ):[m
+[31m-    """Recherche hybride FTS + pgvector avec extraction NER de la requête."""[m
+[32m+[m[32m    """Recherche hybride FTS + pgvector avec extraction NER de la requÃªte."""[m
+     request = SearchRequest([m
+         query=q,[m
+         aircraft_registration=aircraft,[m
+[36m@@ -66,808 +73,100 @@[m [masync def rag_answer([m
+     request: RAGRequest,[m
+     db: AsyncSession = Depends(get_db),[m
+ ):[m
+[31m-    [m
+[31m-    from backend.agents.embedding_agent import EmbeddingAgent[m
+     import numpy as np[m
+[31m-    embedding_agent = EmbeddingAgent()[m
+[31m-    query_vec = await embedding_agent.embed_query(request.question)[m
+[31m-    sources = [][m
+[31m-    rows = [][m
+[31m-[m
+[31m-    if query_vec:[m
+[31m-        vec = query_vec[m
+[31m-        if isinstance(vec, np.ndarray):[m
+[31m-            vec = vec.flatten().tolist()[m
+[31m-        vec = [float(x) for x in vec][m
+[31m-        vec_str = f"[{','.join(str(v) for v in vec)}]"[m
+[32m+[m[32m    import re as _re[m
+[32m+[m
+[32m+[m[32m    embedding_agent = _embedding_agent[m
+[32m+[m
+[32m+[m[32m    # â”€â”€ DÃ©tection avion, ATA et type doc depuis la question (regex) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€[m
+[32m+[m[32m    _m_ac = _re.search(r'\b(TS-IN[A-Z])\b', request.question, _re.IGNORECASE)[m
+[32m+[m[32m    aircraft_filter = _m_ac.group(1).upper() if _m_ac else None[m
+[32m+[m
+[32m+[m[32m    _m_ata = _re.search(r'\bATA[\s-]*(\d{2})\b', request.question, _re.IGNORECASE)[m
+[32m+[m[32m    ata_filter = _m_ata.group(1) if _m_ata else None[m
+[32m+[m
+[32m+[m[32m    # DÃ©tection type documentaire depuis la question[m
+[32m+[m[32m    doc_type_filter = None[m
+[32m+[m[32m    q_lower = request.question.lower()[m
+[32m+[m[32m    if any(w in q_lower for w in ["work order", "wo ", "ordre de travail"]):[m
+[32m+[m[32m        doc_type_filter = "WORK_ORDER"[m
+[32m+[m[32m    elif any(w in q_lower for w in ["job card", "jobcard", "carte de tÃ¢che"]):[m
+[32m+[m[32m        doc_type_filter = "JOBCARD"[m
+[32m+[m[32m    elif any(w in q_lower for w in [" ad ", "airworthiness", "directive"]):[m
+[32m+[m[32m        doc_type_filter = "AD"[m
+[32m+[m[32m    elif any(w in q_lower for w in ["service bulletin", " sb "]):[m
+[32m+[m[32m        doc_type_filter = "SB"[m
+[32m+[m[32m    elif any(w in q_lower for w in ["defect", "dÃ©faut", "anomalie"]):[m
+[32m+[m[32m        doc_type_filter = "DEFECT_REPORT"[m
+[32m+[m
+[32m+[m[32m    if aircraft_filter:[m
+[32m+[m[32m        logger.info(f"[RAG] Filtre avion: {aircraft_filter}")[m
+[32m+[m[32m    if ata_filter:[m
+[32m+[m[32m        logger.info(f"[RAG] Filtre ATA: {ata_filter}")[m
+[32m+[m[32m    if doc_type_filter:[m
+[32m+[m[32m        logger.info(f"[RAG] Filtre type: {doc_type_filter}")[m
+[32m+[m
+[32m+[m[32m    # ── Détection d'intention d'agrégation (existence/comptage) ──────────[m
+[32m+[m[32m    agg_intent = detect_aggregation_intent(request.question)[m
+[32m+[m[32m    if agg_intent:[m
+[32m+[m[32m        logger.info(f"[RAG] Intention agregation detectee: {agg_intent}")[m
+[32m+[m[32m        agg_result = await handle_aggregation_query(db, agg_intent, aircraft_filter)[m
+[32m+[m[32m        champ_label = {[m
+[32m+[m[32m            "aircraft_registration": "immatriculation",[m
+[32m+[m[32m            "doc_type": "type de document",[m
+[32m+[m[32m            "ata_chapter": "chapitre ATA",[m
+[32m+[m[32m            "category": "categorie",[m
+[32m+[m[32m        }.get(agg_result["field"], agg_result["field"])[m
+[32m+[m
+[32m+[m[32m        liste_docs = ""[m
+[32m+[m[32m        if agg_result["examples"]:[m
+[32m+[m[32m            lignes_doc = [][m
+[32m+[m[32m            for ex in agg_result["examples"]:[m
+[32m+[m[32m                nom = ex.get("filename", "?")[m
+[32m+[m[32m                avion = ex.get("aircraft_registration") or "non renseigne"[m
+[32m+[m[32m                dtype = ex.get("doc_type") or "?"[m
+[32m+[m[32m                lignes_doc.append(f"- {nom} (avion: {avion}, type: {dtype})")[m
+[32m+[m[32m            liste_docs = "\n".join(lignes_doc)[m
+[32m+[m
+[32m+[m[32m        answer = ""[m
+[32m+[m[32m        confidence = 0.95[m
+         try:[m
+[31m-            result = await db.execute(text("""[m
+[31m-                SELECT id, 1 - (embedding <=> CAST(:vec AS vector)) as sim[m
+[31m-                FROM documents[m
+[31m-                WHERE embedding IS NOT NULL AND status = 'ARCHIVED'[m
+[31m-                ORDER BY embedding <=> CAST(:vec AS vector)[m
+[31m-                LIMIT :k[m
+[31m-            """), {"vec": vec_str, "k": request.top_k})[m
+[31m-            rows = result.fetchall()[m
+[31m-            doc_ids = [r.id for r in rows if r.sim > 0.45][m
+[31m-[m
+[31m-            if doc_ids:[m
+[31m-                [m
+[31m-[m
+[31m-                from sqlalchemy import and_[m
+[31m-                res = await db.execute(select(Document).where(Document.id.in_(doc_ids)))[m
+[31m-                docs = res.scalars().all()[m
+[31m-                sources = [DocumentResponse.model_validate(d) for d in docs][m
+[31m-[m
+[31m-        except Exception as e:[m
+[31m-            try:[m
+[31m-                await db.rollback()[m
+[31m-            except Exception:[m
+[31m-                pass[m
+[31m-            logger.warning(f"[RAG] Semantic error: {e}")[m
+[31m-[m
+[31m-    if not sources:[m
+[31m-        return RAGResponse([m
+[31m-            answer="Aucun document correspondant n'a été trouvé dans les archives.",[m
+[31m-            sources=[],[m
+[31m-            confidence=0.0,[m
+[31m-            question=request.question,[m
+[31m-        )[m
+[31m-[m
+[31m-    doc_ids_ordered = [r.id for r in rows if r.sim > 0.45][:3][m
+[31m-    ids_str = ",".join(str(i) for i in doc_ids_ordered)[m
+[31m-    ocr_rows = await db.execute(text(f"""[m
+[31m-        SELECT id, filename, doc_type, aircraft_registration,[m
+[31m-               category, es_reference, ocr_confidence,[m
+[31m-               LEFT(ocr_text, 1000) as ocr_preview[m
+[31m-        FROM documents[m
+[31m-        WHERE id IN ({ids_str})[m
+[31m-        ORDER BY array_position(ARRAY[{ids_str}]::int[], id)[m
+[31m-    """))[m
+[31m-    ocr_docs = ocr_rows.fetchall()[m
+[31m-[m
+[31m-    context_parts = [][m
+[31m-    for i, row in enumerate(ocr_docs):[m
+[31m-        doc_type_clean = str(row.doc_type).split(".")[-1].replace("_", " ").title() if row.doc_type else "Inconnu"[m
+[31m-        ocr_preview = (row.ocr_preview or "").replace("\n", " ").strip()[m
+[31m-        ocr_conf_val = float(row.ocr_confidence) if row.ocr_confidence else 0[m
+[31m-        ocr_label = "PDF natif (texte extrait directement)" if ocr_conf_val == 0 else f"{round(ocr_conf_val)}%"[m
+[31m-        ocr_info = ocr_preview if ocr_preview else "Texte OCR non disponible (document scanné à faible résolution)"[m
+[31m-        context_parts.append([m
+[31m-            f"[Doc {i+1}] Fichier: {row.filename}\n"[m
+[31m-            f"Avion: {row.aircraft_registration or 'N/A'} | "[m
+[31m-            f"Type: {doc_type_clean} | "[m
+[31m-            f"Catégorie: {row.category or 'N/A'} | "[m
+[31m-            f"Référence ES: {row.es_reference or 'N/A'} | "[m
+[31m-            f"Confiance OCR: {ocr_label}\n"[m
+[31m-            f"Contenu: {ocr_info}"[m
+[31m-        )[m
+[31m-    context = "\n\n".join(context_parts)[m
+[31m-[m
+[31m-    answer = ""[m
+[31m-    confidence = 0.0[m
+[31m-    try:[m
+[31m-        from backend.agents.llm_agent import LLMAgent[m
+[31m-        import asyncio[m
+[31m-        llm = LLMAgent()[m
+[31m-        if llm.disponible:[m
+[31m-            docs_contexte = [[m
+[31m-                {[m
+[31m-                    "filename": s.filename,[m
+[31m-                    "doc_type": str(s.doc_type).split(".")[-1] if s.doc_type else "?",[m
+[31m-                    "aircraft_registration": s.aircraft_registration or "?",[m
+[31m-                    "es_reference": s.es_reference or "",[m
+[31m-                    "ata_chapter": s.ata_chapter or "",[m
+[31m-                    "ocr_confidence": float(s.ocr_confidence) if s.ocr_confidence else 0,[m
+[31m-                    "ocr_text": context_parts[i] if i < len(context_parts) else "",[m
+[31m-                }[m
+[31m-                for i, s in enumerate(sources[:5])[m
+[31m-            ][m
+[31m-            loop = asyncio.get_event_loop()[m
+[31m-            result = await loop.run_in_executor([m
+[31m-                None, llm.repondre_question, request.question, docs_contexte, None[m
+[31m-            )[m
+[31m-            if result.get("llm_utilise"):[m
+[31m-                answer = result["reponse"].strip()[m
+[31m-                confidence = 0.88[m
+[31m-            else:[m
+[31m-                raise ValueError("LLM non utilisé")[m
+[31m-        else:[m
+[31m-            raise ValueError("Groq non disponible")[m
+[31m-    except Exception as e:[m
+[31m-        logger.warning(f"[RAG] Groq fallback: {e}")[m
+[31m-        s = sources[0][m
+[31m-        doc_type_clean = str(s.doc_type).split(".")[-1].replace("_", " ").title() if s.doc_type else "Inconnu"[m
+[31m-        answer = ([m
+[31m-            f"{len(sources)} document(s) pertinent(s) trouvé(s) pour '{request.question}'. "[m
+[31m-            f"Document principal : {s.filename} — "[m
+[31m-            f"Avion {s.aircraft_registration or 'N/A'}, "[m
+[31m-            f"Type : {doc_type_clean}, "[m
+[31m-            f"Catégorie : {s.category or 'N/A'}, "[m
+[31m-            f"Référence : {s.es_reference or 'N/A'}."[m
+[31m-        )[m
+[31m-        confidence = round(rows[0].sim if rows else 0.5, 2)[m
+[31m-[m
+[31m-    return RAGResponse([m
+[31m-        answer=answer,[m
+[31m-        sources=sources,[m
+[31m-        confidence=confidence,[m
+[31m-        question=request.question,[m
+[31m-    )[m
+[31m-[m
+[31m-[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[31m-# AIRCRAFT ROUTER[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[31m-[m
+[31m-aircraft_router = APIRouter(prefix="/aircraft", tags=["Aéronefs"])[m
+[31m-[m
+[31m-[m
+[31m-@aircraft_router.get("/", summary="Liste des aéronefs")[m
+[31m-async def list_aircraft(db: AsyncSession = Depends(get_db)):[m
+[31m-    result = await db.execute(select(Aircraft).order_by(Aircraft.registration))[m
+[31m-    aircraft_list = result.scalars().all()[m
+[31m-    out = [][m
+[31m-    for a in aircraft_list:[m
+[31m-        doc_count = await db.scalar([m
+[31m-            select(func.count(Document.id)).where([m
+[31m-                Document.aircraft_registration.ilike(a.registration)[m
+[31m-            )[m
+[31m-        ) or 0[m
+[31m-        out.append({[m
+[31m-            "id": a.id,[m
+[31m-            "registration": a.registration,[m
+[31m-            "model": a.model,[m
+[31m-            "msn": a.msn,[m
+[31m-            "status": "active",[m
+[31m-            "aircraft_type": a.aircraft_type or "CEO",[m
+[31m-            "variant": a.variant,[m
+[31m-            "delivery_date": str(a.delivery_date) if a.delivery_date else None,[m
+[31m-            "lessor": a.lessor,[m
+[31m-            "doc_count": doc_count,[m
+[31m-            "archive_path": a.archive_path,[m
+[31m-        })[m
+[31m-    return out[m
+[31m-[m
+[31m-[m
+[31m-@aircraft_router.patch("/{aircraft_id}", summary="Modifier un aéronef")[m
+[31m-async def update_aircraft([m
+[31m-    aircraft_id: int,[m
+[31m-    payload: dict,[m
+[31m-    db: AsyncSession = Depends(get_db),[m
+[31m-):[m
+[31m-    result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))[m
+[31m-    aircraft = result.scalar_one_or_none()[m
+[31m-    if not aircraft:[m
+[31m-        raise HTTPException(404, f"Aéronef #{aircraft_id} introuvable")[m
+[31m-[m
+[31m-    allowed = {"aircraft_type", "msn", "variant", "delivery_date", "lessor", "notes", "model"}[m
+[31m-    for field, value in payload.items():[m
+[31m-        if field in allowed and hasattr(aircraft, field):[m
+[31m-            if field == "delivery_date" and value:[m
+[31m-                from datetime import date[m
+[31m-                try:[m
+[31m-                    value = date.fromisoformat(value)[m
+[31m-                except ValueError:[m
+[31m-                    value = None[m
+[31m-            setattr(aircraft, field, value if value != "" else None)[m
+[31m-[m
+[31m-    await db.commit()[m
+[31m-    await db.refresh(aircraft)[m
+[31m-    return {[m
+[31m-        "id": aircraft.id,[m
+[31m-        "registration": aircraft.registration,[m
+[31m-        "msn": aircraft.msn,[m
+[31m-        "aircraft_type": aircraft.aircraft_type,[m
+[31m-        "variant": aircraft.variant,[m
+[31m-        "delivery_date": str(aircraft.delivery_date) if aircraft.delivery_date else None,[m
+[31m-        "lessor": aircraft.lessor,[m
+[31m-        "notes": aircraft.notes,[m
+[31m-    }[m
+[31m-[m
+[31m-[m
+[31m-@aircraft_router.get("/{registration}/documents", summary="Documents par avion")[m
+[31m-async def aircraft_documents([m
+[31m-    registration: str,[m
+[31m-    category: Optional[str] = Query(None),[m
+[31m-    doc_type: Optional[str] = Query(None),[m
+[31m-    limit: int = Query(50),[m
+[31m-    db: AsyncSession = Depends(get_db),[m
+[31m-):[m
+[31m-    from sqlalchemy import and_[m
+[31m-    conditions = [Document.aircraft_registration.ilike(registration)][m
+[31m-    if category:[m
+[31m-        conditions.append(Document.category.ilike(f"%{category}%"))[m
+[31m-    if doc_type:[m
+[31m-        conditions.append(Document.doc_type == doc_type)[m
+[31m-[m
+[31m-    result = await db.execute([m
+[31m-        select(Document).where(and_(*conditions))[m
+[31m-        .order_by(desc(Document.created_at)).limit(limit)[m
+[31m-    )[m
+[31m-    docs = result.scalars().all()[m
+[31m-    return [DocumentResponse.model_validate(d) for d in docs][m
+[31m-[m
+[31m-[m
+[31m-@aircraft_router.get("/checks/all", summary="Tous les checks confirmés")[m
+[31m-async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):[m
+[31m-    result = await db.execute([m
+[31m-        select(AircraftCheck, Aircraft.registration)[m
+[31m-        .join(Aircraft, Aircraft.id == AircraftCheck.aircraft_id)[m
+[31m-        .order_by(AircraftCheck.check_type, Aircraft.registration)[m
+[31m-    )[m
+[31m-    rows = result.all()[m
+[31m-    return [[m
+[31m-        {[m
+[31m-            "id": c.id,[m
+[31m-            "es_reference": c.es_reference,[m
+[31m-            "check_type": c.check_type.value if c.check_type else None,[m
+[31m-            "aircraft_registration": reg,[m
+[31m-            "total_documents": c.total_documents or 0,[m
+[31m-            "start_date": c.start_date.isoformat() if c.start_date else None,[m
+[31m-            "confirmed_by_rct": c.confirmed_by_rct,[m
+[31m-        }[m
+[31m-        for c, reg in rows[m
+[31m-    ][m
+[31m-[m
+[31m-[m
+[31m-@aircraft_router.get("/{registration}/checks", summary="Checks par avion")[m
+[31m-async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db)):[m
+[31m-    from sqlalchemy import and_[m
+[31m-    aircraft_q = await db.execute([m
+[31m-        select(Aircraft).where(Aircraft.registration.ilike(registration))[m
+[31m-    )[m
+[31m-    aircraft = aircraft_q.scalar_one_or_none()[m
+[31m-    if not aircraft:[m
+[31m-        raise HTTPException(404, f"Aéronef {registration} introuvable")[m
+[31m-[m
+[31m-    result = await db.execute([m
+[31m-        select(AircraftCheck).where(AircraftCheck.aircraft_id == aircraft.id)[m
+[31m-    )[m
+[31m-    checks = result.scalars().all()[m
+[31m-[m
+[31m-    out = [][m
+[31m-    for c in checks:[m
+[31m-        real_count = 0[m
+[31m-        if c.es_reference:[m
+[31m-            try:[m
+[31m-                ref_clean = c.es_reference.upper()[m
+[31m-                if ref_clean.startswith('ES'):[m
+[31m-                    ref_clean = ref_clean[2:][m
+[31m-                real_count = await db.scalar([m
+[31m-                    select(func.count(Document.id)).where([m
+[31m-                        and_([m
+[31m-                            Document.aircraft_registration.ilike(f"%{registration}%"),[m
+[31m-                            Document.es_reference.ilike(f"%{ref_clean}%")[m
+[31m-                        )[m
+[32m+[m[32m            if _llm_agent.disponible:[m
+[32m+[m[32m                sys_agg = ([m
+[32m+[m[32m                    "Tu es un assistant qui repond a des questions sur une base documentaire "[m
+[32m+[m[32m                    "aeronautique, comme le ferait un collegue qui consulte la base de donnees. "[m
+[32m+[m[32m                    "Reponds de maniere directe et naturelle, en francais. "[m
+[32m+[m[32m                    "Ne mentionne JAMAIS de termes techniques comme 'resultat d'agregation', "[m
+[32m+[m[32m                    "'critere', 'valeur vide', 'absence de valeur' — formule la reponse comme "[m
+[32m+[m[32m                    "une phrase humaine normale. "[m
+[32m+[m[32m                    "Si une liste de documents precis t'est fournie, cite leurs noms de fichiers "[m
+[32m+[m[32m                    "explicitement dans ta reponse."[m
+[32m+[m[32m                )[m
+[32m+[m[32m                if agg_result["total"] == 0:[m
+[32m+[m[32m                    usr_agg = ([m
+[32m+[m[32m                        f"QUESTION: {request.question}\n\n"[m
+[32m+[m[32m                        f"Il n'y a aucun document correspondant dans la base. "[m
+[32m+[m[32m                        f"Formule une reponse claire en une phrase."[m
+                     )[m
+[31m-                ) or 0[m
+[31m-            except Exception as e:[m
+[31m-                logger.warning(f"[checks] Erreur comptage {c.es_reference}: {e}")[m
+[31m-                real_count = c.total_documents or 0[m
+[31m-[m
+[31m-        if real_count == 0:[m
+[31m-            continue[m
+[31m-[m
+[31m-        out.append({[m
+[31m-            "id": c.id,[m
+[31m-            "es_reference": c.es_reference,[m
+[31m-            "check_type": c.check_type.value if c.check_type else None,[m
+[31m-            "total_documents": real_count,[m
+[31m-            "work_orders_count": c.work_orders_count or 0,[m
+[31m-            "jobcards_count": c.jobcards_count or 0,[m
+[31m-            "defect_reports_count": c.defect_reports_count or 0,[m
+[31m-            "ncr_count": c.ncr_count or 0,[m
+[31m-            "start_date": c.start_date.isoformat() if c.start_date else None,[m
+[31m-        })[m
+[31m-[m
+[31m-    out.sort(key=lambda x: x["total_documents"], reverse=True)[m
+[31m-    return out[m
+[31m-[m
+[31m-[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[31m-# PIPELINE ROUTER[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[31m-[m
+[31m-pipeline_router = APIRouter(prefix="/pipeline", tags=["Pipeline IA"])[m
+[31m-[m
+[31m-[m
+[31m-@pipeline_router.get("/status", summary="Statut des agents")[m
+[31m-async def pipeline_status(db: AsyncSession = Depends(get_db)):[m
+[31m-    pipeline = get_pipeline()[m
+[31m-    health = await pipeline.monitoring.get_system_health(db)[m
+[31m-[m
+[31m-    try:[m
+[31m-        archived_filter = Document.status == DocumentStatus.ARCHIVED[m
+[31m-[m
+[31m-        total_archived = await db.scalar([m
+[31m-            select(func.count(Document.id)).where(archived_filter)[m
+[31m-        ) or 1[m
+[31m-[m
+[31m-        ner_hits = await db.scalar([m
+[31m-            select(func.count(Document.id)).where([m
+[31m-                archived_filter,[m
+[31m-                Document.aircraft_registration.isnot(None),[m
+[31m-                Document.aircraft_registration != "",[m
+[31m-            )[m
+[31m-        ) or 0[m
+[31m-[m
+[31m-        cls_avg = await db.scalar([m
+[31m-            select(func.avg(Document.classifier_confidence)).where([m
+[31m-                archived_filter,[m
+[31m-                Document.classifier_confidence.isnot(None),[m
+[31m-            )[m
+[31m-        )[m
+[31m-[m
+[31m-        emb_hits = await db.scalar([m
+[31m-            select(func.count(Document.id)).where([m
+[31m-                archived_filter,[m
+[31m-                Document.embedding.isnot(None),[m
+[31m-            )[m
+[31m-        ) or 0[m
+[31m-[m
+[31m-        if "agents" not in health:[m
+[31m-            health["agents"] = {}[m
+[31m-[m
+[31m-        health["agents"].setdefault("ner", {})["confidence"] = round(ner_hits / total_archived, 3)[m
+[31m-        if cls_avg is not None:[m
+[31m-            health["agents"].setdefault("classifier", {})["confidence"] = round(float(cls_avg), 3)[m
+[31m-        health["agents"].setdefault("embedding", {})["confidence"] = round(emb_hits / total_archived, 3)[m
+[31m-[m
+[31m-    except Exception as e:[m
+[31m-        logger.warning(f"[pipeline/status] Calcul confiance agents: {e}")[m
+[31m-[m
+[31m-    return health[m
+[31m-[m
+[31m-[m
+[31m-@pipeline_router.get("/alerts", summary="Alertes actives")[m
+[31m-async def get_alerts([m
+[31m-    resolved: bool = Query(False),[m
+[31m-    limit: int = Query(20),[m
+[31m-    db: AsyncSession = Depends(get_db),[m
+[31m-):[m
+[31m-    pipeline = get_pipeline()[m
+[31m-    alerts = await pipeline.monitoring.get_recent_alerts(db, limit=limit)[m
+[31m-    if not resolved:[m
+[31m-        alerts = [a for a in alerts if not a["resolved"]][m
+[31m-    return alerts[m
+[31m-[m
+[31m-[m
+[31m-@pipeline_router.post("/alerts/{alert_id}/resolve", summary="Résoudre une alerte")[m
+[31m-async def resolve_alert(alert_id: int, db: AsyncSession = Depends(get_db)):[m
+[31m-    from datetime import datetime[m
+[31m-    result = await db.execute(select(Alert).where(Alert.id == alert_id))[m
+[31m-    alert = result.scalar_one_or_none()[m
+[31m-    if not alert:[m
+[31m-        raise HTTPException(404)[m
+[31m-    alert.resolved = True[m
+[31m-    alert.resolved_at = datetime.utcnow()[m
+[31m-    await db.commit()[m
+[31m-    return {"message": f"Alerte #{alert_id} résolue"}[m
+[31m-[m
+[31m-[m
+[31m-@pipeline_router.post("/scan", summary="Scanner arborescence locale")[m
+[31m-async def scan_archive([m
+[31m-    path: str = Query(None),[m
+[31m-    dry_run: bool = Query(True),[m
+[31m-    db: AsyncSession = Depends(get_db),[m
+[31m-):[m
+[31m-    from backend.agents.monitoring_agent import TreeAgent[m
+[31m-    from backend.config import settings[m
+[31m-    scan_path = path or settings.archive_root_path[m
+[31m-[m
+[31m-    tree_agent = TreeAgent(scan_path)[m
+[31m-    files = tree_agent.scan()[m
+[31m-[m
+[31m-    if dry_run:[m
+[31m-        return {[m
+[31m-            "mode": "dry_run",[m
+[31m-            "path": scan_path,[m
+[31m-            "found": len(files),[m
+[31m-            "preview": files[:10],[m
+[31m-        }[m
+[31m-[m
+[31m-    pipeline = get_pipeline()[m
+[31m-    imported = 0[m
+[31m-    errors = [][m
+[31m-[m
+[31m-    for file_meta in files[:200]:[m
+[31m-        try:[m
+[31m-            import aiofiles[m
+[31m-            async with aiofiles.open(file_meta["full_path"], "rb") as f:[m
+[31m-                content = await f.read()[m
+[31m-            result = await pipeline.process_document([m
+[31m-                db=db,[m
+[31m-                file_content=content,[m
+[31m-                filename=file_meta["filename"],[m
+[31m-                original_path=file_meta["full_path"],[m
+[31m-                file_size_kb=file_meta["file_size_kb"],[m
+[31m-            )[m
+[31m-            if result.status.value == "archived":[m
+[31m-                imported += 1[m
+[32m+[m[32m                else:[m
+[32m+[m[32m                    usr_agg = ([m
+[32m+[m[32m                        f"QUESTION: {request.question}\n\n"[m
+[32m+[m[32m                        f"Il y a {agg_result['total']} document(s) concerne(s).\n"[m
+[32m+[m[32m                        f"Liste des documents :\n{liste_docs}\n\n"[m
+[32m+[m[32m                        f"Formule une reponse naturelle qui repond a la question et cite "[m
+[32m+[m[32m                        f"les documents par leur nom."[m
+[32m+[m[32m                    )[m
+[32m+[m[32m                llm_txt = _llm_agent._call(sys_agg, usr_agg, 400)[m
+[32m+[m[32m                if llm_txt:[m
+[32m+[m[32m                    answer = llm_txt.strip()[m
+[32m+[m[32m                else:[m
+[32m+[m[32m                    raise ValueError("LLM non utilise")[m
+[32m+[m[32m            else:[m
+[32m+[m[32m                raise ValueError("Groq non disponible")[m
+         except Exception as e:[m
+[31m-            errors.append({"file": file_meta["filename"], "error": str(e)})[m
+[31m-[m
+[31m-    return {[m
+[31m-        "mode": "import",[m
+[31m-        "path": scan_path,[m
+[31m-        "total_found": len(files),[m
+[31m-        "imported": imported,[m
+[31m-        "errors": len(errors),[m
+[31m-        "error_details": errors[:10],[m
+[31m-    }[m
+[31m-[m
+[31m-[m
+[31m-@pipeline_router.get("/tree", summary="Arborescence JSON")[m
+[31m-async def get_tree(path: str = Query(None)):[m
+[31m-    from backend.agents.monitoring_agent import TreeAgent[m
+[31m-    from backend.config import settings[m
+[31m-    scan_path = path or settings.archive_root_path[m
+[31m-    tree_agent = TreeAgent(scan_path)[m
+[31m-    return tree_agent.get_tree_json()[m
+[31m-[m
+[31m-[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[31m-# ANALYTICS ROUTER[m
+[31m-# ══════════════════════════════════════════════════════════════════════════════[m
+[31m-[m
+[31m-analytics_router = APIRouter(prefix="/analytics", tags=["Analytics"])[m
+[31m-[m
+[31m-[m
+[31m-@analytics_router.get("/kpis", summary="KPIs tableau de bord")[m
+[31m-async def get_kpis(db: AsyncSession = Depends(get_db)):[m
+[31m-    total_docs = await db.scalar(select(func.count(Document.id))) or 0[m
+[31m-    archived = await db.scalar([m
+[31m-        select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)[m
+[31m-    ) or 0[m
+[31m-    avg_ocr = await db.scalar([m
+[31m-        select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)[m
+[31m-    )[m
+[31m-    active_alerts = await db.scalar([m
+[31m-        select(func.count(Alert.id)).where(Alert.resolved == False)  # noqa[m
+[31m-    ) or 0[m
+[31m-    critical_ads = await db.scalar([m
+[31m-        select(func.count(Document.id)).where(Document.is_critical == True)  # noqa[m
+[31m-    ) or 0[m
+[31m-    total_aircraft = await db.scalar([m
+[31m-        select(func.count(Aircraft.id))[m
+[31m-    ) or 0[m
+[31m-[m
+[31m-    last_activity = await db.scalar(select(func.max(Document.updated_at)))[m
+[31m-    text_extractible = await db.scalar([m
+[31m-        select(func.count(Document.id)).where([m
+[31m-            Document.status == DocumentStatus.ARCHIVED,[m
+[31m-            or_(Document.ocr_confidence == 0, Document.ocr_confidence >= 60)[m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    text_extractible_pct = round(text_extractible / max(archived, 1) * 100, 1)[m
+[31m-[m
+[31m-    return {[m
+[31m-        "total_documents": total_docs,[m
+[31m-        "archived": archived,[m
+[31m-        "avg_ocr_confidence": round(float(avg_ocr or 0), 2),[m
+[31m-        "active_alerts": active_alerts,[m
+[31m-        "needs_review": await db.scalar([m
+[31m-            select(func.count(Document.id)).where(Document.needs_review == True)[m
+[31m-        ) or 0,[m
+[31m-        "total_aircraft": total_aircraft,[m
+[31m-        "archive_rate_pct": round(archived / max(total_docs, 1) * 100, 1),[m
+[31m-        "critical_ads": critical_ads,[m
+[31m-        "last_activity": last_activity.isoformat() if last_activity else None,[m
+[31m-        "text_extractible_pct": text_extractible_pct,[m
+[31m-    }[m
+[31m-[m
+[31m-[m
+[31m-@analytics_router.get("/stats", summary="Statistiques détaillées")[m
+[31m-async def get_stats(db: AsyncSession = Depends(get_db)):[m
+[31m-    """Distribution par type, catégorie, avion."""[m
+[31m-[m
+[31m-    by_type_q = await db.execute([m
+[31m-        select([m
+[31m-            Document.doc_type,[m
+[31m-            func.count(Document.id).label("count"),[m
+[31m-            func.avg(Document.ocr_confidence).label("avg_ocr_confidence"),[m
+[31m-        )[m
+[31m-        .group_by(Document.doc_type)[m
+[31m-        .order_by(desc("count"))[m
+[31m-    )[m
+[31m-[m
+[31m-    by_aircraft_q = await db.execute([m
+[31m-        select([m
+[31m-            Aircraft.registration,[m
+[31m-            Aircraft.msn,[m
+[31m-            func.count(Document.id).label("count"),[m
+[31m-        )[m
+[31m-        .outerjoin(Document, Document.aircraft_registration == Aircraft.registration)[m
+[31m-        .group_by(Aircraft.registration, Aircraft.msn)[m
+[31m-        .order_by(desc("count"))[m
+[31m-    )[m
+[31m-[m
+[31m-    by_cat = await db.execute([m
+[31m-        select(Document.category, func.count(Document.id).label("count"))[m
+[31m-        .where(Document.category.isnot(None))[m
+[31m-        .group_by(Document.category)[m
+[31m-        .order_by(desc("count"))[m
+[31m-    )[m
+[31m-[m
+[31m-    total_doc_types = await db.scalar([m
+[31m-        select(func.count(func.distinct(Document.doc_type)))[m
+[31m-        .where(Document.doc_type.isnot(None))[m
+[31m-    ) or 1[m
+[31m-[m
+[31m-    by_ata_q = await db.execute([m
+[31m-        select(Document.ata_chapter, func.count(Document.id).label("count"))[m
+[31m-        .where(Document.ata_chapter.isnot(None))[m
+[31m-        .group_by(Document.ata_chapter)[m
+[31m-        .order_by(desc("count"))[m
+[31m-        .limit(20)[m
+[31m-    )[m
+[31m-[m
+[31m-    return {[m
+[31m-        "by_type": [[m
+[31m-            {[m
+[31m-                "type": r.doc_type,[m
+[31m-                "count": r.count,[m
+[31m-                "avg_ocr_confidence": round(float(r.avg_ocr_confidence), 1) if r.avg_ocr_confidence else None,[m
+[31m-            }[m
+[31m-            for r in by_type_q[m
+[31m-        ],[m
+[31m-        "by_aircraft": [[m
+[31m-            {"aircraft": r.registration, "msn": r.msn, "count": r.count}[m
+[31m-            for r in by_aircraft_q[m
+[31m-        ],[m
+[31m-        "by_category": [[m
+[31m-            {"category": r.category, "count": r.count}[m
+[31m-            for r in by_cat[m
+[31m-        ],[m
+[31m-        "by_ata": [[m
+[31m-            {"ata": r.ata_chapter, "count": r.count}[m
+[31m-            for r in by_ata_q[m
+[31m-        ],[m
+[31m-        "total_doc_types": total_doc_types,[m
+[31m-    }[m
+[31m-[m
+[31m-[m
+[31m-@analytics_router.get("/advanced", summary="Statistiques avancées pour dashboard")[m
+[31m-async def get_advanced_stats(db: AsyncSession = Depends(get_db)):[m
+[31m-    from sqlalchemy import case, extract[m
+[31m-[m
+[31m-    ocr_dist_q = await db.execute([m
+[31m-        select([m
+[31m-            case([m
+[31m-                (Document.ocr_confidence >= 90, '90-100%'),[m
+[31m-                (Document.ocr_confidence >= 75, '75-89%'),[m
+[31m-                (Document.ocr_confidence >= 50, '50-74%'),[m
+[31m-                (Document.ocr_confidence >= 25, '25-49%'),[m
+[31m-                (Document.ocr_confidence >  0,  '1-24%'),[m
+[31m-                else_='0%'[m
+[31m-            ).label("tranche"),[m
+[31m-            func.count(Document.id).label("count"),[m
+[31m-        )[m
+[31m-        .group_by("tranche")[m
+[31m-        .order_by(desc("count"))[m
+[31m-    )[m
+[31m-    ocr_distribution = [{"tranche": r.tranche, "count": r.count} for r in ocr_dist_q][m
+[31m-[m
+[31m-    total_archived = await db.scalar([m
+[31m-        select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)[m
+[31m-    ) or 0[m
+[31m-    manually_corrected = await db.scalar([m
+[31m-        select(func.count(Document.id)).where([m
+[31m-            Document.manually_corrected == True,  # noqa[m
+[31m-            Document.status == DocumentStatus.ARCHIVED,[m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    human_validation_pct = round(manually_corrected / max(total_archived, 1) * 100, 1)[m
+[31m-[m
+[31m-    pending_count = await db.scalar([m
+[31m-        select(func.count(Document.id)).where(Document.status == DocumentStatus.PENDING)[m
+[31m-    ) or 0[m
+[31m-[m
+[31m-    monthly_q = await db.execute([m
+[31m-        select([m
+[31m-            extract('year',  Document.created_at).label("year"),[m
+[31m-            extract('month', Document.created_at).label("month"),[m
+[31m-            func.count(Document.id).label("count"),[m
+[31m-        )[m
+[31m-        .where(Document.status == DocumentStatus.ARCHIVED)[m
+[31m-        .group_by("year", "month")[m
+[31m-        .order_by("year", "month")[m
+[31m-    )[m
+[31m-    monthly_evolution = [[m
+[31m-        {"period": f"{int(r.year)}-{int(r.month):02d}", "count": r.count}[m
+[31m-        for r in monthly_q[m
+[31m-    ][-6:][m
+[31m-[m
+[31m-    sans_avion = await db.scalar([m
+[31m-        select(func.count(Document.id)).where([m
+[31m-            Document.aircraft_registration.is_(None),[m
+[31m-            [m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    sans_ata = await db.scalar([m
+[31m-        select(func.count(Document.id)).where([m
+[31m-            Document.ata_chapter.is_(None),[m
+[31m-            Document.status == DocumentStatus.ARCHIVED,[m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    sans_es = await db.scalar([m
+[31m-        select(func.count(Document.id)).where([m
+[31m-            Document.es_reference.is_(None),[m
+[31m-            Document.status == DocumentStatus.ARCHIVED,[m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    needs_review = await db.scalar([m
+[31m-        select(func.count(Document.id)).where(Document.needs_review == True)  # noqa[m
+[31m-    ) or 0[m
+[31m-[m
+[31m-    nb_doc_types = await db.scalar([m
+[31m-        select(func.count(func.distinct(Document.doc_type)))[m
+[31m-        .where(Document.doc_type.isnot(None))[m
+[31m-    ) or 1[m
+[31m-[m
+[31m-    coverage_q = await db.execute([m
+[31m-        select([m
+[31m-            Aircraft.registration,[m
+[31m-            Aircraft.msn,[m
+[31m-            func.count(Document.id).label("total"),[m
+[31m-            func.count(func.distinct(Document.doc_type)).label("nb_types"),[m
+[31m-            func.avg(Document.ocr_confidence).filter([m
+[31m-                Document.ocr_confidence > 0[m
+[31m-            ).label("avg_ocr"),[m
+[31m-            func.count(Document.id).filter(Document.manually_corrected == True).label("validated"),  # noqa[m
+[31m-        )[m
+[31m-        .outerjoin(Document, Document.aircraft_registration == Aircraft.registration)[m
+[31m-        .group_by(Aircraft.registration, Aircraft.msn)[m
+[31m-        .order_by(desc("total"))[m
+[31m-    )[m
+[31m-    coverage_by_aircraft = [[m
+[31m-        {[m
+[31m-            "aircraft":     r.registration,[m
+[31m-            "msn":          r.msn,[m
+[31m-            "total_docs":   r.total,[m
+[31m-            "nb_types":     r.nb_types,[m
+[31m-            "avg_ocr":      round(float(r.avg_ocr), 1) if r.avg_ocr else 0,[m
+[31m-            "validated":    r.validated,[m
+[31m-            "coverage_pct": round(r.nb_types / nb_doc_types * 100, 0) if r.nb_types else 0,[m
+[31m-        }[m
+[31m-        for r in coverage_q[m
+[31m-    ][m
+[31m-[m
+[31m-    avg_ocr = await db.scalar([m
+[31m-        select(func.avg(Document.ocr_confidence)).where(Document.ocr_confidence > 0)[m
+[31m-    ) or 0[m
+[31m-    avg_cls = await db.scalar([m
+[31m-        select(func.avg(Document.classifier_confidence)).where([m
+[31m-            Document.classifier_confidence.isnot(None),[m
+[31m-            Document.status == DocumentStatus.ARCHIVED,[m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    total_docs = await db.scalar(select(func.count(Document.id))) or 1[m
+[31m-    anomaly_rate = (sans_avion + needs_review) / total_docs[m
+[31m-[m
+[31m-    text_extractible = await db.scalar([m
+[31m-        select(func.count(Document.id)).where([m
+[31m-            Document.status == DocumentStatus.ARCHIVED,[m
+[31m-            or_(Document.ocr_confidence == 0, Document.ocr_confidence >= 60)[m
+[31m-        )[m
+[31m-    ) or 0[m
+[31m-    text_extractible_pct = round(text_extractible / max(total_archived, 1) * 100, 1)[m
+[31m-[m
+[31m-    quality_score = round([m
+[31m-        float(text_extractible_pct) * 0.4 +[m
+[31m-        float(avg_cls) * 100 * 0.3 +[m
+[31m-        (1 - anomaly_rate) * 100 * 0.3,[m
+[31m-        1[m
+[31m-    )[m
+[31m-[m
+[31m-    ata_q = await db.execute([m
+[31m-        select(Document.ata_chapter, func.count(Document.id).label("count"))[m
+[31m-        .where(Document.ata_chapter.isnot(None))[m
+[31m-        .group_by(Document.ata_chapter)[m
+[31m-        .order_by(desc("count"))[m
+[31m-        .limit(8)[m
+[31m-    )[m
+[31m-    by_ata = [{"ata": r.ata_chapter, "count": r.count} for r in ata_q][m
+[31m-[m
+[31m-    return {[m
+[31m-        "ocr_distribution":     ocr_distribution,[m
+[31m-        "human_validation_pct": human_validation_pct,[m
+[31m-        "manually_corrected":   manually_corrected,[m
+[31m-        "pending_count":        pending_count,[m
+[31m-        "monthly_evolution":    monthly_evolution,[m
+[31m-        "anomalies": {[m
+[31m-            "sans_avion":   sans_avion,[m
+[31m-            "sans_ata":     sans_ata,[m
+[31m-            "sans_es":      sans_es,[m
+[31m-            "needs_review": needs_review,[m
+[31m-        },[m
+[31m-        "coverage_by_aircraft": coverage_by_aircraft,[m
+[31m-        "quality_score":        quality_score,[m
+[31m-        "by_ata":               by_ata,[m
+[31m-    }[m
+[31m-[m
+[31m-[m
+[31m-@analytics_router.get("/benchmark", summary="Benchmark modèles IA")[m
+[31m-async def get_benchmark(db: AsyncSession = Depends(get_db)):[m
+[31m-    try:[m
+[31m-        r = await db.execute(text("""[m
+[31m-            SELECT id, model_name, model_type, accuracy, f1_macro,[m
+[31m-                   train_time, model_size, requires_gpu, status, notes,[m
+[31m-                   trained_at[m
+[31m-            FROM model_benchmarks[m
+[31m-            ORDER BY accuracy DESC NULLS LAST[m
+[31m-        """))[m
+[31m-        rows = r.fetchall()[m
+[31m-        return {[m
+[31m-            "models": [[m
+[31m-                {[m
+[31m-                    "id":           row[0],[m
+[31m-                    "model_name":   row[1],[m
+[31m-                    "model_type":   row[2],[m
+[31m-                    "accuracy":     row[3],[m
+[31m-                    "f1_macro":     row[4],[m
+[31m-                    "train_time":   row[5],[m
+[31m-                    "model_size":   row[6],[m
+[31m-                    "requires_gpu": row[7],[m
+[31m-                    "status":       row[8],[m
+[31m-                    "notes":        row[9],[m
+[31m-                    "trained_at":   row[10].isoformat() if row[10] else None,[m
+[31m-                }[m
+[31m-                for row in rows[m
+[31m-            ][m
+[31m-        }[m
+[31m-    except Exception as e:[m
+[31m-        return {"models": [], "error": str(e)}[m
+[31m-[m
+[31m-[m
+[31m-@analytics_router.get("/powerbi-token", summary="Token Power BI Embedded")[m
+[31m-async def get_powerbi_token():[m
+[31m-    from backend.config import settings[m
+[31m-    if not settings.powerbi_workspace_id:[m
+[31m-        return {[m
+[31m-            "status": "not_configured",[m
+[31m-            "message": "Power BI non configuré. Renseignez POWERBI_WORKSPACE_ID dans .env",[m
+[31m-        }[m
+[31m-    return {[m
+[31m-        "status": "configured",[m
+[31m-        "workspace_id": settings.powerbi_workspace_id,[m
+[31m-        "report_id": settings.powerbi_report_id,[m
+[31m-        "embed_url": f"https://app.powerbi.com/reportEmbed?reportId={settings.powerbi_report_id}",[m
+[31m-        "token": "PLACEHOLDER_TOKEN",[m
+[31m-    }[m
+[31m-[m
+[31m-[m
+[31m-@analytics_router.get("/archive-tree", summary="Arborescence complete depuis DB")[m
+[31m-async def get_archive_tree(db: AsyncSession = Depends(get_db)):[m
+[31m-    r = await db.execute(text("""[m
+[31m-        SELECT aircraft_registration, category, doc_type, id, filename,[m
+[31m-               es_reference, ocr_confidence, needs_review, is_critical[m
+[31m-        FROM documents[m
+[31m-        WHERE aircraft_registration IS NOT NULL[m
+[31m-        ORDER BY aircraft_registration, category, doc_type, filename[m
+[31m-    """))[m
+[31m-    rows = r.fetchall()[m
+[31m-    tree = {}[m
+[31m-    total = 0[m
+[31m-    for row in rows:[m
+[31m-        ac, cat, dtype, doc_id, fname, es_ref, ocr_conf, needs_rev, is_crit = row[m
+[31m-        ac = ac or "Inconnu"[m
+[31m-        cat = cat or "Sans categorie"[m
+[31m-        dtype = str(dtype).split(".")[-1] if dtype else "Autre"[m
+[31m-        if ac not in tree:[m
+[31m-            tree[ac] = {"_count": 0, "categories": {}}[m
+[31m-        if cat not in tree[ac]["categories"]:[m
+[31m-            tree[ac]["categories"][cat] = {"_count": 0, "types": {}}[m
+[31m-        if dtype not in tree[ac]["categories"][cat]["types"]:[m
+[31m-            tree[ac]["categories"][cat]["types"][dtype] = {"_count": 0, "docs": []}[m
+[31m-        tree[ac]["categories"][cat]["types"][dtype]["docs"].append({[m
+[31m-            "id": doc_id, "filename": fname, "es_reference": es_ref,[m
+[31m-            "ocr_confidence": round(float(ocr_conf), 1) if ocr_conf else None,[m
+[31m-            "needs_review": needs_rev, "is_critical": is_crit,[m
+[31m-        })[m
+[31m-        tree[ac]["categories"][cat]["types"][dtype]["_count"] += 1[m
+[31m-        tree[ac]["categories"][cat]["_count"] += 1[m
+[31m-        tree[ac]["_count"] += 1[m
+[31m-        total += 1[m
+[31m-    return {"tree": tree, "stats": {"total": total, "aircraft": len(tree)}}[m
+\ No newline at end of file[m
+[32m+[m[32m            logger.warning(f"[RAG] Aggregation LLM fallback: {e}")[m
+[32m+[m[32m            if agg_result["total"] == 0:[m
+[32m+[m[32m                answer = f"Aucun document trouve pour ce critere ({champ_label})."[m
+[32m+[m[32m            else:[m
+[32m+[m[32m                noms = ", ".join(ex.get("filename", "?") for ex in agg_result["examples"])[m
+[32m+[m[32m                answer = f"{agg_result['total']} document(s) trouve(s) : {noms}."[m

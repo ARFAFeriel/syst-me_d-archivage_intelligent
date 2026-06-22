@@ -1,0 +1,26 @@
+[1mdiff --git a/backend/api/routes.py b/backend/api/routes.py[m
+[1mindex 5a5c3f0..3caf93e 100644[m
+[1m--- a/backend/api/routes.py[m
+[1m+++ b/backend/api/routes.py[m
+[36m@@ -151,10 +151,14 @@[m [masync def rag_answer([m
+                         f"Formule une reponse claire en une phrase."[m
+                     )[m
+                 else:[m
+[32m+[m[32m                    if agg_intent["intent"] == "existence":[m
+[32m+[m[32m                        msg_factuel = f"REPONSE FACTUELLE: Oui, il y a exactement {agg_result['total']} document(s) qui correspondent a cette question. Tu DOIS commencer ta reponse par OUI.\n"[m
+[32m+[m[32m                    else:[m
+[32m+[m[32m                        msg_factuel = f"REPONSE FACTUELLE: Le nombre exact est {agg_result['total']} document(s). Donne ce chiffre clairement dans ta reponse, sans dire Oui ou Non.\n"[m
+                     usr_agg = ([m
+                         f"QUESTION: {request.question}\n\n"[m
+[31m-                        f"REPONSE FACTUELLE: Oui, il y a exactement {agg_result['total']} document(s) qui correspondent a cette question. Tu DOIS commencer ta reponse par OUI.\n"[m
+[31m-                        f"Liste des documents :\n{liste_docs}\n\n"[m
+[32m+[m[32m                        + msg_factuel[m
+[32m+[m[32m                        + f"Liste des documents :\n{liste_docs}\n\n"[m
+                         f"Formule une reponse naturelle qui repond a la question et cite "[m
+                         f"les documents par leur nom."[m
+                     )[m
+[36m@@ -1098,3 +1102,4 @@[m [masync def get_archive_tree(db: AsyncSession = Depends(get_db)):[m
+ [m
+ [m
+ [m
+[41m+[m

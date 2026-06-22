@@ -375,11 +375,7 @@ export default function AnalyseDocuments() {
             <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
           ))}
         </select>
-        <select className="input-sm" value={filters.needsReview}
-          onChange={e => setFilter('needsReview', e.target.value)} style={{ minWidth: 160 }}>
-          <option value="">Tous les documents</option>
-          <option value="true">Révision requise uniquement</option>
-        </select>
+        
         {hasFilters && (
           <button className="btn btn-out btn-sm" onClick={clearFilters}>
             <i className="fas fa-times" /> Effacer
