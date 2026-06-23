@@ -1,0 +1,65 @@
+{
+  "date": "2026-06-23T20:55:09.339597",
+  "model": "TF-IDF + CalibratedClassifierCV(LinearSVC, cv=3)",
+  "train_size": 2436,
+  "test_size": 609,
+  "accuracy": 93.43,
+  "f1_macro": 67.95,
+  "f1_weighted": 93.21,
+  "per_class": {
+    "AD": {
+      "precision": 88.8,
+      "recall": 89.9,
+      "f1": 89.3,
+      "support": 79.0
+    },
+    "ATL": {
+      "precision": 100.0,
+      "recall": 66.7,
+      "f1": 80.0,
+      "support": 3.0
+    },
+    "CMM": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1.0
+    },
+    "Certificate": {
+      "precision": 84.0,
+      "recall": 87.5,
+      "f1": 85.7,
+      "support": 48.0
+    },
+    "Defect Report": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 2.0
+    },
+    "Jobcard": {
+      "precision": 99.0,
+      "recall": 99.0,
+      "f1": 99.0,
+      "support": 98.0
+    },
+    "SB": {
+      "precision": 100.0,
+      "recall": 62.5,
+      "f1": 76.9,
+      "support": 8.0
+    },
+    "Specs": {
+      "precision": 80.6,
+      "recall": 87.1,
+      "f1": 83.7,
+      "support": 62.0
+    },
+    "Work Order": {
+      "precision": 97.1,
+      "recall": 96.8,
+      "f1": 96.9,
+      "support": 308.0
+    }
+  }
+}

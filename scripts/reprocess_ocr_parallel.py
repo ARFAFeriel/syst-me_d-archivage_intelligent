@@ -102,7 +102,7 @@ if __name__ == "__main__":
     total = len(rows)
     print(f"{total} documents restants à traiter.")
 
-    n_workers = max(1, min((os.cpu_count() or 4) - 1, 12))
+    n_workers = max(1, min((os.cpu_count() or 4) - 1, 6))
     print(f"Utilisation de {n_workers} processus en parallèle (sur {os.cpu_count()} cœurs détectés).")
 
     chunk_size = (total + n_workers - 1) // n_workers

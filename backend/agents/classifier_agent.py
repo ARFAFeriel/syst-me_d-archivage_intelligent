@@ -1,6 +1,6 @@
 """
 Agent Classifier
-TF-IDF + Logistic Regression — 12 classes de documents aéronautiques
+TF-IDF + SVM — 12 classes de documents aéronautiques
 Entraîné sur patterns textuels et métadonnées structurées
 """
 import re

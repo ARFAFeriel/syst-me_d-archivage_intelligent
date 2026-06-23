@@ -4,13 +4,14 @@ import { useApi, apiFetch, timeAgo } from '../hooks/useApi';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import KPICard from '../components/ui/KPICard';
+import PDFModal from '../components/ui/PDFModal';
 
 const AGENT_LIST = [
   { key: 'ocr',        name: 'OCR Agent v4' },
   { key: 'ner',        name: 'NER Agent'    },
   { key: 'classifier', name: 'Classifier'   },
   { key: 'embedding',  name: 'Embedding'    },
-  { key: 'archive',    name: 'Archiveur'    },
+  { key: 'archive',    name: 'Archiver'    },
   { key: 'monitoring', name: 'Monitoring'   },
 ];
 const DOT_MAP   = { active: 'g p', ready: 'g', processing: 'pp', error: 'r', idle: 'b' };
@@ -55,7 +56,9 @@ export default function Monitoring() {
   const [corrModal, setCorrModal]     = useState(null);
   const [corrForm,  setCorrForm]      = useState({});
   const [corrLoading, setCorrLoading] = useState(false);
-  
+
+  // ── État consultation PDF ──────────────────────────────────────────────────
+  const [preview, setPreview] = useState(null);
 
   // ── États révision manuelle ────────────────────────────────────────────────
   const [reviewDocs, setReviewDocs]       = useState([]);
@@ -73,7 +76,16 @@ export default function Monitoring() {
   const agents = statusData?.agents || {};
   const alerts = alertData || [];
 
-  
+  // ── Ouvrir l'aperçu PDF d'un document (même mécanisme que Documents.jsx) ──
+  const openPreview = async (docId, filename) => {
+    const full = await apiFetch(`/documents/${docId}`);
+    if (!full) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/documents/${docId}/file`, { method: 'HEAD' });
+      if (res.status === 404) { toast(`Fichier introuvable : ${filename}`, 'warn'); return; }
+    } catch {}
+    setPreview(full);
+  };
 
   // ── Charger documents à réviser ────────────────────────────────────────────
   const fetchReviewDocs = async () => {
@@ -323,6 +335,8 @@ export default function Monitoring() {
                       style={{ borderBottom: '1px solid var(--bdr)', cursor: 'pointer', transition: 'background .15s' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      onClick={() => openPreview(doc.id, doc.filename)}
+                      title="Cliquer pour consulter le document"
                     >
                       <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>#{doc.id}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -355,17 +369,30 @@ export default function Monitoring() {
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px' }}>
-                        <button
-                          onClick={() => openReviewModal(doc)}
-                          style={{
-                            background: 'var(--nv)', color: '#fff', border: 'none',
-                            borderRadius: 7, padding: '5px 14px', fontSize: 11,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-                            fontWeight: 600, whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <i className="fas fa-edit"></i>Corriger
-                        </button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={e => { e.stopPropagation(); openPreview(doc.id, doc.filename); }}
+                            title="Consulter"
+                            style={{
+                              background: 'var(--bg)', color: 'var(--tx2)', border: '1px solid var(--bdr)',
+                              borderRadius: 7, padding: '5px 10px', fontSize: 11, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 5,
+                            }}
+                          >
+                            <i className="fas fa-eye"></i>
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); openReviewModal(doc); }}
+                            style={{
+                              background: 'var(--nv)', color: '#fff', border: 'none',
+                              borderRadius: 7, padding: '5px 14px', fontSize: 11,
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+                              fontWeight: 600, whiteSpace: 'nowrap'
+                            }}
+                          >
+                            <i className="fas fa-edit"></i>Corriger
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -439,7 +466,14 @@ export default function Monitoring() {
                       {a.severity?.toUpperCase()}
                     </span>
                     {a.document_id && (
-                      <span className="tag gr" style={{ fontSize: 9 }}>Doc #{a.document_id}</span>
+                      <span
+                        className="tag gr"
+                        style={{ fontSize: 9, cursor: 'pointer' }}
+                        title="Consulter le document"
+                        onClick={() => openPreview(a.document_id, `Document #${a.document_id}`)}
+                      >
+                        Doc #{a.document_id}
+                      </span>
                     )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--tx2)', marginBottom: 4 }}>{a.message}</div>
@@ -759,6 +793,7 @@ export default function Monitoring() {
           </div>
         </div>
       )}
+
       {/* Documents en attente */}
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="ch">
@@ -791,7 +826,12 @@ export default function Monitoring() {
               </thead>
               <tbody>
                 {pendingDocs.map(doc => (
-                  <tr key={doc.id} style={{ borderBottom: '1px solid var(--bdr)' }}>
+                  <tr
+                    key={doc.id}
+                    style={{ borderBottom: '1px solid var(--bdr)', cursor: 'pointer' }}
+                    onClick={() => openPreview(doc.id, doc.filename)}
+                    title="Cliquer pour consulter le document"
+                  >
                     <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>#{doc.id}</td>
                     <td style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       <i className="fas fa-file-pdf" style={{ color: '#dc2626', marginRight: 6, fontSize: 11 }}></i>
@@ -847,8 +887,14 @@ export default function Monitoring() {
               <tbody>
                 {noAircraftDocs.map(doc => (
                   <tr key={doc.id} style={{ borderBottom: '1px solid var(--bdr)' }}>
-                    <td style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11 }}>#{doc.id}</td>
-                    <td style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td
+                      style={{ padding: '10px 12px', color: 'var(--tx3)', fontSize: 11, cursor: 'pointer' }}
+                      onClick={() => openPreview(doc.id, doc.filename)}
+                    >#{doc.id}</td>
+                    <td
+                      style={{ padding: '10px 12px', fontWeight: 500, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                      onClick={() => openPreview(doc.id, doc.filename)}
+                    >
                       <i className="fas fa-file-pdf" style={{ color: '#dc2626', marginRight: 6, fontSize: 11 }}></i>
                       {doc.filename}
                     </td>
@@ -879,6 +925,8 @@ export default function Monitoring() {
           </div>
         )}
       </div>
+
+      {preview && <PDFModal doc={preview} onClose={() => setPreview(null)} />}
     </div>
   );
 }

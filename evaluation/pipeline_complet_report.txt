@@ -1,0 +1,51 @@
+======================================================================
+  ÉVALUATION DU PIPELINE COMPLET (OCR réel → NER → AircraftResolver
+  → Classifier → correction PATH_TO_ENUM → LinkedWP)
+  Système d'archivage intelligent — NouvelAir MRO
+======================================================================
+
+Date                    : 2026-06-23T21:10:14.853311
+Documents totaux        : 281
+Documents évalués       : 281
+Erreurs pipeline        : 0
+Corrections PATH_TO_ENUM appliquées : 53
+
+Accuracy                : 53.7%
+F1-score (macro)         : 49.3%
+F1-score (weighted)      : 53.1%
+Precision (weighted)     : 57.4%
+Recall (weighted)        : 53.7%
+
+----------------------------------------------------------------------
+Classe                Precision    Recall        F1   Support
+----------------------------------------------------------------------
+AD                        62.2%     93.3%     74.7%        30
+AMM                      100.0%    100.0%    100.0%         1
+ATL                      100.0%     80.0%     88.9%        30
+CMM                      100.0%    100.0%    100.0%         9
+Certificate                0.0%      0.0%      0.0%        30
+DB_CHART                   0.0%      0.0%      0.0%        30
+Defect Report              0.0%      0.0%      0.0%         8
+IPC                        0.0%      0.0%      0.0%         1
+Jobcard                   69.0%     96.7%     80.6%        30
+Other                      0.0%      0.0%      0.0%         0
+RCT                      100.0%     95.5%     97.7%        22
+SB                       100.0%     96.7%     98.3%        30
+Specs                      0.0%      0.0%      0.0%        30
+Work Order               100.0%     33.3%     50.0%        30
+
+----------------------------------------------------------------------
+Top confusions (réel → prédit) :
+----------------------------------------------------------------------
+  Certificate          → Other                (29 fois)
+  Specs                → Other                (27 fois)
+  DB_CHART             → Other                (20 fois)
+  Work Order           → Jobcard              (13 fois)
+  DB_CHART             → AD                   (10 fois)
+  Work Order           → Other                (7 fois)
+  ATL                  → Other                (6 fois)
+  Defect Report        → Other                (5 fois)
+  Specs                → AD                   (3 fois)
+  Defect Report        → AD                   (3 fois)
+
+======================================================================

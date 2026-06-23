@@ -1,0 +1,40 @@
+{
+  "date": "2026-06-23T21:34:59.473021",
+  "n_folds": 5,
+  "excluded_classes": [
+    "AMM",
+    "IPC",
+    "RCT"
+  ],
+  "total_documents": 3045,
+  "logistic_regression": {
+    "accuracy_mean": 91.3,
+    "accuracy_std": 1.44,
+    "f1_macro_mean": 78.14,
+    "f1_macro_std": 8.42,
+    "f1_weighted_mean": 91.66,
+    "f1_weighted_std": 1.37,
+    "per_fold_accuracy": [
+      93.76,
+      91.13,
+      91.79,
+      89.66,
+      90.15
+    ]
+  },
+  "svm": {
+    "accuracy_mean": 92.58,
+    "accuracy_std": 1.2,
+    "f1_macro_mean": 78.16,
+    "f1_macro_std": 6.83,
+    "f1_weighted_mean": 92.52,
+    "f1_weighted_std": 1.27,
+    "per_fold_accuracy": [
+      94.42,
+      90.97,
+      93.1,
+      91.63,
+      92.78
+    ]
+  }
+}

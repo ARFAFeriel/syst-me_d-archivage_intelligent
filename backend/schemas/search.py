@@ -1,5 +1,5 @@
 """
-FALOUS — Schémas de Recherche
+ Schémas de Recherche
 Hybride FTS + pgvector + filtres entités
 """
 from pydantic import BaseModel, Field

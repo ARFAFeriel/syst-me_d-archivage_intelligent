@@ -1,0 +1,152 @@
+{
+  "date": "2026-06-23T21:10:14.853311",
+  "total_documents": 281,
+  "valid_documents": 281,
+  "pipeline_errors": 0,
+  "path_corrections_applied": 53,
+  "metrics": {
+    "accuracy": 53.74,
+    "f1_macro": 49.29,
+    "f1_weighted": 53.1,
+    "precision_weighted": 57.43,
+    "recall_weighted": 53.74
+  },
+  "per_class": {
+    "AD": {
+      "precision": 0.6222,
+      "recall": 0.9333,
+      "f1": 0.7467,
+      "support": 30
+    },
+    "AMM": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 1
+    },
+    "ATL": {
+      "precision": 1.0,
+      "recall": 0.8,
+      "f1": 0.8889,
+      "support": 30
+    },
+    "CMM": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9
+    },
+    "Certificate": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 30
+    },
+    "DB_CHART": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 30
+    },
+    "Defect Report": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 8
+    },
+    "IPC": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 1
+    },
+    "Jobcard": {
+      "precision": 0.6905,
+      "recall": 0.9667,
+      "f1": 0.8056,
+      "support": 30
+    },
+    "Other": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    "RCT": {
+      "precision": 1.0,
+      "recall": 0.9545,
+      "f1": 0.9767,
+      "support": 22
+    },
+    "SB": {
+      "precision": 1.0,
+      "recall": 0.9667,
+      "f1": 0.9831,
+      "support": 30
+    },
+    "Specs": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 30
+    },
+    "Work Order": {
+      "precision": 1.0,
+      "recall": 0.3333,
+      "f1": 0.5,
+      "support": 30
+    }
+  },
+  "top_confusions": [
+    {
+      "true": "Certificate",
+      "pred": "Other",
+      "count": 29
+    },
+    {
+      "true": "Specs",
+      "pred": "Other",
+      "count": 27
+    },
+    {
+      "true": "DB_CHART",
+      "pred": "Other",
+      "count": 20
+    },
+    {
+      "true": "Work Order",
+      "pred": "Jobcard",
+      "count": 13
+    },
+    {
+      "true": "DB_CHART",
+      "pred": "AD",
+      "count": 10
+    },
+    {
+      "true": "Work Order",
+      "pred": "Other",
+      "count": 7
+    },
+    {
+      "true": "ATL",
+      "pred": "Other",
+      "count": 6
+    },
+    {
+      "true": "Defect Report",
+      "pred": "Other",
+      "count": 5
+    },
+    {
+      "true": "Specs",
+      "pred": "AD",
+      "count": 3
+    },
+    {
+      "true": "Defect Report",
+      "pred": "AD",
+      "count": 3
+    }
+  ]
+}

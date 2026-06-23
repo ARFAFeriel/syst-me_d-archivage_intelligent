@@ -35,20 +35,22 @@ from backend.core.processing_profiles import ProfileRegistry
 
 # ── Mapping chemin → enum DocumentTypeEnum ───────────────────────────────────
 PATH_TO_ENUM = {
-    'job_card'      : 'Jobcard',
-    'work_order'    : 'Work Order',
-    'ncr'           : 'NCR',
-    'atl'           : 'ATL',
-    'ad'            : 'AD',
-    'sb'            : 'SB',
-    'rct'           : 'RCT',
-    'certificate'   : 'Certificate',
-    'defect_report' : 'Defect Report',
-    'd_b_chart'     : 'D&B Chart',
-    'amm'           : 'AMM',
-    'cmm'           : 'CMM',
-    'ipc'           : 'IPC',
-    'specs'         : 'Specs',
+    'job_card'         : 'Jobcard',
+    'work_order'       : 'Work Order',
+    'ncr'              : 'NCR',
+    'atl'              : 'ATL',
+    'ad'               : 'AD',
+    'sb'               : 'SB',
+    'service_bulletin' : 'SB',          # alias — document_type réel du profil SB
+    'rct'              : 'RCT',
+    'certificate'      : 'Certificate',
+    'defect_report'    : 'Defect Report',
+    'd_b_chart'        : 'D&B Chart',
+    'amm'              : 'AMM',
+    'cmm'              : 'CMM',
+    'cmm_ipc'          : 'CMM',         # alias — document_type réel du profil CMM/IPC
+    'ipc'              : 'IPC',
+    'specs'            : 'Specs',
 }
 
 

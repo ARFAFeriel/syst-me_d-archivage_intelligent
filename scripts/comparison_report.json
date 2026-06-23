@@ -1,0 +1,141 @@
+{
+  "date": "2026-06-23T21:21:43.712789",
+  "note": "Comparaison sur split et données strictement identiques (random_state=42)",
+  "excluded_classes": [
+    "AMM",
+    "IPC",
+    "RCT"
+  ],
+  "train_size": 2436,
+  "test_size": 609,
+  "logistic_regression": {
+    "accuracy": 91.63,
+    "f1_macro": 73.65,
+    "f1_weighted": 91.78,
+    "accuracy_train": 94.87,
+    "f1_macro_train": 90.32,
+    "f1_weighted_train": 95.0,
+    "overfitting_gap_accuracy_pt": 3.24,
+    "per_class": {
+      "AD": {
+        "precision": 92.1,
+        "recall": 88.6,
+        "f1": 90.3,
+        "support": 79.0
+      },
+      "ATL": {
+        "precision": 60.0,
+        "recall": 100.0,
+        "f1": 75.0,
+        "support": 3.0
+      },
+      "CMM": {
+        "precision": 50.0,
+        "recall": 100.0,
+        "f1": 66.7,
+        "support": 1.0
+      },
+      "Certificate": {
+        "precision": 80.4,
+        "recall": 85.4,
+        "f1": 82.8,
+        "support": 48.0
+      },
+      "Defect Report": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2.0
+      },
+      "Jobcard": {
+        "precision": 99.0,
+        "recall": 99.0,
+        "f1": 99.0,
+        "support": 98.0
+      },
+      "SB": {
+        "precision": 75.0,
+        "recall": 75.0,
+        "f1": 75.0,
+        "support": 8.0
+      },
+      "Specs": {
+        "precision": 70.0,
+        "recall": 90.3,
+        "f1": 78.9,
+        "support": 62.0
+      },
+      "Work Order": {
+        "precision": 98.3,
+        "recall": 92.2,
+        "f1": 95.1,
+        "support": 308.0
+      }
+    }
+  },
+  "svm": {
+    "accuracy": 93.43,
+    "f1_macro": 67.95,
+    "f1_weighted": 93.21,
+    "accuracy_train": 98.48,
+    "f1_macro_train": 98.13,
+    "f1_weighted_train": 98.49,
+    "overfitting_gap_accuracy_pt": 5.05,
+    "per_class": {
+      "AD": {
+        "precision": 88.8,
+        "recall": 89.9,
+        "f1": 89.3,
+        "support": 79.0
+      },
+      "ATL": {
+        "precision": 100.0,
+        "recall": 66.7,
+        "f1": 80.0,
+        "support": 3.0
+      },
+      "CMM": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1.0
+      },
+      "Certificate": {
+        "precision": 84.0,
+        "recall": 87.5,
+        "f1": 85.7,
+        "support": 48.0
+      },
+      "Defect Report": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2.0
+      },
+      "Jobcard": {
+        "precision": 99.0,
+        "recall": 99.0,
+        "f1": 99.0,
+        "support": 98.0
+      },
+      "SB": {
+        "precision": 100.0,
+        "recall": 62.5,
+        "f1": 76.9,
+        "support": 8.0
+      },
+      "Specs": {
+        "precision": 80.6,
+        "recall": 87.1,
+        "f1": 83.7,
+        "support": 62.0
+      },
+      "Work Order": {
+        "precision": 97.1,
+        "recall": 96.8,
+        "f1": 96.9,
+        "support": 308.0
+      }
+    }
+  }
+}

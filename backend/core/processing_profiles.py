@@ -790,6 +790,501 @@ def _make_mel_profile() -> ProcessingProfile:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# SECTION 3bis — PROFILS AJOUTÉS (corrige la couverture incomplète de
+# PATH_TO_ENUM / pipeline.py — voir audit eval_pipeline_complet.py)
+# ═══════════════════════════════════════════════════════════════════════════
+# Avant cet ajout, ProfileRegistry ne connaissait que 7 types alors que
+# PATH_TO_ENUM (pipeline.py) attend 14 clés pour appliquer sa correction de
+# secours basée sur le chemin de fichier. Conséquence mesurée : Certificate,
+# Specs et D&B Chart tombaient à 0% de F1 (aucun filet de sécurité possible
+# pour ces types), et Work Order avait un recall de seulement 33.3%.
+# Les 9 profils ci-dessous comblent cet écart.
+
+def _make_ad_profile() -> ProcessingProfile:
+    """
+    AD — Airworthiness Directive
+    ─────────────────────────────
+    Layout proche du Service Bulletin : header standardisé, effectivité,
+    date de conformité obligatoire (contrairement au SB qui est recommandé).
+    Exemple réel observé : "TS-INQ_Old doc_AD_AD DFPs_2011-0142.pdf"
+    """
+    return ProcessingProfile(
+        document_type="ad",
+        display_name="Airworthiness Directive (AD)",
+        description="Directive de navigabilité — action obligatoire réglementaire",
+        category="Technical",
+        subcategory="Airworthiness Directives",
+
+        ocr=OCRProfile(
+            psm=4,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=False,
+            contrast_enhance=True,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "SB_NUMBER", "REVISION", "EFFECTIVITY", "MSN",
+                "COMPLIANCE_DATE", "ATA_CHAPTER", "DATE",
+            ],
+            discriminant_field="COMPLIANCE_DATE",
+            entity_search_pages=[0, 1],
+            required_for_stop=["ATA_CHAPTER", "COMPLIANCE_DATE"]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=["compliance_date"],
+            optional_fields=["effectivity", "ata_chapter", "revision"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["ad_number", "effectivity", "compliance_date"],
+            max_chars=900,
+            semantic_prefix="Airworthiness directive mandatory action: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["ad_", "_ad_", "/ad/", "airworthiness", "directive"],
+            filename_regex=r'(^|[_\s])ad([_\s]|\d)',
+            filename_patterns={
+                "ata_chapter": r'(\d{2}-\d{2}(?:-\d{2})?)',
+            },
+            inference_confidence=0.90
+        )
+    )
+
+
+def _make_ncr_profile() -> ProcessingProfile:
+    """
+    NCR — Non-Conformance Report
+    ──────────────────────────────
+    Layout : rapport court, souvent 1 page. Description du défaut,
+    action corrective, statut (open/closed).
+    """
+    return ProcessingProfile(
+        document_type="ncr",
+        display_name="Non-Conformance Report (NCR)",
+        description="Rapport de non-conformité — défaut constaté et action corrective",
+        category="Maintenance",
+        subcategory="Non-Conformance",
+
+        ocr=OCRProfile(
+            psm=4,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=True,
+            contrast_enhance=False,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "AIRCRAFT_REG", "MSN", "PART_NUMBER", "SERIAL_NUMBER",
+                "ATA_CHAPTER", "DATE",
+            ],
+            discriminant_field=None,
+            entity_search_pages=[0]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=[],
+            optional_fields=["aircraft_reg", "part_number", "ata_chapter"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["defect_description", "corrective_action"],
+            max_chars=700,
+            semantic_prefix="Non-conformance report finding: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["ncr", "non_conformance", "non-conformance", "non conformance"],
+            filename_regex=r'ncr',
+            inference_confidence=0.90
+        )
+    )
+
+
+def _make_atl_profile() -> ProcessingProfile:
+    """
+    ATL — Aircraft Technical Log
+    ──────────────────────────────
+    Layout : journal de bord technique, entrées datées séquentielles,
+    souvent scanné depuis un carnet papier (qualité OCR variable).
+    Exemple réel observé : "TS-INQ_ATL_10-9-2014_NQ_0011805.pdf"
+    """
+    return ProcessingProfile(
+        document_type="atl",
+        display_name="Aircraft Technical Log (ATL)",
+        description="Journal de bord technique — entrées de vol et maintenance datées",
+        category="Maintenance",
+        subcategory="Technical Log",
+
+        ocr=OCRProfile(
+            psm=4,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=True,
+            contrast_enhance=True,     # carnets anciens, faible contraste
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "AIRCRAFT_REG", "DATE", "FLIGHT_HOURS", "FLIGHT_CYCLES",
+                "ATA_CHAPTER",
+            ],
+            discriminant_field="AIRCRAFT_REG",
+            entity_search_pages=[0]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=["aircraft_reg"],
+            optional_fields=["date", "flight_hours", "flight_cycles"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["log_entry", "aircraft_reg", "date"],
+            max_chars=600,
+            semantic_prefix="Aircraft technical log entry: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["atl", "technical_log", "technical log", "carnet"],
+            filename_regex=r'(^|[_\s])atl([_\s]|\d)',
+            inference_confidence=0.92
+        )
+    )
+
+
+def _make_rct_profile() -> ProcessingProfile:
+    """
+    RCT — Récapitulatif de Check / Réception de Contrôle Technique
+    ──────────────────────────────────────────────────────────────
+    Layout : document de synthèse, sert d'"ancre" pour rattacher les
+    Work Orders à un check précis (cf. RCT anchor dans archive_agent).
+    """
+    return ProcessingProfile(
+        document_type="rct",
+        display_name="RCT (Récapitulatif de Check)",
+        description="Document de synthèse de check — ancre pour le rattachement des Work Orders",
+        category="Maintenance",
+        subcategory="Check Summary",
+
+        ocr=OCRProfile(
+            psm=3,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=False,
+            contrast_enhance=False,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "AIRCRAFT_REG", "MSN", "CHECK_ID", "CHECK_TYPE", "DATE",
+            ],
+            discriminant_field="CHECK_ID",
+            entity_search_pages=[0],
+            required_for_stop=["CHECK_ID", "AIRCRAFT_REG"]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=["check_id"],
+            optional_fields=["aircraft_reg", "check_type"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["check_id", "aircraft_reg", "check_type"],
+            max_chars=600,
+            semantic_prefix="Check completion summary record: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["rct"],
+            filename_regex=r'rct',
+            filename_patterns={
+                "check_id": r'(ES\d{6})',
+            },
+            inference_confidence=0.93
+        )
+    )
+
+
+def _make_certificate_profile() -> ProcessingProfile:
+    """
+    CERTIFICATE — Certificats divers (conformité, navigabilité...)
+    ─────────────────────────────────────────────────────────────
+    Layout : document court, souvent 1 page, formaté officiellement
+    avec logo constructeur/autorité, référence et signature.
+    """
+    return ProcessingProfile(
+        document_type="certificate",
+        display_name="Certificate",
+        description="Certificat (conformité, navigabilité, JAA Form One...)",
+        category="Regulatory",
+        subcategory="Certificates",
+
+        ocr=OCRProfile(
+            psm=4,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=False,
+            contrast_enhance=False,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "PART_NUMBER", "SERIAL_NUMBER", "AIRCRAFT_REG", "MSN", "DATE",
+            ],
+            discriminant_field=None,
+            entity_search_pages=[0]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=[],
+            optional_fields=["part_number", "serial_number"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["certificate_title", "part_number", "serial_number"],
+            max_chars=600,
+            semantic_prefix="Conformity or airworthiness certificate: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["certificate", "certificat", "jaa form", "conformity", "conformite"],
+            filename_regex=r'(certificate|certif|jaa[_\s]?form|conformity)',
+            inference_confidence=0.88
+        )
+    )
+
+
+def _make_defect_report_profile() -> ProcessingProfile:
+    """
+    DEFECT REPORT — Rapport de défaut
+    ────────────────────────────────────
+    Layout : proche du NCR mais centré sur la description technique
+    du défaut observé en exploitation (pas forcément une non-conformité
+    qualité). Souvent rempli en vol ou en ligne.
+    """
+    return ProcessingProfile(
+        document_type="defect_report",
+        display_name="Defect Report",
+        description="Rapport de défaut technique observé en exploitation",
+        category="Maintenance",
+        subcategory="Defect Reports",
+
+        ocr=OCRProfile(
+            psm=4,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=True,
+            contrast_enhance=False,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "AIRCRAFT_REG", "ATA_CHAPTER", "DATE", "FLIGHT_HOURS",
+            ],
+            discriminant_field=None,
+            entity_search_pages=[0]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=[],
+            optional_fields=["aircraft_reg", "ata_chapter"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["defect_description", "aircraft_reg"],
+            max_chars=600,
+            semantic_prefix="Defect report technical finding: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["defect_report", "defect report", "defaut", "défaut", "snag"],
+            filename_regex=r'defect',
+            inference_confidence=0.88
+        )
+    )
+
+
+def _make_db_chart_profile() -> ProcessingProfile:
+    """
+    D&B CHART — Drawing & Balance Chart (devis de masse / centrage)
+    ──────────────────────────────────────────────────────────────
+    Layout : tableau dense de calcul de masse et centrage, beaucoup
+    de chiffres, peu de texte libre.
+    Exemple réel observé : "TS-INP_D&B chart_R0074.pdf"
+    """
+    return ProcessingProfile(
+        document_type="d_b_chart",
+        display_name="D&B Chart",
+        description="Devis de masse et centrage (Drawing & Balance Chart)",
+        category="Technical",
+        subcategory="Weight & Balance",
+
+        ocr=OCRProfile(
+            psm=6,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=False,
+            contrast_enhance=False,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "AIRCRAFT_REG", "MSN", "DATE",
+            ],
+            discriminant_field=None,
+            entity_search_pages=[0]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=[],
+            optional_fields=["aircraft_reg"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["aircraft_reg", "date"],
+            max_chars=400,
+            semantic_prefix="Weight and balance drawing chart: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["d&b chart", "d&b_chart", "db_chart", "db chart", "weight and balance", "weight & balance"],
+            filename_regex=r'd\s*&?\s*b[_\s]?chart',
+            inference_confidence=0.90
+        )
+    )
+
+
+def _make_ipc_profile() -> ProcessingProfile:
+    """
+    IPC — Illustrated Parts Catalog (standalone, distinct du CMM groupé)
+    ─────────────────────────────────────────────────────────────────────
+    NOTE : ProfileRegistry avait déjà 'cmm_ipc' (profil fusionné). Ce
+    profil 'ipc' séparé permet à PATH_TO_ENUM de distinguer IPC pur de
+    CMM pur quand le chemin le précise explicitement.
+    """
+    return ProcessingProfile(
+        document_type="ipc",
+        display_name="Illustrated Parts Catalog (IPC)",
+        description="Catalogue illustré des pièces — référencement P/N par figure",
+        category="Technical",
+        subcategory="Manuals",
+
+        ocr=OCRProfile(
+            psm=6,
+            lang="eng",
+            dpi=400,
+            deskew=True,
+            denoise=False,
+            contrast_enhance=True,
+            binarize=True,
+            priority_page=None,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "PART_NUMBER", "SERIAL_NUMBER", "ATA_CHAPTER", "REVISION",
+            ],
+            discriminant_field="PART_NUMBER",
+            entity_search_pages=None
+        ),
+
+        validation=ValidationProfile(
+            required_fields=["part_number"],
+            optional_fields=["ata_chapter", "revision"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["component_name", "part_number"],
+            max_chars=700,
+            semantic_prefix="Illustrated parts catalog entry: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["ipc", "illustrated_parts", "illustrated parts", "parts catalog"],
+            filename_regex=r'\bipc\b',
+            inference_confidence=0.90
+        )
+    )
+
+
+def _make_specs_profile() -> ProcessingProfile:
+    """
+    SPECS — Spécifications techniques diverses
+    ─────────────────────────────────────────────
+    Layout variable : fiches techniques, spécifications constructeur,
+    documents de référence non couverts par les autres catégories.
+    """
+    return ProcessingProfile(
+        document_type="specs",
+        display_name="Specifications",
+        description="Spécifications techniques diverses — fiches de référence",
+        category="Technical",
+        subcategory="Specifications",
+
+        ocr=OCRProfile(
+            psm=3,
+            lang="eng",
+            dpi=300,
+            deskew=True,
+            denoise=False,
+            contrast_enhance=False,
+            binarize=True,
+            priority_page=0,
+        ),
+
+        ner=NERProfile(
+            active_entities=[
+                "PART_NUMBER", "ATA_CHAPTER", "REVISION", "DATE",
+            ],
+            discriminant_field=None,
+            entity_search_pages=[0]
+        ),
+
+        validation=ValidationProfile(
+            required_fields=[],
+            optional_fields=["part_number", "ata_chapter"],
+        ),
+
+        embedding=EmbeddingProfile(
+            priority_sections=["spec_title", "part_number"],
+            max_chars=700,
+            semantic_prefix="Technical specification document: "
+        ),
+
+        path_inference=PathInferenceProfile(
+            path_keywords=["specs", "specifications", "spec_sheet", "fiche technique"],
+            filename_regex=r'spec',
+            inference_confidence=0.85
+        )
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # SECTION 4 — PROFILEREGISTRY (POINT D'ENTRÉE PRINCIPAL)
 # ═══════════════════════════════════════════════════════════════════════════
 # Le ProfileRegistry est un singleton (une seule instance dans toute
@@ -838,6 +1333,16 @@ class ProfileRegistry:
             _make_delivery_package_profile(),
             _make_cmm_profile(),
             _make_mel_profile(),
+            # ── Profils ajoutés pour combler la couverture PATH_TO_ENUM ──
+            _make_ad_profile(),
+            _make_ncr_profile(),
+            _make_atl_profile(),
+            _make_rct_profile(),
+            _make_certificate_profile(),
+            _make_defect_report_profile(),
+            _make_db_chart_profile(),
+            _make_ipc_profile(),
+            _make_specs_profile(),
         ]
 
         for p in profiles:

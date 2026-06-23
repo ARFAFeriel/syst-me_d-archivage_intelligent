@@ -2,7 +2,118 @@
 import { useState, useRef } from 'react';
 import { useApi } from '../hooks/useApi';
 
-const STEPS = [
+// ─── Documents d'exemple avec métadonnées complètes par document ───────────
+// Chaque doc porte maintenant ses propres valeurs NER/OCR/Classifier/Archive,
+// utilisées par buildMockStepDetail() pour générer un détail d'étape cohérent
+// avec le document réellement sélectionné (au lieu d'un bloc statique unique
+// qui ne reflétait que le premier document de la liste).
+const SAMPLE_DOCS = [
+  {
+    name: 'TS-INP_Check C_ES001392_WorkOrder_ES00217082.pdf',
+    aircraft: 'TS-INP',
+    check: 'CHECK_C',
+    type: 'WORK_ORDER',
+    source: 'sample',
+    ner: {
+      aircraft_registration: 'TS-INP',
+      es_reference: 'ES00217082',
+      linked_wp: 'ES001392 (depuis chemin)',
+      ata_chapter: 'ATA 32',
+      check_type: 'CHECK_C (RCT anchor)',
+      document_date: '22/06/2021',
+    },
+    ocr_excerpt: 'WORK ORDER N° ES00217082 · Aircraft: TS-INP · ATA: 32...',
+    classifier: {
+      scores: [
+        { key: 'WORK_ORDER', value: '94.2% ✓' },
+        { key: 'JOBCARD', value: '3.1%' },
+        { key: 'DEFECT_REPORT', value: '1.4%' },
+      ],
+      decision: 'WORK_ORDER',
+    },
+    archive_check_id: 'ES001392 · CHECK_C (RCT confirmé)',
+  },
+  {
+    name: 'TS-INQ_CHECK C_ES001440_RCT-ES001440.pdf',
+    aircraft: 'TS-INQ',
+    check: 'CHECK_C',
+    type: 'RCT',
+    source: 'sample',
+    ner: {
+      aircraft_registration: 'TS-INQ',
+      es_reference: 'ES001440',
+      linked_wp: '—',
+      ata_chapter: '—',
+      check_type: 'CHECK_C (RCT anchor)',
+      document_date: '—',
+    },
+    ocr_excerpt: 'RCT CHECK C N° ES001440 · Aircraft: TS-INQ...',
+    classifier: {
+      scores: [
+        { key: 'RCT', value: '96.5% ✓' },
+        { key: 'WORK_ORDER', value: '2.0%' },
+        { key: 'JOBCARD', value: '1.0%' },
+      ],
+      decision: 'RCT',
+    },
+    archive_check_id: 'ES001440 · CHECK_C (RCT confirmé)',
+  },
+  {
+    name: 'TS-INP_Check A_ES001778_Jobcard_0043.pdf',
+    aircraft: 'TS-INP',
+    check: 'CHECK_A',
+    type: 'JOBCARD',
+    source: 'sample',
+    ner: {
+      aircraft_registration: 'TS-INP',
+      es_reference: 'ES001778',
+      linked_wp: '—',
+      ata_chapter: 'ATA 27',
+      check_type: 'CHECK_A',
+      document_date: '—',
+    },
+    ocr_excerpt: 'JOBCARD 0043 · ES001778 · Aircraft: TS-INP · ATA: 27...',
+    classifier: {
+      scores: [
+        { key: 'JOBCARD', value: '91.8% ✓' },
+        { key: 'WORK_ORDER', value: '4.3%' },
+        { key: 'DEFECT_REPORT', value: '1.1%' },
+      ],
+      decision: 'JOBCARD',
+    },
+    archive_check_id: 'ES001778 · CHECK_A',
+  },
+  {
+    name: 'TS-INQ_Old doc_AD_AD DFPs_2011-0142.pdf',
+    aircraft: 'TS-INQ',
+    check: '-',
+    type: 'AD',
+    source: 'sample',
+    ner: {
+      aircraft_registration: 'TS-INQ',
+      es_reference: '—',
+      linked_wp: '—',
+      ata_chapter: '—',
+      check_type: '—',
+      document_date: '—',
+    },
+    ocr_excerpt: 'AIRWORTHINESS DIRECTIVE · AD 2011-0142 · Aircraft: TS-INQ...',
+    classifier: {
+      scores: [
+        { key: 'AD', value: '89.4% ✓' },
+        { key: 'SB', value: '6.2%' },
+        { key: 'OTHER', value: '1.5%' },
+      ],
+      decision: 'AD',
+    },
+    archive_check_id: '— (document AD, non lié à un check)',
+  },
+];
+
+// Métadonnées d'affichage des 6 étapes (icône, couleur, durée d'animation).
+// Le détail (output) n'est plus stocké ici — il est généré dynamiquement
+// par buildMockStepDetail() en fonction du document sélectionné.
+const STEP_META = [
   {
     id: 1,
     icon: 'fa-eye',
@@ -13,16 +124,6 @@ const STEPS = [
     border: 'rgba(14,165,233,.25)',
     duration: 1400,
     metric: 'conf. 87%',
-    detail: {
-      title: 'Extraction du texte',
-      description: 'Pipeline en 10 étapes : correction OpenCV → multi-PSM Tesseract (PSM 6/4/11/3) → extraction tableaux via camelot et img2table → score qualité pondéré.',
-      output: [
-        { key: 'Texte extrait', value: 'WORK ORDER N° ES00217082 · Aircraft: TS-INP · ATA: 32...' },
-        { key: 'Confiance OCR', value: '87.3%' },
-        { key: 'Pages traitées', value: '1 (MAX_PAGES=1)' },
-        { key: 'Moteur', value: 'Tesseract 5 UB-Mannheim' },
-      ]
-    }
   },
   {
     id: 2,
@@ -34,18 +135,6 @@ const STEPS = [
     border: 'rgba(139,92,246,.25)',
     duration: 420,
     metric: '6 entités',
-    detail: {
-      title: "Extraction d'entités nommées",
-      description: "Patterns regex compilés à l'initialisation pour ~30% de gain. spaCy fr_core_news_md complète pour les dates.",
-      output: [
-        { key: 'aircraft_registration', value: 'TS-INP' },
-        { key: 'es_reference', value: 'ES00217082' },
-        { key: 'linked_wp', value: 'ES001392 (depuis chemin)' },
-        { key: 'ata_chapter', value: 'ATA 32' },
-        { key: 'check_type', value: 'CHECK_C (RCT anchor)' },
-        { key: 'document_date', value: '22/06/2021' },
-      ]
-    }
   },
   {
     id: 3,
@@ -57,16 +146,6 @@ const STEPS = [
     border: 'rgba(245,158,11,.25)',
     duration: 180,
     metric: 'conf. 94%',
-    detail: {
-      title: 'Classification du document',
-      description: 'Cascade à 5 niveaux : règles de chemin → filename ES###### → TF-IDF + LinearSVC calibré (cv=3) → fallback mots-clés/NER → LLM Groq si confiance <0.85 ou conflit. pipeline.py applique ensuite un override final basé sur le chemin si désaccord.',
-      output: [
-        { key: 'WORK_ORDER', value: '94.2% ✓' },
-        { key: 'JOBCARD', value: '3.1%' },
-        { key: 'DEFECT_REPORT', value: '1.4%' },
-        { key: 'Décision', value: 'doc_type = WORK_ORDER' },
-      ]
-    }
   },
   {
     id: 4,
@@ -78,16 +157,6 @@ const STEPS = [
     border: 'rgba(6,182,212,.25)',
     duration: 850,
     metric: '384d vector',
-    detail: {
-      title: "Génération d'embedding sémantique",
-      description: 'Encodage via sentence-transformers. Stocké dans pgvector avec index HNSW (m=16, ef_construction=64) pour recherche <300ms.',
-      output: [
-        { key: 'Modèle', value: 'sentence-transformers/all-MiniLM-L6-v2' },
-        { key: 'Dimensions', value: '384' },
-        { key: 'Index', value: 'HNSW · cosine similarity' },
-        { key: 'Precision@5', value: '88%' },
-      ]
-    }
   },
   {
     id: 5,
@@ -99,16 +168,6 @@ const STEPS = [
     border: 'rgba(16,185,129,.25)',
     duration: 380,
     metric: 'archivé',
-    detail: {
-      title: 'Persistance et déduplication',
-      description: 'Cache mémoire évite les requêtes DB répétées. RCT anchor : le RCT est la source de vérité du WP — backfill rétroactif.',
-      output: [
-        { key: 'SHA-256', value: 'a3f9b2... (unique)' },
-        { key: 'aircraft_id', value: '1 → TS-INP' },
-        { key: 'check_id', value: 'ES001392 · CHECK_C (RCT confirmé)' },
-        { key: 'Statut', value: 'ARCHIVED' },
-      ]
-    }
   },
   {
     id: 6,
@@ -120,7 +179,90 @@ const STEPS = [
     border: 'rgba(107,114,128,.25)',
     duration: 130,
     metric: '0 alertes',
-    detail: {
+  },
+];
+
+// Construit le détail mocké d'une étape, à partir du document sélectionné
+// (SAMPLE_DOCS). Remplace les anciens blocs `detail` statiques codés en dur
+// dans STEPS, qui n'étaient jamais re-calculés selon le document choisi.
+//
+// IMPORTANT : pour un document importé (source === 'upload'), `doc` n'a pas
+// de champs ner/ocr_excerpt/classifier/archive_check_id — ces champs n'existent
+// que sur SAMPLE_DOCS. Dans ce cas (avant que apiResult ne soit arrivé), on
+// renvoie un texte d'attente plutôt que de planter sur une lecture undefined.
+function buildMockStepDetail(stepId, doc) {
+  const waiting = (title) => ({
+    title,
+    description: "Résultat en attente du pipeline réel (document importé) — utilisez l'onglet déplié une fois l'appel API terminé.",
+    output: [{ key: 'Statut', value: 'en attente du résultat réel...' }],
+  });
+
+  if (stepId === 1) {
+    if (!doc?.ocr_excerpt) return waiting('Extraction du texte');
+    return {
+      title: 'Extraction du texte',
+      description: 'Pipeline en 10 étapes : correction OpenCV → multi-PSM Tesseract (PSM 6/4/11/3) → extraction tableaux via camelot et img2table → score qualité pondéré.',
+      output: [
+        { key: 'Texte extrait', value: doc.ocr_excerpt },
+        { key: 'Confiance OCR', value: '87.3%' },
+        { key: 'Pages traitées', value: '1 (MAX_PAGES=1)' },
+        { key: 'Moteur', value: 'Tesseract 5 UB-Mannheim' },
+      ],
+    };
+  }
+  if (stepId === 2) {
+    if (!doc?.ner) return waiting("Extraction d'entités nommées");
+    return {
+      title: "Extraction d'entités nommées",
+      description: "Patterns regex compilés à l'initialisation pour ~30% de gain. spaCy fr_core_news_md complète pour les dates.",
+      output: [
+        { key: 'aircraft_registration', value: doc.ner.aircraft_registration },
+        { key: 'es_reference', value: doc.ner.es_reference },
+        { key: 'linked_wp', value: doc.ner.linked_wp },
+        { key: 'ata_chapter', value: doc.ner.ata_chapter },
+        { key: 'check_type', value: doc.ner.check_type },
+        { key: 'document_date', value: doc.ner.document_date },
+      ],
+    };
+  }
+  if (stepId === 3) {
+    if (!doc?.classifier) return waiting('Classification du document');
+    return {
+      title: 'Classification du document',
+      description: 'Cascade à 5 niveaux : règles de chemin → filename ES###### → TF-IDF + LinearSVC calibré (cv=3) → fallback mots-clés/NER → LLM Groq si confiance <0.85 ou conflit. pipeline.py applique ensuite un override final basé sur le chemin si désaccord.',
+      output: [
+        ...doc.classifier.scores,
+        { key: 'Décision', value: `doc_type = ${doc.classifier.decision}` },
+      ],
+    };
+  }
+  if (stepId === 4) {
+    return {
+      title: "Génération d'embedding sémantique",
+      description: 'Encodage via sentence-transformers. Stocké dans pgvector avec index HNSW (m=16, ef_construction=64) pour recherche <300ms.',
+      output: [
+        { key: 'Modèle', value: 'sentence-transformers/all-MiniLM-L6-v2' },
+        { key: 'Dimensions', value: '384' },
+        { key: 'Index', value: 'HNSW · cosine similarity' },
+        { key: 'Precision@5', value: '88%' },
+      ],
+    };
+  }
+  if (stepId === 5) {
+    if (!doc?.archive_check_id) return waiting('Persistance et déduplication');
+    return {
+      title: 'Persistance et déduplication',
+      description: 'Cache mémoire évite les requêtes DB répétées. RCT anchor : le RCT est la source de vérité du WP — backfill rétroactif.',
+      output: [
+        { key: 'SHA-256', value: 'a3f9b2... (unique)' },
+        { key: 'aircraft_id', value: `1 → ${doc.aircraft}` },
+        { key: 'check_id', value: doc.archive_check_id },
+        { key: 'Statut', value: 'ARCHIVED' },
+      ],
+    };
+  }
+  if (stepId === 6) {
+    return {
       title: 'Surveillance et reporting',
       description: '10 vues PostgreSQL alimentant Power BI sur 4 axes : Global, Fleet & Checks, AI Quality, Alerts & Monitoring.',
       output: [
@@ -128,17 +270,11 @@ const STEPS = [
         { key: 'Confiance classifieur', value: '94.2% >= 50% OK' },
         { key: 'AD critique', value: 'Aucune détectée' },
         { key: 'Alertes générées', value: '0' },
-      ]
-    }
+      ],
+    };
   }
-];
-
-const SAMPLE_DOCS = [
-  { name: 'TS-INP_Check C_ES001392_WorkOrder_ES00217082.pdf', aircraft: 'TS-INP', check: 'CHECK_C', type: 'WORK_ORDER', source: 'sample' },
-  { name: 'TS-INQ_CHECK C_ES001440_RCT-ES001440.pdf', aircraft: 'TS-INQ', check: 'CHECK_C', type: 'RCT', source: 'sample' },
-  { name: 'TS-INP_Check A_ES001778_Jobcard_0043.pdf', aircraft: 'TS-INP', check: 'CHECK_A', type: 'JOBCARD', source: 'sample' },
-  { name: 'TS-INQ_Old doc_AD_AD DFPs_2011-0142.pdf', aircraft: 'TS-INQ', check: '-', type: 'AD', source: 'sample' },
-];
+  return null;
+}
 
 export default function PipelineDemo() {
   const [running, setRunning] = useState(false);
@@ -185,7 +321,7 @@ export default function PipelineDemo() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/v1/pipeline/test', {
+      const res = await fetch('http://localhost:8000/api/v1/pipeline/test', {
         method: 'POST',
         body: formData,
       });
@@ -218,10 +354,10 @@ export default function PipelineDemo() {
       callRealPipeline(doc.file);
     }
 
-    for (let i = 0; i < STEPS.length; i++) {
+    for (let i = 0; i < STEP_META.length; i++) {
       if (cancelRef.current) break;
       setActiveStep(i);
-      await new Promise(r => setTimeout(r, STEPS[i].duration / speed));
+      await new Promise(r => setTimeout(r, STEP_META[i].duration / speed));
       if (cancelRef.current) break;
       setCompletedSteps(prev => [...prev, i]);
       setExpandedStep(i);
@@ -266,7 +402,7 @@ export default function PipelineDemo() {
     e.target.value = '';
   };
 
-  const progress = completedSteps.length / STEPS.length * 100;
+  const progress = completedSteps.length / STEP_META.length * 100;
 
   const metrics = [
     { label: 'Documents archivés',     value: kpis?.total_documents?.toLocaleString() || '—',                                                                          color: 'var(--nv)'  },
@@ -275,6 +411,24 @@ export default function PipelineDemo() {
     { label: 'Latence recherche',      value: '<300ms',                                                                                                                  color: '#06b6d4'    },
     { label: 'Couverture embedding',   value: pipeline?.agents?.embedding?.confidence ? Math.round(pipeline.agents.embedding.confidence * 100) + '%' : '—',             color: '#10b981'    },
   ];
+
+  // Résout le check_type affiché pour un document importé.
+  // Le NER Agent ne détecte check_type que via le nom de fichier ou un
+  // motif "CHECK A/B/C/D" littéral dans le texte OCR. Pour les Work Orders
+  // dont la catégorie est résolue via linked_wp_resolver (recherche en base
+  // par référence ES liée — voir backend/agents/linked_wp_resolver.py),
+  // le résultat ("Check A", "Check C"...) est écrit dans
+  // classification.predicted_category, PAS dans ner.check_type.
+  // On retombe donc sur predicted_category si elle matche explicitement
+  // "Check [A-D]" — jamais sur d'autres catégories (Specs, AD, etc.) pour
+  // éviter d'afficher une valeur non pertinente dans la case "Check".
+  const resolveCheckType = (result) => {
+    if (!result) return null;
+    if (result.ner?.check_type) return result.ner.check_type;
+    const cat = result.classification?.predicted_category;
+    if (cat && /^Check\s*[ABCD]$/i.test(cat.trim())) return cat;
+    return null;
+  };
 
   // Construit les détails d'étape RÉELS à partir de la réponse de
   // POST /pipeline/test, pour remplacer les données mockées des steps 1-4
@@ -304,7 +458,7 @@ export default function PipelineDemo() {
           { key: 'es_reference', value: ner.es_reference || '—' },
           { key: 'linked_wp', value: ner.linked_wp || '—' },
           { key: 'ata_chapter', value: ner.ata_chapter || '—' },
-          { key: 'check_type', value: ner.check_type || '—' },
+          { key: 'check_type', value: resolveCheckType(apiResult) || '—' },
           { key: 'document_date', value: ner.document_date || '—' },
         ],
       };
@@ -433,7 +587,7 @@ export default function PipelineDemo() {
           </div>
 
           {/* Steps */}
-          {STEPS.map((step, i) => {
+          {STEP_META.map((step, i) => {
             const isCompleted = completedSteps.includes(i);
             const isActive    = activeStep === i;
             const isExpanded  = expandedStep === i;
@@ -482,7 +636,10 @@ export default function PipelineDemo() {
 
                   {isExpanded && isCompleted && (() => {
                     const realDetail = isUploadedDoc ? buildRealStepDetail(step.id) : null;
-                    const detail = realDetail || step.detail;
+                    // Le mock est maintenant calculé dynamiquement à partir
+                    // du document sélectionné (doc), plutôt que lu depuis un
+                    // bloc statique unique partagé entre tous les documents.
+                    const detail = realDetail || buildMockStepDetail(step.id, doc);
                     const showRealBadge = !!realDetail;
                     return (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--bdr)' }}>
@@ -511,7 +668,7 @@ export default function PipelineDemo() {
                   })()}
                 </div>
 
-                {i < STEPS.length - 1 && (
+                {i < STEP_META.length - 1 && (
                   <div style={{ display: 'flex', justifyContent: 'center', height: 18, alignItems: 'center' }}>
                     <div style={{ width: 1, height: 18, background: isCompleted ? step.color : 'var(--bdr)', opacity: .5, transition: 'background .3s' }} />
                   </div>
@@ -533,7 +690,7 @@ export default function PipelineDemo() {
                 {[
                   { label: 'Type',       value: isUploadedDoc ? (apiResult?.classification?.predicted_type ?? '—') : doc.type },
                   { label: 'Avion',      value: isUploadedDoc ? (apiResult?.ner?.aircraft_registration ?? '—') : doc.aircraft },
-                  { label: 'Check',      value: isUploadedDoc ? (apiResult?.ner?.check_type ?? '—') : doc.check },
+                  { label: 'Check',      value: isUploadedDoc ? (resolveCheckType(apiResult) ?? '—') : doc.check },
                   { label: 'Confiance',  value: isUploadedDoc ? (apiResult?.classification?.confidence != null ? `${(apiResult.classification.confidence * 100).toFixed(1)}%` : '—') : '94.2%' },
                   { label: 'Embedding',  value: isUploadedDoc ? (apiResult?.embedding_generated ? '384 dims (non stocké)' : '—') : '384 dims' },
                   { label: 'Statut',     value: isUploadedDoc ? (apiResult?.status?.toUpperCase() ?? (apiError ? 'ERREUR' : '—')) : 'ARCHIVED' },
