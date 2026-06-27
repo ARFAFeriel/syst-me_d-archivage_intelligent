@@ -40,8 +40,10 @@ class SearchService:
             request.aircraft_registration = query_entities.aircraft_registration
             logger.info(f"[SearchService] Filtre avion NER: {request.aircraft_registration}")
         if not request.ata_chapter and query_entities.ata_chapter:
-            request.ata_chapter = query_entities.ata_chapter
-            logger.info(f"[SearchService] Filtre ATA NER: {request.ata_chapter}")
+            normalized_ata = re.sub(r"(?i)^ata\s*", "", query_entities.ata_chapter).strip()
+            request.ata_chapter = normalized_ata
+            logger.info(f"[SearchService] Filtre ATA NER: {request.ata_chapter} "
+                        f"(brut NER: {query_entities.ata_chapter})")
         if not request.doc_type and query_entities.work_order_number:
             request.doc_type = "WORK_ORDER"
             logger.info(f"[SearchService] Filtre type NER: WORK_ORDER")
@@ -135,15 +137,22 @@ class SearchService:
 
     def _query_variants(self, query: str) -> list[str]:
         q = query.strip()
-        variants = [q]
-        m = re.match(r'^ES\s*0*(\d+)$', q, re.IGNORECASE)
-        if m:
+        variants = [q]  # phrase complète conservée en dernier recours
+
+        for m in re.finditer(r'ES\s*0*(\d+)', q, re.IGNORECASE):
             num = m.group(1)
             variants.append(num)
             for pad in range(1, 9):
                 padded = num.zfill(pad)
                 variants.append(f"ES{padded}")
                 variants.append(f"ES {padded}")
+
+        words = re.findall(r'[A-Za-z0-9\-]{3,}', q)
+        STOPWORDS = {"les", "des", "une", "pour", "avec", "dans", "sur"}
+        for w in words:
+            if w.lower() not in STOPWORDS:
+                variants.append(w)
+
         return list(dict.fromkeys(variants))
 
     async def _fts_search(self, db: AsyncSession, request: SearchRequest, variants: list[str]) -> list[tuple[int, float]]:

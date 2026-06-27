@@ -1,0 +1,49 @@
+{
+  "date": "2026-06-26T17:13:23.332488",
+  "n_documents": 413,
+  "per_entity": {
+    "AIRCRAFT_REG": {
+      "recall": 0.0,
+      "tp": 0,
+      "fn": 0,
+      "support": 0
+    },
+    "ATA_CHAPTER": {
+      "recall": 45.65,
+      "tp": 126,
+      "fn": 150,
+      "support": 276
+    },
+    "DATE_AVIO": {
+      "recall": 68.38,
+      "tp": 199,
+      "fn": 92,
+      "support": 291
+    },
+    "DOC_REF": {
+      "recall": 50.94,
+      "tp": 27,
+      "fn": 26,
+      "support": 53
+    },
+    "ES_REF": {
+      "recall": 88.57,
+      "tp": 31,
+      "fn": 4,
+      "support": 35
+    },
+    "PART_NUMBER": {
+      "recall": 64.0,
+      "tp": 32,
+      "fn": 18,
+      "support": 50
+    },
+    "SERIAL_NUMBER": {
+      "recall": 64.86,
+      "tp": 48,
+      "fn": 26,
+      "support": 74
+    }
+  },
+  "recall_macro": 54.63
+}
