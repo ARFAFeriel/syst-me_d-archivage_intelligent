@@ -1,6 +1,6 @@
 """
 Connexion base de données
-SQLAlchemy 2.0 async · asyncpg · PostgreSQL 16 + pgvector
+SQLAlchemy 2.0 async · asyncpg · PostgreSQL 15 + pgvector
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase

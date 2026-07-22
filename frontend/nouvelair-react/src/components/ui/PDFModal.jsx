@@ -6,8 +6,8 @@ import mammoth from 'mammoth';
 const API_BASE = 'http://localhost:8000/api/v1';
 
 const ALL_TYPES = [
-  'WORK_ORDER','JOBCARD','AD','SB','AMM','CMM','IPC','SPECS',
-  'DEFECT_REPORT','NCR','RCT','ATL','CERTIFICATE','DB_CHART','OTHER',
+  'Work Order','Jobcard','Defect Report','AD','SB','ATL','AMM',
+  'CMM','IPC','Specs','Certificate','RCT','D&B Chart','Other',
 ];
 const ALL_CATEGORIES = [
   'Check A','Check C','Check D','AD','SB','AMM','CMM','IPC',
@@ -126,7 +126,7 @@ function MetaPanel({ doc, onCorrected }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/documents/${doc.id}/correct`, {
+      const res = await fetch(`${API_BASE}/documents/${doc.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, manually_corrected: true }),
@@ -191,7 +191,7 @@ function MetaPanel({ doc, onCorrected }) {
       {type === 'select' ? (
         <select value={form[field]} onChange={e => update(field, e.target.value)} style={selStyle(field)}>
           <option value="">—</option>
-          {options.map(o => <option key={o} value={o}>{o.replace('_', ' ')}</option>)}
+          {options.map(o => <option key={o} value={o}>{o.replace()}</option>)}
         </select>
       ) : (
         <input type="text" value={form[field]} onChange={e => update(field, e.target.value)} style={inpStyle(field)} />

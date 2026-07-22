@@ -1,7 +1,7 @@
 ﻿"""
 Agent Embedding
-GÃ©nÃ¨re des vecteurs 384d avec sentence-transformers/all-MiniLM-L6-v2
-StockÃ©s dans PostgreSQL via pgvector pour recherche sÃ©mantique
+Génére des vecteurs 384d avec sentence-transformers/all-MiniLM-L6-v2
+Stockés dans PostgreSQL via pgvector pour recherche sémantique
 """
 from loguru import logger
 from typing import Optional
@@ -10,16 +10,16 @@ import numpy as np
 
 class EmbeddingAgent:
     """
-    Agent Embedding â€” sentence-transformers MiniLM-L6-v2.
-    GÃ©nÃ¨re des vecteurs 384 dimensions Ã  partir du texte OCR + mÃ©tadonnÃ©es.
+    Agent Embedding  ” sentence-transformers MiniLM-L6-v2.
+    Génére des vecteurs 384 dimensions Ã  partir du texte OCR + mÃ©tadonnÃ©es.
     """
 
     def __init__(self):
         self.name = "Embedding Agent"
         self._model = None
         self.dim = 384
-        logger.info(f"[{self.name}] InitialisÃ© â€” chargement lazy (premier appel)")
-        # Pas de prÃ©chargement au dÃ©marrage
+        logger.info(f"[{self.name}] Initialisé ” chargement lazy (premier appel)")
+        
 
     def _get_model(self):
         """Lazy load du modÃ¨le sentence-transformers."""
@@ -47,7 +47,7 @@ class EmbeddingAgent:
         es_ref: str = "",
         ata: str = "",
         sb_ad: str = "",
-        semantic_prefix: str = "",   # â† PROFIL : prÃ©fixe sÃ©mantique du profil
+        semantic_prefix: str = "",   #  PROFIL : prÃ©fixe sÃ©mantique du profil
     ) -> str:
         """
         Construit le texte Ã  encoder.
@@ -105,7 +105,7 @@ class EmbeddingAgent:
         es_ref: str = "",
         ata: str = "",
         sb_ad: str = "",
-        semantic_prefix: str = "",   # â† PROFIL : prÃ©fixe sÃ©mantique du ProcessingProfile
+        semantic_prefix: str = "",   #  PROFIL : prÃ©fixe sÃ©mantique du ProcessingProfile
         # Alias rÃ©trocompat (ancienne signature)
         ocr_text: str = "",
     ) -> Optional[list[float]]:
@@ -115,10 +115,10 @@ class EmbeddingAgent:
 
         semantic_prefix : transmis par pipeline.py depuis profile.embedding.semantic_prefix.
         Exemples rÃ©els NouvelAir :
-          "Job Card maintenance task: "        â†’ pour ES001778 (Check A TS-INP)
-          "Work order maintenance: "           â†’ pour ES001392 (Check C TS-INQ)
-          "Service bulletin airworthiness: "   â†’ pour SB A320-27-1208
-          "Aircraft delivery document: "       â†’ pour les 1758 docs Old doc
+          "Job Card maintenance task: "        ’ pour ES001778 (Check A TS-INP)
+          "Work order maintenance: "           ’ pour ES001392 (Check C TS-INQ)
+          "Service bulletin airworthiness: "   ’ pour SB A320-27-1208
+          "Aircraft delivery document: "       ’ pour les 1758 docs Old doc
         """
         model = self._get_model()
         if model is None:

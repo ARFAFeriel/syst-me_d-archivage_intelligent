@@ -1,5 +1,5 @@
 {
-  "date": "2026-06-26T22:30:27.953307",
+  "date": "2026-06-29T00:24:20.573249",
   "summaries": {
     "lexical": {
       "n_queries": 15,
@@ -9,7 +9,7 @@
       "precision_at_10": 0.4667,
       "mrr": 0.4667,
       "recall_at_10": 0.4667,
-      "mean_latency_ms": 8560.2
+      "mean_latency_ms": 8411.2
     },
     "semantic": {
       "n_queries": 15,
@@ -19,7 +19,7 @@
       "precision_at_10": 0.0,
       "mrr": 0.0,
       "recall_at_10": 0.0,
-      "mean_latency_ms": 10410.4
+      "mean_latency_ms": 11738.3
     },
     "hybrid": {
       "n_queries": 15,
@@ -29,7 +29,7 @@
       "precision_at_10": 0.4667,
       "mrr": 0.4667,
       "recall_at_10": 0.4667,
-      "mean_latency_ms": 10650.4
+      "mean_latency_ms": 9738.7
     }
   },
   "per_query": {
@@ -49,7 +49,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 1928.1,
+        "latency_ms": 2056.9,
         "mode": "lexical"
       },
       {
@@ -67,7 +67,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 1282.5,
+        "latency_ms": 1450.6,
         "mode": "lexical"
       },
       {
@@ -85,7 +85,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 3739.7,
+        "latency_ms": 4681.3,
         "mode": "lexical"
       },
       {
@@ -103,7 +103,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10479.0,
+        "latency_ms": 9562.5,
         "mode": "lexical"
       },
       {
@@ -121,7 +121,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10675.5,
+        "latency_ms": 10460.0,
         "mode": "lexical"
       },
       {
@@ -139,7 +139,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 9741.5,
+        "latency_ms": 4337.1,
         "mode": "lexical"
       },
       {
@@ -157,7 +157,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 9306.4,
+        "latency_ms": 10188.4,
         "mode": "lexical"
       },
       {
@@ -175,7 +175,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 12208.8,
+        "latency_ms": 7758.2,
         "mode": "lexical"
       },
       {
@@ -193,7 +193,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 9726.9,
+        "latency_ms": 9726.0,
         "mode": "lexical"
       },
       {
@@ -211,7 +211,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10714.3,
+        "latency_ms": 11511.8,
         "mode": "lexical"
       },
       {
@@ -229,7 +229,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10794.0,
+        "latency_ms": 10431.5,
         "mode": "lexical"
       },
       {
@@ -247,7 +247,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 11861.3,
+        "latency_ms": 12538.2,
         "mode": "lexical"
       },
       {
@@ -265,7 +265,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 3396.1,
+        "latency_ms": 9355.4,
         "mode": "lexical"
       },
       {
@@ -283,7 +283,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10546.3,
+        "latency_ms": 10385.3,
         "mode": "lexical"
       },
       {
@@ -301,7 +301,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 12003.3,
+        "latency_ms": 11724.8,
         "mode": "lexical"
       }
     ],
@@ -321,7 +321,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 46862.0,
+        "latency_ms": 62542.1,
         "mode": "semantic"
       },
       {
@@ -339,7 +339,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 391.8,
+        "latency_ms": 456.6,
         "mode": "semantic"
       },
       {
@@ -357,7 +357,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 337.5,
+        "latency_ms": 330.8,
         "mode": "semantic"
       },
       {
@@ -375,7 +375,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 8486.2,
+        "latency_ms": 7470.1,
         "mode": "semantic"
       },
       {
@@ -393,7 +393,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 8601.0,
+        "latency_ms": 8520.7,
         "mode": "semantic"
       },
       {
@@ -411,7 +411,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10728.6,
+        "latency_ms": 10469.5,
         "mode": "semantic"
       },
       {
@@ -429,7 +429,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10526.5,
+        "latency_ms": 10397.0,
         "mode": "semantic"
       },
       {
@@ -447,7 +447,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 8823.1,
+        "latency_ms": 8491.5,
         "mode": "semantic"
       },
       {
@@ -465,7 +465,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 9500.9,
+        "latency_ms": 9502.7,
         "mode": "semantic"
       },
       {
@@ -483,7 +483,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 9579.8,
+        "latency_ms": 9508.3,
         "mode": "semantic"
       },
       {
@@ -501,7 +501,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10784.8,
+        "latency_ms": 10513.1,
         "mode": "semantic"
       },
       {
@@ -519,7 +519,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 2709.1,
+        "latency_ms": 8450.0,
         "mode": "semantic"
       },
       {
@@ -537,7 +537,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 10665.6,
+        "latency_ms": 10452.8,
         "mode": "semantic"
       },
       {
@@ -555,7 +555,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 9531.6,
+        "latency_ms": 10548.7,
         "mode": "semantic"
       },
       {
@@ -573,7 +573,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 8627.9,
+        "latency_ms": 8420.9,
         "mode": "semantic"
       }
     ],
@@ -593,7 +593,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 2840.3,
+        "latency_ms": 2786.1,
         "mode": "hybrid"
       },
       {
@@ -611,7 +611,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 1399.0,
+        "latency_ms": 1789.5,
         "mode": "hybrid"
       },
       {
@@ -629,7 +629,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 13947.7,
+        "latency_ms": 12037.5,
         "mode": "hybrid"
       },
       {
@@ -647,7 +647,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11956.2,
+        "latency_ms": 13668.9,
         "mode": "hybrid"
       },
       {
@@ -665,7 +665,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 12754.2,
+        "latency_ms": 7473.4,
         "mode": "hybrid"
       },
       {
@@ -683,7 +683,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11910.3,
+        "latency_ms": 11476.9,
         "mode": "hybrid"
       },
       {
@@ -701,7 +701,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11273.2,
+        "latency_ms": 11194.2,
         "mode": "hybrid"
       },
       {
@@ -719,7 +719,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 13285.8,
+        "latency_ms": 12745.8,
         "mode": "hybrid"
       },
       {
@@ -737,7 +737,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11923.5,
+        "latency_ms": 6682.2,
         "mode": "hybrid"
       },
       {
@@ -755,7 +755,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11732.2,
+        "latency_ms": 11445.3,
         "mode": "hybrid"
       },
       {
@@ -773,7 +773,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11521.1,
+        "latency_ms": 11511.0,
         "mode": "hybrid"
       },
       {
@@ -791,7 +791,7 @@
         "target_doc_type": "CERTIFICATE",
         "valid_group_size": 3,
         "nb_returned": 10,
-        "latency_ms": 8699.6,
+        "latency_ms": 12593.1,
         "mode": "hybrid"
       },
       {
@@ -809,7 +809,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11881.5,
+        "latency_ms": 11432.0,
         "mode": "hybrid"
       },
       {
@@ -827,7 +827,7 @@
         "target_doc_type": "AD",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 11673.0,
+        "latency_ms": 11534.7,
         "mode": "hybrid"
       },
       {
@@ -845,7 +845,7 @@
         "target_doc_type": "WORK_ORDER",
         "valid_group_size": 1,
         "nb_returned": 10,
-        "latency_ms": 12957.7,
+        "latency_ms": 7710.4,
         "mode": "hybrid"
       }
     ]

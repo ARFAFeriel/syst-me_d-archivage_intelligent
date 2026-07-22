@@ -118,15 +118,7 @@ def preprocess_image(pil_img: Image.Image) -> Image.Image:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def tesseract_ocr(pil_img: Image.Image) -> tuple[str, float]:
-    """
-    Essaie plusieurs stratégies PSM et garde le meilleur résultat.
-
-    FIX v5.2 : un résultat n'est retenu comme "meilleur" que s'il contient
-    réellement du texte (text.strip()). Avant ce correctif, un score de
-    confiance élevé sur un texte VIDE pouvait l'emporter contre un score
-    plus bas mais avec du vrai texte — produisant un retour ("", conf_élevée)
-    qui était ensuite traité comme un échec total par fuse_ocr_results().
-    """
+    
     best_text = ""
     best_conf = 0.0
     for psm in PSM_STRATEGIES:
@@ -230,9 +222,7 @@ def enhanced_ocr(pil_img: Image.Image) -> tuple[str, float]:
         conf3 = float(np.mean(confs3)) if confs3 else 0.0
         results.append((text3, conf3))
 
-        # FIX v5.2 : ne considérer que les résultats avec du texte non vide
-        # pour choisir le "meilleur" — sinon un score élevé sur texte vide
-        # pourrait être choisi à la place d'un résultat valide.
+        
         non_empty_results = [(t, c) for t, c in results if t.strip()]
         if non_empty_results:
             best = max(non_empty_results, key=lambda x: x[1])

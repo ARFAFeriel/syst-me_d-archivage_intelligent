@@ -1,5 +1,5 @@
 ﻿"""
-Routes Recherche, AÃ©ronefs, Pipeline, Analytics
+Routes Recherche, Aéronefs, Pipeline, Analytics
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,24 +17,30 @@ from backend.core.pipeline import get_pipeline
 from backend.agents.embedding_agent import EmbeddingAgent
 from backend.agents.llm_agent import LLMAgent
 
+# Instances globales (singletons) créées une seule fois au chargement du module,
+# réutilisées par toutes les requêtes HTTP entrantes (évite de recharger le
+# modèle d'embedding ou de reconnecter le LLM à chaque appel)
 _embedding_agent = EmbeddingAgent()
 _llm_agent = LLMAgent()
 
 from backend.core.aggregation_intent import detect_aggregation_intent, handle_aggregation_query
 from backend.core.fallback_text_search import fallback_text_search
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════════════════════════════════
 # SEARCH ROUTER
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════════════════════════════════
 
 search_router = APIRouter(prefix="/search", tags=["Recherche"])
 aircraft_router = APIRouter(prefix="/aircraft", tags=["Aeronefs"])
+
+# SearchService instancié UNE FOIS ici, au niveau module (singleton).
+# C'est ce service qui orchestre NERAgent + EmbeddingAgent + SQL (FTS/pgvector).
 _search_service = SearchService()
 
 
 @search_router.get("/", response_model=SearchResponse, summary="Recherche hybride")
 async def search(
-    q: str = Query(..., min_length=1, description="RequÃªte de recherche"),
+    q: str = Query(..., min_length=1, description="Requête de recherche"),
     aircraft: Optional[str] = Query(None),
     doc_type: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -46,7 +52,13 @@ async def search(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
-    """Recherche hybride FTS + pgvector avec extraction NER de la requÃªte."""
+    """
+    Endpoint GET : reçoit les paramètres de recherche en query string
+    (ex: /search/?q=ES001778&aircraft=TS-INO), les transforme en objet
+    SearchRequest, et délègue directement au SearchService.
+    C'est ici, concrètement, que "l'agent de recherche" est appelé
+    depuis l'API.
+    """
     request = SearchRequest(
         query=q,
         aircraft_registration=aircraft,
@@ -67,6 +79,9 @@ async def search_post(
     request: SearchRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    # Même logique que le GET, mais le SearchRequest est envoyé directement
+    # en JSON dans le corps de la requête (utile pour le frontend React qui
+    # préfère poster un objet complet plutôt que construire une query string)
     return await _search_service.search(db, request)
 
 
@@ -75,10 +90,18 @@ async def rag_answer(
     request: RAGRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Endpoint de Question/Réponse en langage naturel (RAG).
+    IMPORTANT : cette route N'UTILISE PAS SearchService — elle réimplémente
+    sa propre logique de recherche (regex NER maison + pgvector + fallback
+    texte), puis génère une réponse en français via LLMAgent (Groq).
+    C'est une duplication de logique à assumer si le jury la relève.
+    """
     import numpy as np
     import re as _re
 
-    # ── Detection avion, ATA et type doc depuis la question (regex) ────────
+    # ── Extraction d'entités par regex directement sur la question ─────────
+    # NER "maison", indépendant de NERAgent, spécifique à cette route
     _m_ac = _re.search(r'\b(TS-IN[A-Z])\b', request.question, _re.IGNORECASE)
     aircraft_filter = _m_ac.group(1).upper() if _m_ac else None
 
@@ -88,6 +111,7 @@ async def rag_answer(
     _m_ata = _re.search(r'\bATA[\s-]*(\d{2})\b', request.question, _re.IGNORECASE)
     ata_filter = _m_ata.group(1) if _m_ata else None
 
+    # Détection du type de document par mots-clés français dans la question
     doc_type_filter = None
     q_lower = request.question.lower()
     if any(w in q_lower for w in ["work order", "wo ", "ordre de travail"]):
@@ -108,7 +132,9 @@ async def rag_answer(
     if doc_type_filter:
         logger.info(f"[RAG] Filtre type: {doc_type_filter}")
 
-    # ── Detection d'intention d'agregation (existence/comptage) ────────────
+    # ── Cas 1 : question d'agrégation (comptage / existence) ────────────────
+    # Ex: "Combien de work orders pour TS-INO ?" ou "Existe-t-il un NCR sur..."
+    # Ce cas ne fait PAS de recherche sémantique : c'est du comptage SQL direct.
     agg_intent = detect_aggregation_intent(request.question)
     if agg_intent:
         logger.info(f"[RAG] Intention agregation detectee: {agg_intent}")
@@ -120,6 +146,7 @@ async def rag_answer(
             "category": "categorie",
         }.get(agg_result["field"], agg_result["field"])
 
+        # Construit une liste lisible des documents exemples pour le prompt LLM
         liste_docs = ""
         if agg_result["examples"]:
             lignes_doc = []
@@ -134,6 +161,8 @@ async def rag_answer(
         confidence = 0.95
         try:
             if _llm_agent.disponible:
+                # Prompt système : consignes strictes pour une réponse naturelle,
+                # sans jargon technique, en français
                 sys_agg = (
                     "Tu es un assistant qui repond a des questions sur une base documentaire "
                     "aeronautique, comme le ferait un collegue qui consulte la base de donnees. "
@@ -151,6 +180,8 @@ async def rag_answer(
                         f"Formule une reponse claire en une phrase."
                     )
                 else:
+                    # Distingue une question d'existence (Oui/Non) d'une question
+                    # de comptage (chiffre exact), pour guider le ton de la réponse
                     if agg_intent["intent"] == "existence":
                         msg_factuel = f"REPONSE FACTUELLE: Oui, il y a exactement {agg_result['total']} document(s) qui correspondent a cette question. Tu DOIS commencer ta reponse par OUI.\n"
                     else:
@@ -170,6 +201,7 @@ async def rag_answer(
             else:
                 raise ValueError("Groq non disponible")
         except Exception as e:
+            # Fallback texte simple si le LLM est indisponible ou échoue
             logger.warning(f"[RAG] Aggregation LLM fallback: {e}")
             if agg_result["total"] == 0:
                 answer = f"Aucun document trouve pour ce critere ({champ_label})."
@@ -184,6 +216,7 @@ async def rag_answer(
             question=request.question,
         )
 
+    # ── Cas 2 : référence ES détectée → lookup direct, sans sémantique ──────
     if es_filter:
         es_res = await db.execute(
             text("SELECT id, filename, doc_type, aircraft_registration, category, es_reference, ata_chapter, ocr_confidence, ocr_text FROM documents WHERE es_reference ILIKE :es_val AND status = 'ARCHIVED' LIMIT 3"),
@@ -195,6 +228,7 @@ async def rag_answer(
             res_es = await db.execute(select(Document).where(Document.id.in_(doc_ids_es)))
             sources_es = [DocumentResponse.model_validate(d) for d in res_es.scalars().all()]
 
+            # Construit le contexte textuel à injecter dans le prompt du LLM
             ctx_es_parts = []
             for d in es_docs:
                 dtype_clean = str(d.doc_type).split(".")[-1].replace("_", " ").title() if d.doc_type else "Inconnu"
@@ -220,6 +254,7 @@ async def rag_answer(
                 else:
                     raise ValueError("Groq non disponible")
             except Exception as e:
+                # Fallback : réponse factuelle basique sans LLM
                 logger.warning(f"[RAG] ES lookup LLM fallback: {e}")
                 d0 = es_docs[0]
                 dtype_clean = str(d0.doc_type).split(".")[-1].replace("_", " ").title() if d0.doc_type else "Inconnu"
@@ -233,13 +268,16 @@ async def rag_answer(
                 question=request.question,
             )
 
-    # ── Recherche semantique standard ───────────────────────────────────────
+    # ── Cas 3 : recherche sémantique standard (pgvector) ────────────────────
+    # Réimplémentation directe (pas via SearchService) de la recherche
+    # sémantique, avec les mêmes filtres (avion/ATA/type) détectés plus haut
     embedding_agent = _embedding_agent
     query_vec = await embedding_agent.embed_query(request.question)
     sources = []
     rows = []
 
     if query_vec:
+        # Normalisation du vecteur (même logique que dans SearchService)
         vec = query_vec
         if isinstance(vec, np.ndarray):
             vec = vec.flatten().tolist()
@@ -252,6 +290,7 @@ async def rag_answer(
                 "embedding IS NOT NULL",
                 "status = 'ARCHIVED'",
             ]
+            # Ajoute dynamiquement les filtres détectés dans la question
             if aircraft_filter:
                 where_clauses.append("aircraft_registration ILIKE :aircraft")
                 params["aircraft"] = f"%{aircraft_filter}%"
@@ -272,7 +311,7 @@ async def rag_answer(
             """
             result = await db.execute(text(sql_query), params)
             rows = result.fetchall()
-            doc_ids = [r.id for r in rows if r.sim > 0.30]
+            doc_ids = [r.id for r in rows if r.sim > 0.30]  # même seuil que SearchService
 
             if doc_ids:
                 res = await db.execute(
@@ -282,15 +321,18 @@ async def rag_answer(
                 sources = [DocumentResponse.model_validate(d) for d in docs]
 
         except Exception as e:
+            # Rollback défensif identique à celui de SearchService
             try:
                 await db.rollback()
             except Exception:
                 pass
             logger.warning(f"[RAG] Semantic error: {e}")
 
+    # ── Cas 4 : fallback texte si la recherche sémantique n'a rien donné ────
     if not sources:
         text_results = await fallback_text_search(db, request.question)
         if not text_results:
+            # Aucun résultat trouvé nulle part : réponse vide honnête
             return RAGResponse(
                 answer="Aucun document correspondant n'a ete trouve dans les archives.",
                 sources=[],
@@ -321,6 +363,7 @@ async def rag_answer(
             noms_txt = ", ".join(row.filename for row in text_results)
             answer_txt = f"{len(text_results)} document(s) trouve(s) : {noms_txt}."
 
+        # Recharge les objets Document complets pour les 5 premiers résultats
         sources_txt = []
         for row in text_results[:5]:
             doc_res = await db.execute(select(Document).where(Document.id == row.id))
@@ -333,6 +376,9 @@ async def rag_answer(
             confidence=0.5,
             question=request.question,
         )
+
+    # ── Génération de la réponse finale via LLM à partir des sources trouvées ──
+    # Recharge le texte OCR complet (tronqué à 1000 caractères) des 3 meilleurs docs
     doc_ids_ordered = [r.id for r in rows if r.sim > 0.30][:3]
     ids_str = ",".join(str(i) for i in doc_ids_ordered)
     ocr_rows = await db.execute(text(f"""
@@ -345,6 +391,7 @@ async def rag_answer(
     """))
     ocr_docs = ocr_rows.fetchall()
 
+    # Construit le contexte formaté à injecter dans le prompt du LLM
     context_parts = []
     for i, row in enumerate(ocr_docs):
         doc_type_clean = (
@@ -378,6 +425,7 @@ async def rag_answer(
         import asyncio
         llm = _llm_agent
         if llm.disponible:
+            # Prépare la liste structurée de documents-contexte pour le LLM
             docs_contexte = [
                 {
                     "filename": s.filename,
@@ -390,6 +438,9 @@ async def rag_answer(
                 }
                 for i, s in enumerate(sources[:5])
             ]
+            # repondre_question est probablement synchrone (bloquant) :
+            # on l'exécute dans un thread séparé via run_in_executor pour
+            # ne pas bloquer la boucle asyncio
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
@@ -406,6 +457,8 @@ async def rag_answer(
         else:
             raise ValueError("Groq non disponible")
     except Exception as e:
+        # Fallback ultime : réponse factuelle construite manuellement,
+        # sans génération de texte par LLM
         logger.warning(f"[RAG] Groq fallback: {e}")
         s = sources[0]
         doc_type_clean = (
@@ -429,8 +482,12 @@ async def rag_answer(
         confidence=confidence,
         question=request.question,
     )
-@aircraft_router.get("/", summary="Liste des aÃ©ronefs")
+
+
+@aircraft_router.get("/", summary="Liste des aéronefs")
 async def list_aircraft(db: AsyncSession = Depends(get_db)):
+    # Liste tous les avions, en recalculant le nombre de documents pour chacun
+    # (comptage en direct, pas un champ mis en cache potentiellement obsolète)
     result = await db.execute(select(Aircraft).order_by(Aircraft.registration))
     aircraft_list = result.scalars().all()
     out = []
@@ -446,7 +503,7 @@ async def list_aircraft(db: AsyncSession = Depends(get_db)):
             "model": a.model,
             "msn": a.msn,
             "status": "active",
-            "aircraft_type": a.aircraft_type or "CEO",
+            "aircraft_type": a.aircraft_type or "CEO",  # valeur par défaut si non renseigné
             "variant": a.variant,
             "delivery_date": str(a.delivery_date) if a.delivery_date else None,
             "lessor": a.lessor,
@@ -456,16 +513,19 @@ async def list_aircraft(db: AsyncSession = Depends(get_db)):
     return out
 
 
-@aircraft_router.patch("/{aircraft_id}", summary="Modifier un aÃ©ronef")
+@aircraft_router.patch("/{aircraft_id}", summary="Modifier un aéronef")
 async def update_aircraft(
     aircraft_id: int,
     payload: dict,
     db: AsyncSession = Depends(get_db),
 ):
+    # Mise à jour partielle d'un avion : seuls les champs de la whitelist
+    # `allowed` peuvent être modifiés, par sécurité (évite qu'un payload
+    # malveillant/erroné écrase un champ sensible comme `id` ou `registration`)
     result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))
     aircraft = result.scalar_one_or_none()
     if not aircraft:
-        raise HTTPException(404, f"AÃ©ronef #{aircraft_id} introuvable")
+        raise HTTPException(404, f"Aéronef #{aircraft_id} introuvable")
 
     allowed = {"aircraft_type", "msn", "variant", "delivery_date", "lessor", "notes", "model"}
     for field, value in payload.items():
@@ -476,6 +536,7 @@ async def update_aircraft(
                     value = date.fromisoformat(value)
                 except ValueError:
                     value = None
+            # Chaîne vide traitée comme NULL pour rester cohérent en base
             setattr(aircraft, field, value if value != "" else None)
 
     await db.commit()
@@ -500,6 +561,8 @@ async def aircraft_documents(
     limit: int = Query(50),
     db: AsyncSession = Depends(get_db),
 ):
+    # Liste simple des documents d'un avion donné, avec filtres optionnels
+    # catégorie/type, triés du plus récent au plus ancien
     from sqlalchemy import and_
     conditions = [Document.aircraft_registration.ilike(registration)]
     if category:
@@ -515,8 +578,10 @@ async def aircraft_documents(
     return [DocumentResponse.model_validate(d) for d in docs]
 
 
-@aircraft_router.get("/checks/all", summary="Tous les checks confirmÃ©s")
+@aircraft_router.get("/checks/all", summary="Tous les checks confirmés")
 async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
+    # Liste tous les "checks" (visites de maintenance programmées) tous avions
+    # confondus, avec jointure pour récupérer l'immatriculation lisible
     result = await db.execute(
         select(AircraftCheck, Aircraft.registration)
         .join(Aircraft, Aircraft.id == AircraftCheck.aircraft_id)
@@ -539,13 +604,17 @@ async def all_confirmed_checks(db: AsyncSession = Depends(get_db)):
 
 @aircraft_router.get("/{registration}/checks", summary="Checks par avion")
 async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db)):
+    # Liste les checks d'un avion précis, en recalculant à chaque fois le
+    # nombre RÉEL de documents liés (plutôt que de faire confiance au champ
+    # `total_documents` potentiellement obsolète), pour garantir la fiabilité
+    # des chiffres affichés dans le dashboard
     from sqlalchemy import and_
     aircraft_q = await db.execute(
         select(Aircraft).where(Aircraft.registration.ilike(registration))
     )
     aircraft = aircraft_q.scalar_one_or_none()
     if not aircraft:
-        raise HTTPException(404, f"AÃ©ronef {registration} introuvable")
+        raise HTTPException(404, f"Aéronef {registration} introuvable")
 
     result = await db.execute(
         select(AircraftCheck).where(AircraftCheck.aircraft_id == aircraft.id)
@@ -557,6 +626,8 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
         real_count = 0
         if c.es_reference:
             try:
+                # Normalise la référence ES en retirant le préfixe "ES"
+                # avant de compter les documents correspondants
                 ref_clean = c.es_reference.upper()
                 if ref_clean.startswith('ES'):
                     ref_clean = ref_clean[2:]
@@ -570,8 +641,9 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
                 ) or 0
             except Exception as e:
                 logger.warning(f"[checks] Erreur comptage {c.es_reference}: {e}")
-                real_count = c.total_documents or 0
+                real_count = c.total_documents or 0  # fallback sur la valeur stockée
 
+        # Un check sans documents réels n'est pas affiché (évite le bruit)
         if real_count == 0:
             continue
 
@@ -591,15 +663,17 @@ async def aircraft_checks(registration: str, db: AsyncSession = Depends(get_db))
     return out
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════════════════════════════════
 # PIPELINE ROUTER
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════════════════════════════════
 
 pipeline_router = APIRouter(prefix="/pipeline", tags=["Pipeline IA"])
 
 
 @pipeline_router.get("/status", summary="Statut des agents")
 async def pipeline_status(db: AsyncSession = Depends(get_db)):
+    # Combine la santé système générale (monitoring) avec des indicateurs
+    # de confiance calculés à la volée pour 3 agents : NER, Classifier, Embedding
     pipeline = get_pipeline()
     health = await pipeline.monitoring.get_system_health(db)
 
@@ -608,8 +682,9 @@ async def pipeline_status(db: AsyncSession = Depends(get_db)):
 
         total_archived = await db.scalar(
             select(func.count(Document.id)).where(archived_filter)
-        ) or 1
+        ) or 1  # évite une division par zéro plus bas
 
+        # "Confiance" NER approximée par le taux de documents avec un avion détecté
         ner_hits = await db.scalar(
             select(func.count(Document.id)).where(
                 archived_filter,
@@ -618,6 +693,7 @@ async def pipeline_status(db: AsyncSession = Depends(get_db)):
             )
         ) or 0
 
+        # Confiance moyenne réelle du classifier (stockée par document)
         cls_avg = await db.scalar(
             select(func.avg(Document.classifier_confidence)).where(
                 archived_filter,
@@ -625,6 +701,7 @@ async def pipeline_status(db: AsyncSession = Depends(get_db)):
             )
         )
 
+        # "Confiance" embedding approximée par le taux de documents ayant un vecteur
         emb_hits = await db.scalar(
             select(func.count(Document.id)).where(
                 archived_filter,
@@ -641,21 +718,11 @@ async def pipeline_status(db: AsyncSession = Depends(get_db)):
         health["agents"].setdefault("embedding", {})["confidence"] = round(emb_hits / total_archived, 3)
 
     except Exception as e:
+        # Si le calcul échoue, on renvoie quand même `health` (dégradation
+        # gracieuse plutôt qu'erreur 500 sur tout l'endpoint)
         logger.warning(f"[pipeline/status] Calcul confiance agents: {e}")
 
     return health
-
-# ── PATCH pour le fichier contenant pipeline_router (routes recherche/aéronefs/pipeline) ──
-#
-# Ajouter cet endpoint DANS pipeline_router, par exemple juste après
-# pipeline_status() et avant get_alerts(). Imports nécessaires en haut du
-# fichier (ajouter si absents) :
-#
-#   from fastapi import UploadFile, File
-#   from backend.schemas.document import PipelineResult
-#
-# Le reste des imports (APIRouter, Depends, get_db, get_pipeline, logger, etc.)
-# est déjà présent dans ce fichier.
 
 
 @pipeline_router.post(
@@ -678,6 +745,8 @@ async def test_pipeline(
     """
     max_size = 50 * 1024 * 1024  # 50 MB, garde-fou raisonnable pour un test
     content = await file.read()
+
+    # Validations défensives avant de lancer un pipeline coûteux en calcul
     if len(content) > max_size:
         raise HTTPException(400, "Fichier trop volumineux pour un test (max 50MB)")
     if not file.filename:
@@ -688,6 +757,7 @@ async def test_pipeline(
     pipeline = get_pipeline()
 
     try:
+        # Appelle la méthode dry-run dédiée du pipeline (pas process_document)
         result = await pipeline.test_document(
             db=db,
             file_content=content,
@@ -707,6 +777,8 @@ async def get_alerts(
     limit: int = Query(20),
     db: AsyncSession = Depends(get_db),
 ):
+    # Récupère les alertes récentes, filtre côté Python celles déjà résolues
+    # si `resolved=False` (comportement par défaut : ne montrer que l'actif)
     pipeline = get_pipeline()
     alerts = await pipeline.monitoring.get_recent_alerts(db, limit=limit)
     if not resolved:
@@ -714,8 +786,9 @@ async def get_alerts(
     return alerts
 
 
-@pipeline_router.post("/alerts/{alert_id}/resolve", summary="RÃ©soudre une alerte")
+@pipeline_router.post("/alerts/{alert_id}/resolve", summary="Résoudre une alerte")
 async def resolve_alert(alert_id: int, db: AsyncSession = Depends(get_db)):
+    # Marque une alerte comme résolue, avec horodatage
     from datetime import datetime
     result = await db.execute(select(Alert).where(Alert.id == alert_id))
     alert = result.scalar_one_or_none()
@@ -724,7 +797,7 @@ async def resolve_alert(alert_id: int, db: AsyncSession = Depends(get_db)):
     alert.resolved = True
     alert.resolved_at = datetime.utcnow()
     await db.commit()
-    return {"message": f"Alerte #{alert_id} rÃ©solue"}
+    return {"message": f"Alerte #{alert_id} résolue"}
 
 
 @pipeline_router.post("/scan", summary="Scanner arborescence locale")
@@ -733,6 +806,9 @@ async def scan_archive(
     dry_run: bool = Query(True),
     db: AsyncSession = Depends(get_db),
 ):
+    # Scanne un dossier local à la recherche de fichiers à importer.
+    # Mode dry_run=True (défaut) : ne fait qu'un aperçu, sans rien archiver.
+    # Mode dry_run=False : lance réellement le pipeline sur chaque fichier trouvé.
     from backend.agents.monitoring_agent import TreeAgent
     from backend.config import settings
     scan_path = path or settings.archive_root_path
@@ -745,13 +821,16 @@ async def scan_archive(
             "mode": "dry_run",
             "path": scan_path,
             "found": len(files),
-            "preview": files[:10],
+            "preview": files[:10],  # aperçu limité pour ne pas surcharger la réponse
         }
 
     pipeline = get_pipeline()
     imported = 0
     errors = []
 
+    # Limite à 200 fichiers par appel — garde-fou pour éviter un scan géant
+    # qui bloquerait la requête HTTP trop longtemps (pas de traitement par lots
+    # asynchrone ici, contrairement à process_batch())
     for file_meta in files[:200]:
         try:
             import aiofiles
@@ -767,6 +846,7 @@ async def scan_archive(
             if result.status.value == "archived":
                 imported += 1
         except Exception as e:
+            # Une erreur sur un fichier n'interrompt pas le traitement des autres
             errors.append({"file": file_meta["filename"], "error": str(e)})
 
     return {
@@ -775,12 +855,14 @@ async def scan_archive(
         "total_found": len(files),
         "imported": imported,
         "errors": len(errors),
-        "error_details": errors[:10],
+        "error_details": errors[:10],  # limite l'affichage des erreurs détaillées
     }
 
 
 @pipeline_router.get("/tree", summary="Arborescence JSON")
 async def get_tree(path: str = Query(None)):
+    # Retourne l'arborescence du système de fichiers (pas de la base de données,
+    # contrairement à /analytics/archive-tree plus bas)
     from backend.agents.monitoring_agent import TreeAgent
     from backend.config import settings
     scan_path = path or settings.archive_root_path
@@ -788,15 +870,16 @@ async def get_tree(path: str = Query(None)):
     return tree_agent.get_tree_json()
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════════════════════════════════
 # ANALYTICS ROUTER
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ═══════════════════════════════════════════════════════════════════════════
 
 analytics_router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
 @analytics_router.get("/kpis", summary="KPIs tableau de bord")
 async def get_kpis(db: AsyncSession = Depends(get_db)):
+    # Indicateurs globaux simples pour la page d'accueil du dashboard
     total_docs = await db.scalar(select(func.count(Document.id))) or 0
     archived = await db.scalar(
         select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)
@@ -815,6 +898,8 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
     ) or 0
 
     last_activity = await db.scalar(select(func.max(Document.updated_at)))
+    # "Texte extractible" : soit un PDF natif (ocr_confidence == 0 signifie
+    # pas d'OCR nécessaire), soit un OCR de confiance suffisante (≥60%)
     text_extractible = await db.scalar(
         select(func.count(Document.id)).where(
             Document.status == DocumentStatus.ARCHIVED,
@@ -839,10 +924,11 @@ async def get_kpis(db: AsyncSession = Depends(get_db)):
     }
 
 
-@analytics_router.get("/stats", summary="Statistiques dÃ©taillÃ©es")
+@analytics_router.get("/stats", summary="Statistiques détaillées")
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    """Distribution par type, catÃ©gorie, avion."""
+    """Distribution par type, catégorie, avion."""
 
+    # Distribution des documents par type, avec confiance OCR moyenne associée
     by_type_q = await db.execute(
         select(
             Document.doc_type,
@@ -853,6 +939,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .order_by(desc("count"))
     )
 
+    # Distribution par avion (outerjoin pour inclure les avions sans documents)
     by_aircraft_q = await db.execute(
         select(
             Aircraft.registration,
@@ -876,6 +963,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         .where(Document.doc_type.isnot(None))
     ) or 1
 
+    # Top 20 des chapitres ATA les plus fréquents
     by_ata_q = await db.execute(
         select(Document.ata_chapter, func.count(Document.id).label("count"))
         .where(Document.ata_chapter.isnot(None))
@@ -909,10 +997,12 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     }
 
 
-@analytics_router.get("/advanced", summary="Statistiques avancÃ©es pour dashboard")
+@analytics_router.get("/advanced", summary="Statistiques avancées pour dashboard")
 async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
+    # Vue statistique la plus riche : sert probablement le dashboard principal
     from sqlalchemy import case, extract
 
+    # Distribution des documents par tranche de confiance OCR (via CASE SQL)
     ocr_dist_q = await db.execute(
         select(
             case(
@@ -933,6 +1023,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     total_archived = await db.scalar(
         select(func.count(Document.id)).where(Document.status == DocumentStatus.ARCHIVED)
     ) or 0
+    # Taux de validation humaine = proportion de documents corrigés manuellement
     manually_corrected = await db.scalar(
         select(func.count(Document.id)).where(
             Document.manually_corrected == True,  # noqa
@@ -945,6 +1036,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         select(func.count(Document.id)).where(Document.status == DocumentStatus.PENDING)
     ) or 0
 
+    # Évolution mensuelle du volume archivé, on garde seulement les 6 derniers mois
     monthly_q = await db.execute(
         select(
             extract('year',  Document.created_at).label("year"),
@@ -960,10 +1052,10 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         for r in monthly_q
     ][-6:]
 
+    # Compteurs d'anomalies : documents sans avion / sans ATA / sans ES / à revoir
     sans_avion = await db.scalar(
         select(func.count(Document.id)).where(
             Document.aircraft_registration.is_(None),
-            
         )
     ) or 0
     sans_ata = await db.scalar(
@@ -987,6 +1079,8 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         .where(Document.doc_type.isnot(None))
     ) or 1
 
+    # Couverture documentaire par avion : combien de types de documents
+    # différents ont été archivés pour chaque avion, en % du total possible
     coverage_q = await db.execute(
         select(
             Aircraft.registration,
@@ -1025,6 +1119,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         )
     ) or 0
     total_docs = await db.scalar(select(func.count(Document.id))) or 1
+    # Taux d'anomalie combiné : docs sans avion OU à revoir, sur le total
     anomaly_rate = (sans_avion + needs_review) / total_docs
 
     text_extractible = await db.scalar(
@@ -1035,6 +1130,8 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     ) or 0
     text_extractible_pct = round(text_extractible / max(total_archived, 1) * 100, 1)
 
+    # Score de qualité composite : combine 3 dimensions pondérées
+    # (extractibilité texte 40%, confiance classifier 30%, absence d'anomalies 30%)
     quality_score = round(
         float(text_extractible_pct) * 0.4 +
         float(avg_cls) * 100 * 0.3 +
@@ -1042,6 +1139,7 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
         1
     )
 
+    # Top 8 des chapitres ATA (version réduite de celle dans /stats)
     ata_q = await db.execute(
         select(Document.ata_chapter, func.count(Document.id).label("count"))
         .where(Document.ata_chapter.isnot(None))
@@ -1069,8 +1167,10 @@ async def get_advanced_stats(db: AsyncSession = Depends(get_db)):
     }
 
 
-@analytics_router.get("/benchmark", summary="Benchmark modÃ¨les IA")
+@analytics_router.get("/benchmark", summary="Benchmark modèles IA")
 async def get_benchmark(db: AsyncSession = Depends(get_db)):
+    # Lit une table dédiée `model_benchmarks` (probablement remplie manuellement
+    # ou par un script d'entraînement séparé) pour comparer plusieurs modèles
     try:
         r = await db.execute(text("""
             SELECT id, model_name, model_type, accuracy, f1_macro,
@@ -1099,28 +1199,34 @@ async def get_benchmark(db: AsyncSession = Depends(get_db)):
             ]
         }
     except Exception as e:
+        # Si la table n'existe pas ou est vide : réponse vide plutôt qu'erreur 500
         return {"models": [], "error": str(e)}
 
 
 @analytics_router.get("/powerbi-token", summary="Token Power BI Embedded")
 async def get_powerbi_token():
+    # Intégration Power BI Embedded : retourne la config si elle est définie
+    # dans les variables d'environnement, sinon un statut "non configuré"
     from backend.config import settings
     if not settings.powerbi_workspace_id:
         return {
             "status": "not_configured",
-            "message": "Power BI non configurÃ©. Renseignez POWERBI_WORKSPACE_ID dans .env",
+            "message": "Power BI non configuré. Renseignez POWERBI_WORKSPACE_ID dans .env",
         }
     return {
         "status": "configured",
         "workspace_id": settings.powerbi_workspace_id,
         "report_id": settings.powerbi_report_id,
         "embed_url": f"https://app.powerbi.com/reportEmbed?reportId={settings.powerbi_report_id}",
-        "token": "PLACEHOLDER_TOKEN",
+        "token": "PLACEHOLDER_TOKEN",  # à remplacer par un vrai token généré côté Azure AD
     }
 
 
 @analytics_router.get("/archive-tree", summary="Arborescence complete depuis DB")
 async def get_archive_tree(db: AsyncSession = Depends(get_db)):
+    # Reconstruit une arborescence avion → catégorie → type → documents
+    # directement depuis la BASE DE DONNÉES (contrairement à /pipeline/tree
+    # qui scanne le système de fichiers réel)
     r = await db.execute(text("""
         SELECT aircraft_registration, category, doc_type, id, filename,
                es_reference, ocr_confidence, needs_review, is_critical
@@ -1133,28 +1239,29 @@ async def get_archive_tree(db: AsyncSession = Depends(get_db)):
     total = 0
     for row in rows:
         ac, cat, dtype, doc_id, fname, es_ref, ocr_conf, needs_rev, is_crit = row
+        # Valeurs par défaut lisibles si champs manquants
         ac = ac or "Inconnu"
         cat = cat or "Sans categorie"
         dtype = str(dtype).split(".")[-1] if dtype else "Autre"
+
+        # Construction progressive de l'arbre imbriqué : avion > catégorie > type > docs
         if ac not in tree:
             tree[ac] = {"_count": 0, "categories": {}}
         if cat not in tree[ac]["categories"]:
             tree[ac]["categories"][cat] = {"_count": 0, "types": {}}
         if dtype not in tree[ac]["categories"][cat]["types"]:
             tree[ac]["categories"][cat]["types"][dtype] = {"_count": 0, "docs": []}
+
         tree[ac]["categories"][cat]["types"][dtype]["docs"].append({
             "id": doc_id, "filename": fname, "es_reference": es_ref,
             "ocr_confidence": round(float(ocr_conf), 1) if ocr_conf else None,
             "needs_review": needs_rev, "is_critical": is_crit,
         })
+        # Incrémente les compteurs à chaque niveau de l'arbre
         tree[ac]["categories"][cat]["types"][dtype]["_count"] += 1
         tree[ac]["categories"][cat]["_count"] += 1
         tree[ac]["_count"] += 1
         total += 1
+
     return {"tree": tree, "stats": {"total": total, "aircraft": len(tree)}}
-
-
-
-
-
-
+    

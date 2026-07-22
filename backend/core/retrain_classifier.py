@@ -1,5 +1,5 @@
 ﻿"""
-Reentrainement du classifier TF-IDF + SVM
+Reentrainement du classifier 
 Inclut original_path comme feature principale.
 """
 import sys

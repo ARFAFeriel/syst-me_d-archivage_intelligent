@@ -12,7 +12,7 @@ class DocumentTypeEnum(str, Enum):
     WORK_ORDER = "Work Order"
     JOBCARD = "Jobcard"
     DEFECT_REPORT = "Defect Report"
-    NCR = "NCR"
+    
     AD = "AD"
     SB = "SB"
     ATL = "ATL"

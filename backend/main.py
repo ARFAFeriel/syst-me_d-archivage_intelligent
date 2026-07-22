@@ -84,7 +84,7 @@ app = FastAPI(
         "NouvelAir  · Pipeline IA : OCR → NER → Classification → Embedding → Archive\n\n"
         "- **OCR**: pdfplumber + Tesseract 5\n"
         "- **NER**: spaCy + Regex aéronautiques\n"
-        "- **Classification**: TF-IDF + Logistic Regression (13 classes)\n"
+        "- **Classification**: TF-IDF + SVM (13 classes)\n"
         "- **Embeddings**: sentence-transformers MiniLM-L6-v2 (384d)\n"
         "- **Recherche**: Hybride FTS + pgvector cosine similarity\n"
         "- **DB**: PostgreSQL 15 + pgvector\n"

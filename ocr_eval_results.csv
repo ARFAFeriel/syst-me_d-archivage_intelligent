@@ -1,0 +1,282 @@
+id,doc_type,filename,file_found,tesseract_conf,tesseract_time_s,pipeline_conf,pipeline_engine,pipeline_time_s
+18,WORK_ORDER,0011874.pdf,True,67.17,19.11,67.17,tesseract,76.477
+30,WORK_ORDER,AD 74-08-09.pdf,True,65.67,16.474,66.33,tesseract,64.555
+31,WORK_ORDER,212300-02-1-01.pdf,True,78.41,3.184,82.41,tesseract,32.654
+32,WORK_ORDER,ADSB LIST.pdf,True,90.0,1.216,99.0,pdfplumber,0.049
+33,WORK_ORDER,064100-LBT1-01.pdf,True,77.99,2.92,81.99,tesseract,24.669
+34,WORK_ORDER,SB 34-1415.pdf,True,71.5,14.699,73.5,tesseract,70.704
+35,WORK_ORDER,212600-01-1-01.pdf,True,85.39,3.909,82.88,tesseract,24.343
+36,WORK_ORDER,226000-01-1-01.pdf,True,76.64,2.464,80.64,tesseract,23.394
+37,WORK_ORDER,242000-01-1-01.pdf,True,77.65,2.918,79.65,tesseract,27.481
+38,WORK_ORDER,242000-21-1-01.pdf,True,78.81,3.478,82.81,tesseract,42.299
+39,WORK_ORDER,242000-21-1-02.pdf,True,81.2,3.163,85.2,tesseract,29.32
+40,WORK_ORDER,243800-01-1-01.pdf,True,78.11,2.921,84.13,tesseract,24.358
+41,WORK_ORDER,253500-LBT1-1.pdf,True,74.3,13.006,78.3,tesseract,46.159
+42,WORK_ORDER,256241-01-1-01.pdf,True,81.15,2.672,85.15,tesseract,23.76
+43,WORK_ORDER,250001-LBT1-01.pdf,True,75.9,2.839,79.59,tesseract,24.774
+44,WORK_ORDER,250001-LBT2-01.pdf,True,75.9,2.689,86.17,tesseract,26.173
+45,WORK_ORDER,261200-01-1-01.pdf,True,76.76,2.641,79.69,tesseract,24.632
+46,WORK_ORDER,261300-01-1-01.pdf,True,81.38,5.543,85.38,tesseract,26.119
+47,WORK_ORDER,261600-03-1-01.pdf,True,76.79,2.855,81.46,tesseract,24.917
+48,WORK_ORDER,261700-03-1-01.pdf,True,77.6,2.703,82.95,tesseract,23.881
+49,WORK_ORDER,272400-01-1-01.pdf,True,85.99,5.564,89.99,tesseract,26.379
+50,WORK_ORDER,262441-01-1-01.pdf,True,83.26,5.309,87.26,tesseract,29.883
+51,WORK_ORDER,281100-04-2-01.pdf,True,75.58,3.115,82.22,tesseract,30.679
+52,WORK_ORDER,281100-04-2-02.pdf,True,77.87,2.879,81.87,tesseract,26.52
+53,WORK_ORDER,281100-04-2-03.pdf,True,77.76,3.11,81.76,tesseract,26.599
+54,WORK_ORDER,281100-02-1-01.pdf,True,76.57,3.015,80.57,tesseract,26.282
+55,WORK_ORDER,281200-01-1-01.pdf,True,80.87,2.678,85.87,tesseract,24.446
+56,WORK_ORDER,281343-01-1-01.pdf,True,75.41,2.756,83.47,tesseract,23.576
+57,WORK_ORDER,281200-01-1-02.pdf,True,82.34,2.915,86.34,tesseract,25.543
+58,WORK_ORDER,282200-02-1-01.pdf,True,75.99,2.84,80.88,tesseract,24.102
+1303,JOBCARD,TS-INP_Check A_ES001778_Jobcard_002.pdf,True,77.16,23.346,77.16,tesseract,66.368
+1304,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0034.pdf,True,72.65,28.054,74.65,tesseract,88.98
+1305,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0037.pdf,True,65.92,30.269,67.92,tesseract,86.799
+1306,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0036.pdf,True,68.07,31.196,70.07,tesseract,85.456
+1307,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0035.pdf,True,71.82,27.155,78.61,tesseract,59.578
+1308,JOBCARD,TS-INP_Check A_ES001778_Jobcard_004.pdf,True,71.07,19.243,73.07,tesseract,59.156
+1309,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0039.pdf,True,73.84,23.463,75.84,tesseract,86.986
+1310,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0038.pdf,True,69.76,27.562,71.76,tesseract,74.8
+1311,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0040.pdf,True,71.4,24.725,73.4,tesseract,71.436
+1312,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0041.pdf,True,64.84,33.053,66.84,tesseract,103.051
+1313,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0042.pdf,True,65.67,31.1,67.67,tesseract,98.263
+1314,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0043.pdf,True,72.89,26.998,74.89,tesseract,76.705
+1315,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0046.pdf,True,72.82,25.38,74.82,tesseract,73.342
+1316,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0045.pdf,True,80.87,21.165,82.87,tesseract,59.477
+1317,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0044.pdf,True,76.52,8.176,78.52,tesseract,41.114
+1318,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0047.pdf,True,72.75,25.08,74.75,tesseract,73.781
+1319,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0049.pdf,True,73.69,31.214,75.69,tesseract,72.588
+1320,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0048.pdf,True,75.38,8.464,77.38,tesseract,41.647
+1321,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0050.pdf,True,70.78,25.121,72.78,tesseract,80.015
+1322,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0052.pdf,True,66.4,26.639,73.55,tesseract,79.716
+1323,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0051.pdf,True,70.15,24.003,72.15,tesseract,72.001
+1324,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0054.pdf,True,67.5,29.116,69.5,tesseract,88.864
+1325,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0053.pdf,True,72.64,24.882,74.64,tesseract,74.589
+1326,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0055.pdf,True,68.7,32.026,70.7,tesseract,91.322
+1327,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0056.pdf,True,67.66,29.611,69.66,tesseract,92.511
+1328,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0057.pdf,True,70.19,22.638,72.19,tesseract,79.747
+1329,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0059.pdf,True,70.5,26.572,70.78,tesseract,75.824
+1330,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0058.pdf,True,71.05,29.088,72.27,tesseract,84.261
+1331,JOBCARD,TS-INP_Check A_ES001778_Jobcard_006.pdf,True,67.93,24.132,69.93,tesseract,56.593
+1332,JOBCARD,TS-INP_Check A_ES001778_Jobcard_0060.pdf,True,71.88,16.754,75.7,tesseract,48.547
+2356,SPECS,TS-INQ_Old doc_AD_AD Summaries_MSN 2158~AD Status~Air Arabia~Oct 2011~Final Signed.pdf,True,82.0,1.524,84.0,tesseract,7.992
+2521,SPECS,TS-INQ_Old doc_AD_MSN 2158 AD Status.pdf,True,89.28,2.853,99.0,pdfplumber,0.18
+2523,SPECS,TS-INQ_Old doc_AME Status + Statements_EI-FDV - Airbus A320-214 MSN2158 - Statements-Set_20140320.pdf,True,87.94,1.969,97.0,pdfplumber,0.023
+2524,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 Airframe AD Status.pdf,True,89.4,2.652,99.0,pdfplumber,0.174
+2525,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 Avionic List.pdf,True,90.13,4.952,97.0,pdfplumber,0.086
+2526,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 E1 AD Status.pdf,True,79.71,1.267,97.0,pdfplumber,0.038
+2527,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 E2 LLP Status.pdf,True,90.34,3.729,97.0,pdfplumber,0.081
+2528,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 Flight Summary.pdf,True,91.96,6.302,97.0,pdfplumber,0.067
+2529,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 E1 LLP Sheet.pdf,True,91.62,3.606,97.0,pdfplumber,0.083
+2530,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 E2 AD Status.pdf,True,83.81,1.4,97.0,pdfplumber,0.039
+2531,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 NLG Status.pdf,True,91.71,8.248,97.0,pdfplumber,0.134
+2532,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 General Overview.pdf,True,62.58,9.801,97.0,pdfplumber,0.069
+2533,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 LH MLG Status.pdf,True,90.27,8.728,97.0,pdfplumber,0.152
+2534,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 LDND.pdf,True,91.46,5.408,97.0,pdfplumber,0.142
+2535,SPECS,TS-INQ_Old doc_AME Status + Statements_MSN 2158 RH MLG Status.pdf,True,89.1,8.813,97.0,pdfplumber,0.134
+2561,SPECS,"TS-INQ_Old doc_Certificates_RAK_11. OPS SPECS  REV33, 29OCT13.pdf",True,71.17,17.708,71.17,tesseract,52.103
+2569,SPECS,TS-INQ_Old doc_Components_Air Arabia_Components_Component Summaries_MSN 2158~HT Status~Air Arabia~Oct 2011~Final Signed.pdf,True,84.2,7.024,86.2,tesseract,32.007
+2570,SPECS,MSN 2158~All Component Status~Air Arabia~Oct 2011~Final Signed.pdf,True,88.72,3.026,90.72,tesseract,12.3
+2572,SPECS,TS-INQ_Old doc_Components_Air Arabia_Components_Component Summaries_MSN 2158~O2 Generator mapping~Air Arabia.pdf,True,75.65,3.888,79.65,tesseract,20.864
+2574,SPECS,TS-INQ_Old doc_Components_Air Arabia_Components_Component Summaries_MSN 2158~Life Vest Mapping~Air Arabia.pdf,True,72.38,11.462,74.38,tesseract,58.251
+2678,SPECS,TS-INQ_Old doc_Components_Air Arabia_Components_MSN 2158 - Yaw Damper Spring Rod.pdf,True,76.79,3.928,81.27,tesseract,22.987
+2679,SPECS,TS-INQ_Old doc_Components_Air Arabia_Components_OCCM_ESN 575739 Fan Blade form ones.pdf,True,67.23,17.508,67.23,tesseract,51.509
+2696,SPECS,._MSN 2158 ~ Life Vest Mapping DAL ~ 19-03-14.pdf,True,0.0,0.0,0.0,none,0.0
+2697,SPECS,._MSN 2158~LifeVestReplacement ~ 01-04-14.pdf,True,0.0,0.0,0.0,none,0.0
+2701,SPECS,TS-INQ_Old doc_Components_Life vest MSN 2158_ATA 25 Life Jacket1 cop.pdf,True,68.78,8.634,73.3,tesseract,26.823
+2708,SPECS,LH RETRACTION ACTUATOR B867 AT BUILD.pdf,True,82.42,3.301,85.45,tesseract,16.809
+2709,SPECS,LH RETRACTION ACTUATOR B867 HISTORICAL STATUS.pdf,True,84.98,2.614,90.98,tesseract,17.832
+2710,SPECS,LH GLAND PN 114193642 SN B867.pdf,True,91.36,2.054,93.36,tesseract,9.475
+2711,SPECS,LH CYLINDER PN 114193641 SN B867.pdf,True,90.55,2.104,92.55,tesseract,9.617
+2713,SPECS,LH PIN PN 114193610 SN B867.pdf,True,91.79,2.02,93.79,tesseract,9.172
+2199,AD,TS-INQ_Old doc_AD_AD DFPs_2001-499R4 (2005-6191).pdf,True,90.64,1.053,90.64,tesseract,9.231
+2203,AD,TS-INQ_Old doc_AD_AD DFPs_2002-057(2005-3064).pdf,True,90.71,1.014,90.71,tesseract,9.376
+2204,AD,TS-INQ_Old doc_AD_AD DFPs_2002-390-IMP.pdf,True,90.55,1.091,90.55,tesseract,9.511
+2205,AD,TS-INQ_Old doc_AD_AD DFPs_2002-458R2.pdf,True,90.5,1.034,90.5,tesseract,9.651
+2206,AD,TS-INQ_Old doc_AD_AD DFPs_2003-456R2.pdf,True,87.94,1.108,89.94,tesseract,9.551
+2207,AD,TS-INQ_Old doc_AD_AD DFPs_2004-072(2004-5335).pdf,True,91.0,1.008,93.0,tesseract,9.578
+2208,AD,TS-INQ_Old doc_AD_AD DFPs_2004-073.pdf,True,91.33,1.003,91.33,tesseract,9.485
+2209,AD,TS-INQ_Old doc_AD_AD DFPs_2004-095.pdf,True,90.83,0.981,90.83,tesseract,9.175
+2210,AD,TS-INQ_Old doc_AD_AD DFPs_2004-121R1.pdf,True,90.71,0.968,90.71,tesseract,9.431
+2211,AD,TS-INQ_Old doc_AD_AD DFPs_2004-122(2004-7520).pdf,True,91.33,1.047,91.83,tesseract,7.371
+2212,AD,TS-INQ_Old doc_AD_AD DFPs_2004-120(2004-7519).pdf,True,85.42,1.021,90.08,tesseract,7.73
+2213,AD,TS-INQ_Old doc_AD_AD DFPs_2004-137.pdf,True,91.43,0.972,91.43,tesseract,9.457
+2214,AD,TS-INQ_Old doc_AD_AD DFPs_2004-132.pdf,True,90.71,1.004,90.71,tesseract,9.958
+2215,AD,TS-INQ_Old doc_AD_AD DFPs_2004-129(2004-8058).pdf,True,90.56,1.055,90.56,tesseract,9.481
+2216,AD,TS-INQ_Old doc_AD_AD DFPs_2004-123R1(2005-5892).pdf,True,88.2,1.036,88.2,tesseract,7.707
+2217,AD,TS-INQ_Old doc_AD_AD DFPs_2004-146(2004-8600).pdf,True,92.86,1.025,92.86,tesseract,9.656
+2218,AD,TS-INQ_Old doc_AD_AD DFPs_2004-147.pdf,True,91.0,0.966,91.0,tesseract,9.713
+2219,AD,TS-INQ_Old doc_AD_AD DFPs_2004-150(2004-9025).pdf,True,93.64,1.064,93.64,tesseract,10.069
+2220,AD,TS-INQ_Old doc_AD_AD DFPs_2004-172R1.pdf,True,90.5,1.026,90.5,tesseract,9.893
+2221,AD,TS-INQ_Old doc_AD_AD DFPs_2004-189.pdf,True,91.67,0.999,91.67,tesseract,8.016
+2222,AD,TS-INQ_Old doc_AD_AD DFPs_2004-168.pdf,True,41.5,4.133,79.86,tesseract,13.064
+2223,AD,TS-INQ_Old doc_AD_AD DFPs_2005-058(2005-3065).pdf,True,91.5,0.983,91.5,tesseract,10.105
+2224,AD,TS-INQ_Old doc_AD_AD DFPs_2005-031.pdf,True,90.5,0.966,90.5,tesseract,10.323
+2225,AD,TS-INQ_Old doc_AD_AD DFPs_2005-040.pdf,True,90.69,1.03,90.69,tesseract,10.502
+2226,AD,TS-INQ_Old doc_AD_AD DFPs_2005-013.pdf,True,68.85,4.73,81.5,tesseract,13.99
+2227,AD,TS-INQ_Old doc_AD_AD DFPs_2005-101(2005-5886).pdf,True,94.8,1.096,94.8,tesseract,8.302
+2228,AD,TS-INQ_Old doc_AD_AD DFPs_2005-108(2005-6026).pdf,True,91.5,1.224,93.5,tesseract,10.922
+2229,AD,TS-INQ_Old doc_AD_AD DFPs_2005-115.pdf,True,92.43,0.992,94.43,tesseract,10.167
+2230,AD,TS-INQ_Old doc_AD_AD DFPs_2005-128.pdf,True,93.0,0.956,95.0,tesseract,8.065
+2231,AD,TS-INQ_Old doc_AD_AD DFPs_2005-164.pdf,True,91.0,0.962,91.0,tesseract,10.136
+1298,CERTIFICATE,test_final.pdf,True,94.25,3.747,99.0,pdfplumber,0.038
+2149,CERTIFICATE,TS-INP_Other Documents_Status_HT_0001.pdf,True,91.56,3.031,91.56,tesseract,14.068
+2151,CERTIFICATE,TS-INP_Other Documents_Status_OCCM_0553.pdf,True,64.75,57.415,64.75,tesseract,151.715
+2152,CERTIFICATE,TS-INP_Other Documents_Status_OCCM_0608.pdf,True,60.56,29.598,60.56,tesseract,88.421
+2153,CERTIFICATE,TS-INP_Other Documents_Status_HT_0002.pdf,True,60.65,18.955,62.95,tesseract,49.914
+2154,CERTIFICATE,TS-INP_Other Documents_Status_OCCM_0706.pdf,True,84.12,21.935,88.12,tesseract,54.011
+2155,CERTIFICATE,TS-INP_Other Documents_Status_OCCM_0712.pdf,True,89.0,9.557,89.0,tesseract,39.149
+2156,CERTIFICATE,TS-INP_Other Documents_Status_OCCM_0711.pdf,True,59.59,37.814,59.59,tesseract,117.3
+2157,CERTIFICATE,TS-INP_Other Documents_Status_OCCM_0707.pdf,True,52.56,16.422,52.56,tesseract,49.198
+2536,CERTIFICATE,TS-INQ_Old doc_AME Status + Statements_MSN 2158 OCCM Status.pdf,True,59.99,23.841,97.0,pdfplumber,0.106
+2556,CERTIFICATE,TS-INQ_Old doc_Certificates_ILFC_AMP Approval Cert ~ MS680 Cert.pdf,True,58.47,25.56,60.47,tesseract,83.878
+2557,CERTIFICATE,TS-INQ_Old doc_Certificates_ILFC_MSN 2158 ~ Noise Cert ~ IAA ~ 23-01-2014.pdf,True,84.27,2.382,95.0,pdfplumber,0.041
+2558,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_10. AOC  RAK Airways 07.04.2013.pdf,True,84.83,5.405,85.83,tesseract,20.604
+2559,CERTIFICATE,TS-INQ_Old doc_Certificates_ILFC_MSN 2158 C of R EI-FDV.pdf,True,90.86,3.362,90.86,tesseract,39.516
+2560,CERTIFICATE,TS-INQ_Old doc_Certificates_ILFC_FDV Lic.pdf,True,90.7,2.733,90.7,tesseract,21.423
+2562,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_2. C of R - Issued 01 November 2011.pdf,True,73.51,13.514,86.36,tesseract,31.347
+2563,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_4. Airworthiness Review Certificate - Expires 31 Oct 2014.pdf,True,75.53,2.699,77.79,tesseract,13.403
+2564,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_3. C of A - Re - issue 21 Oct 2012.pdf,True,74.15,15.858,76.15,tesseract,43.13
+2565,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_7. Noise Certificate - Issued 31 Oct 2011_RE Issue12-Fev-12.pdf,True,85.84,2.88,85.84,tesseract,12.059
+2566,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_5. Insurance Certificate - A320 EXPIRY 28NOV2014.pdf,True,0.0,0.0,0.0,none,0.0
+2567,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_MSN 2158~Noise Certificate.pdf,True,0.0,0.0,0.0,none,0.0
+2568,CERTIFICATE,TS-INQ_Old doc_Certificates_RAK_8. Aircraft Station Licence - Exp 28-Sep-14.pdf,True,76.06,8.071,76.4,tesseract,29.914
+2571,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_ACM SN 2153.pdf,True,75.57,4.255,75.57,tesseract,18.658
+2573,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_ACM SN 4250.pdf,True,79.69,3.007,81.69,tesseract,19.835
+2575,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_Condenser SN 0756A00ES006815.pdf,True,75.15,27.085,75.21,tesseract,73.746
+2576,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_Condenser SN 0756A00ES008421.pdf,True,71.28,22.978,84.3,tesseract,68.01
+2577,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_Main Heat Exchanger SN 04018.pdf,True,75.48,14.692,75.63,tesseract,40.398
+2578,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_Main Heat Exchanger SN 03835.pdf,True,79.22,8.97,79.22,tesseract,33.738
+2579,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_Ozone Converter SN 9476.pdf,True,80.8,24.706,80.8,tesseract,83.046
+2580,CERTIFICATE,TS-INQ_Old doc_Components_Air Arabia_Components_HT Certificates_ATA 21_Ozone Converter SN 9883.pdf,True,74.13,27.455,74.13,tesseract,89.469
+2041,DB_CHART,TS-INP_D&B chart_R001.pdf,True,76.77,4.636,76.77,tesseract,27.919
+2042,DB_CHART,TS-INP_D&B chart_2025_08_12_Dent-Repair_NP.PDF,True,74.45,11.17,99.0,pdfplumber,0.261
+2045,DB_CHART,TS-INP_D&B chart_R0011.pdf,True,78.1,2.219,80.94,tesseract,10.049
+2046,DB_CHART,TS-INP_D&B chart_R0012.pdf,True,78.73,5.726,80.73,tesseract,21.291
+2047,DB_CHART,TS-INP_D&B chart_R0013.pdf,True,77.89,3.288,86.67,tesseract,16.46
+2048,DB_CHART,TS-INP_D&B chart_R0011BIS.pdf,True,56.4,28.549,56.84,tesseract,76.562
+2049,DB_CHART,TS-INP_D&B chart_R0014.pdf,True,83.15,2.856,83.15,tesseract,16.213
+2050,DB_CHART,TS-INP_D&B chart_R0015.pdf,True,55.45,21.884,57.45,tesseract,61.615
+2051,DB_CHART,TS-INP_D&B chart_R0016.pdf,True,81.62,3.546,81.62,tesseract,22.173
+2052,DB_CHART,TS-INP_D&B chart_R0017.pdf,True,79.68,4.395,79.68,tesseract,28.098
+2053,DB_CHART,TS-INP_D&B chart_R002.pdf,True,75.11,4.171,78.7,tesseract,19.167
+2054,DB_CHART,TS-INP_D&B chart_R0019.pdf,True,76.3,7.983,78.3,tesseract,29.925
+2055,DB_CHART,TS-INP_D&B chart_R0020.pdf,True,62.3,20.288,62.3,tesseract,54.256
+2056,DB_CHART,TS-INP_D&B chart_R0021.pdf,True,76.77,3.357,76.77,tesseract,12.778
+2057,DB_CHART,TS-INP_D&B chart_R0023.pdf,True,79.68,4.286,79.68,tesseract,26.554
+2058,DB_CHART,TS-INP_D&B chart_R0022.pdf,True,77.26,3.495,78.78,tesseract,13.304
+2059,DB_CHART,TS-INP_D&B chart_R0024.pdf,True,77.49,4.011,77.49,tesseract,24.86
+2060,DB_CHART,TS-INP_D&B chart_R0025.pdf,True,76.71,2.296,78.71,tesseract,10.36
+2061,DB_CHART,TS-INP_D&B chart_R0029.pdf,True,64.75,10.346,64.75,tesseract,31.811
+2062,DB_CHART,TS-INP_D&B chart_R0028.pdf,True,80.9,4.608,82.9,tesseract,15.826
+2063,DB_CHART,TS-INP_D&B chart_R0026.pdf,True,80.64,5.194,82.64,tesseract,22.763
+2064,DB_CHART,TS-INP_D&B chart_R0027.pdf,True,83.74,4.897,85.74,tesseract,17.182
+2065,DB_CHART,TS-INP_D&B chart_R003.pdf,True,75.63,3.95,75.63,tesseract,23.987
+2066,DB_CHART,TS-INP_D&B chart_R0032.pdf,True,77.25,4.058,80.32,tesseract,15.362
+2067,DB_CHART,TS-INP_D&B chart_R0030.pdf,True,80.23,10.776,80.23,tesseract,31.806
+2068,DB_CHART,TS-INP_D&B chart_R0031.pdf,True,76.82,6.647,76.82,tesseract,24.363
+2069,DB_CHART,TS-INP_D&B chart_R0033.pdf,True,84.7,6.306,86.7,tesseract,21.967
+2070,DB_CHART,TS-INP_D&B chart_R0034.pdf,True,80.77,7.233,80.77,tesseract,29.208
+2071,DB_CHART,TS-INP_D&B chart_R0035.pdf,True,75.1,7.379,77.48,tesseract,23.808
+2072,DB_CHART,TS-INP_D&B chart_R0037.pdf,True,81.24,4.227,83.24,tesseract,26.982
+2909,SB,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_APU interchangeability.pdf,True,85.15,3.093,97.0,pdfplumber,0.138
+2914,SB,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_SB_49_1082_15.pdf,True,91.04,2.223,99.0,pdfplumber,0.064
+2933,SB,A318.A319.A320.A321 SB A320-71-1043 (Intermix configurations) - For Ref Only - UNCONTROLLED COPY.pdf,True,93.69,3.193,95.69,tesseract,25.33
+2934,SB,"Rohr Modification Notice (Inlet Cowl, Anti Ice Supply Duct Change) - For Ref Only - UNCONTROLLED COPY.pdf",True,79.5,6.456,81.5,tesseract,26.986
+2935,SB,Rohr SB RA320-71-126 (Inlet Cowl - Anti Ice System Improvement) - For Ref Only - UNCONTROLLED COPY.pdf,True,92.89,2.817,94.89,tesseract,24.802
+2939,SB,Rohr SB RA32171-11R1 (Replacement of Aft Eng Mount Bearings) - For Ref Only - UNCONTROLLED COPY.pdf,True,94.44,1.668,96.44,tesseract,15.562
+2997,SB,697519 Air Jamaica EEC Software Installed Statement & SB 73-0229 Printout.pdf,True,88.32,2.512,91.49,tesseract,17.532
+3003,SB,697519 Air Jamaica SB Statement.pdf,True,86.04,1.739,88.04,tesseract,15.534
+3004,SB,697519 Air Jamaica SB 72-0671 Compliance Printout.pdf,True,72.09,10.017,72.09,tesseract,42.665
+3023,SB,697519 Thomas Cook ASB & AOW Stmt..pdf,True,82.02,1.711,84.02,tesseract,15.104
+3191,SB,779302 Mexicana EEC Software Installed Info (SB 73-0229).pdf,True,86.58,1.64,88.58,tesseract,14.791
+3202,SB,779302 Mexicana SB Status.pdf,True,87.75,2.011,87.75,tesseract,15.779
+3385,SB,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_SB73-0268_5B.PDF,True,90.69,2.321,95.0,pdfplumber,0.094
+3502,SB,03_10.pdf,True,91.24,1.051,95.0,pdfplumber,0.012
+3515,SB,MOD 00 - APPLICATION SB.pdf,True,90.67,13.033,90.67,tesseract,57.036
+3579,SB,TS-INQ_Old doc_ESTOPPED AND ACCEPTANCE CERTIFICATE_Nouvelair 2158 Estoppel andAcceptance Certificate (21st March)[1] - SB.pdf,True,94.9,2.511,99.0,pdfplumber,0.077
+3681,SB,SB-010-14_Rev.0.pdf,True,93.59,2.369,97.0,pdfplumber,0.077
+3683,SB,EO-010-14_Rev0.pdf,True,90.99,1.722,95.0,pdfplumber,0.058
+3684,SB,DAS-010-14_Rev.0.pdf,True,91.84,2.146,97.0,pdfplumber,0.08
+3763,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1140.pdf,True,58.94,16.089,58.94,tesseract,46.478
+3764,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1147.pdf,True,68.11,12.055,68.11,tesseract,35.974
+3765,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1171.pdf,True,75.2,6.566,75.2,tesseract,37.264
+3766,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1174.pdf,True,58.81,12.42,76.5,tesseract,34.679
+3767,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1156.pdf,True,71.5,17.247,74.0,tesseract,47.992
+3768,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1182.pdf,True,76.11,5.282,87.31,tesseract,18.116
+3769,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1247.pdf,True,78.29,7.696,78.29,tesseract,23.733
+3770,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1205.pdf,True,75.65,5.391,78.46,tesseract,20.808
+3771,SB,TS-INQ_Old doc_SB_SB Airbus_A320-24-1120.pdf,True,33.65,46.455,36.15,tesseract,1183.842
+3772,SB,TS-INQ_Old doc_SB_SB Airbus_A320-22-1289.pdf,True,79.81,2.05,81.81,tesseract,15.108
+3773,SB,TS-INQ_Old doc_SB_SB Airbus_A320-25-1181.pdf,True,73.34,11.723,73.34,tesseract,36.066
+1,ATL,NO_0011076.pdf,True,77.14,10.683,77.14,tesseract,34.517
+2,ATL,NO_0011850.pdf,True,80.67,10.464,80.67,tesseract,35.407
+3,ATL,NO_0011848.pdf,True,83.64,10.299,83.64,tesseract,34.453
+4,ATL,NO_0011849.pdf,True,80.03,10.182,80.03,tesseract,34.015
+5,ATL,NO_0011079.pdf,True,78.66,9.763,78.66,tesseract,45.563
+6,ATL,NO_0011080.pdf,True,77.0,10.27,77.0,tesseract,43.039
+7,ATL,NO_0011081.pdf,True,78.04,12.394,78.04,tesseract,51.649
+8,ATL,NO_0011082.pdf,True,76.71,11.169,76.71,tesseract,50.043
+9,ATL,0005376.pdf,True,77.51,10.791,77.51,tesseract,39.269
+10,ATL,0005377.pdf,True,76.7,9.27,77.52,tesseract,37.606
+11,ATL,0005381.pdf,True,82.43,10.38,82.43,tesseract,46.952
+12,ATL,0005399.pdf,True,79.1,10.438,79.1,tesseract,48.966
+13,ATL,0005398.pdf,True,78.51,9.651,87.0,tesseract,30.565
+14,ATL,0005378.pdf,True,79.05,8.751,79.05,tesseract,35.426
+15,ATL,0005400.pdf,True,79.29,10.067,79.29,tesseract,33.541
+16,ATL,0005426.pdf,True,79.56,10.517,79.56,tesseract,38.321
+17,ATL,0011875.pdf,True,79.37,15.273,79.37,tesseract,47.563
+19,ATL,NO_0003665.pdf,True,75.69,4.92,79.59,tesseract,33.632
+20,ATL,NO_0003664.pdf,True,76.67,4.918,78.5,tesseract,32.845
+21,ATL,NO_0003670.pdf,True,77.74,10.9,77.74,tesseract,48.301
+22,ATL,NO_0003671.pdf,True,75.29,12.047,85.0,tesseract,34.959
+23,ATL,NO_003668.pdf,True,81.17,10.072,81.17,tesseract,33.036
+24,ATL,NO_0003672.pdf,True,74.62,27.394,74.62,tesseract,70.895
+25,ATL,NO_003669.pdf,True,82.19,10.095,84.19,tesseract,32.005
+26,ATL,0008265.pdf,True,75.02,10.235,75.02,tesseract,46.773
+27,ATL,NO_0011827.pdf,True,61.16,23.998,78.75,tesseract,63.259
+28,ATL,NO_0011826.pdf,True,58.23,25.268,76.96,tesseract,62.682
+29,ATL,NO_0011828.pdf,True,57.69,25.209,57.69,tesseract,74.429
+1300,ATL,TS-INP_ATL_2026_TL01JAN-13JAN2026.pdf,True,78.01,14.356,78.14,tesseract,45.673
+1301,ATL,TS-INP_ATL_2025_TL01JAN-30JUN2025.pdf,True,65.82,20.575,68.18,tesseract,58.065
+446,RCT,RCT ES000731.pdf,True,89.02,9.054,90.32,tesseract,23.003
+449,RCT,RCT ES000754.pdf,True,77.02,7.406,89.9,tesseract,19.392
+451,RCT,RCT-ES000777.pdf,True,78.34,8.446,89.07,tesseract,23.899
+455,RCT,RCT-ES000789.pdf,True,88.92,8.671,94.92,tesseract,25.455
+463,RCT,RCT-ES000887.pdf,True,90.84,7.797,94.84,tesseract,20.357
+464,RCT,RCT-ES000926.pdf,True,83.02,7.572,87.02,tesseract,19.767
+468,RCT,RCT ES000973.pdf,True,93.01,7.369,99.0,tesseract,22.242
+469,RCT,RCT-ES001011.pdf,True,80.77,8.175,82.77,tesseract,22.005
+473,RCT,RCT ES0001025.pdf,True,90.4,8.547,96.4,tesseract,24.823
+475,RCT,RCT ES001038.pdf,True,91.88,8.516,95.88,tesseract,23.847
+479,RCT,RCT-ES001091-07012016095457.pdf,True,54.14,8.523,54.78,tesseract,24.827
+519,RCT,RCT-ES001102-29122015110029.pdf,True,75.76,8.012,78.75,tesseract,26.491
+529,RCT,RCT-ES001125-25042016090444.pdf,True,56.15,7.772,57.51,tesseract,28.078
+565,RCT,RCT-ES001131-26052016090655.pdf,True,53.86,6.497,0.0,none,8.578
+596,RCT,RCT-ES001143.pdf,True,0.0,0.347,0.0,none,8.042
+603,RCT,RCT-ES001251.pdf,True,0.0,0.408,0.0,none,7.875
+604,RCT,RCT-ES001289.pdf,True,0.0,0.368,0.0,none,8.335
+605,RCT,RCT-ES001250.pdf,True,0.0,0.377,86.0,tesseract,12.943
+607,RCT,RCT-ES001293.pdf,True,79.55,12.325,91.16,tesseract,32.907
+3977,RCT,RCT-ES001032.pdf,True,85.49,7.922,89.49,tesseract,22.797
+3980,RCT,RCT-ES001045.pdf,True,89.85,4.077,89.85,tesseract,16.34
+3983,RCT,RCT-001087-08022016112105.pdf,True,57.6,7.93,65.37,tesseract,26.637
+2687,CMM,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_BEA TR 1.0  CMM 25-22-050 DOC ID# 2705.pdf,True,93.74,2.162,95.0,pdfplumber,0.042
+2690,CMM,"TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_BEA 25-22-50  DOC ID# 2705 R.00 13Jan,2004.pdf",True,92.96,1.478,95.0,pdfplumber,0.037
+2691,CMM,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_BEA TR-1.02  CMM 25-22-050 DOC ID# 2705.pdf,True,93.2,2.911,97.0,pdfplumber,0.072
+2692,CMM,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_TRR-3244 25-22-050-2705 TR-1.03 (read only).pdf,True,93.52,2.937,99.0,pdfplumber,0.071
+2693,CMM,TS-INQ_Old doc_Components_CMM_BE Aerospace Seats~CMM 25-22-50_IPL.pdf,True,95.29,2.065,95.0,pdfplumber,0.046
+2694,CMM,TS-INQ_Old doc_Components_CMM_SELL CMM_CMM_25_30_11_rail_coffeemaker.pdf,True,83.63,3.46,95.0,pdfplumber,0.02
+2695,CMM,250417_D2249_CMM_004.pdf,True,89.95,1.09,99.0,pdfplumber,0.079
+2698,CMM,TS-INQ_Old doc_Components_CMM_CMM~Weber Business Class 859908-XXX.pdf,True,94.5,2.016,97.0,pdfplumber,0.051
+2703,CMM,TS-INQ_Old doc_Components_Life vest MSN 2158_256012_57399_CMM_009[1].pdf,True,89.05,1.47,95.0,pdfplumber,0.031
+2904,DEFECT_REPORT,2470 Nouvelair 5354099 PFR.pdf,True,93.11,1.917,99.0,pdfplumber,0.048
+2911,DEFECT_REPORT,TS-INQ_Old doc_Engines_APU_APU change from APS3200 to 131-9A_Historic LBT+Aercap APS3200 SN 2470 No.pdf,True,92.48,2.259,95.0,pdfplumber,0.069
+2924,DEFECT_REPORT,TS-INQ_Old doc_Engines_BSI ~ 2324-03-2014_APU_SN_2740_APS_3200 SGI Borescope Inspection Log_20140322.pdf,True,92.89,1.246,95.0,pdfplumber,0.012
+2926,DEFECT_REPORT,TS-INQ_Old doc_Engines_BSI ~ 2324-03-2014_ESN_779302_CFM56-5B_SGI Borescope Inspection Log_20140322.pdf,True,90.44,1.255,95.0,pdfplumber,0.011
+2929,DEFECT_REPORT,TS-INQ_Old doc_Engines_BSI ~ 2324-03-2014_ESN_697519_CFM56-5B_SGI Borescope Inspection Log - 20140323.pdf,True,92.61,1.278,95.0,pdfplumber,0.012
+3230,DEFECT_REPORT,779302 Non-Conformance Sheet.pdf,True,79.33,2.895,81.33,tesseract,14.497
+3289,DEFECT_REPORT,TS-INQ_Old doc_Engines_Leased engines MSN 2158 change_575738_Findings ESN 575738.pdf,True,50.15,9.031,58.25,tesseract,25.994
+3482,DEFECT_REPORT,18-SHOPFINDINGSREPORT.pdf,True,76.94,1.605,95.0,pdfplumber,0.022
+3710,AMM,TS-INQ_Old doc_Mods_CDSS ST01432LA_AMM Supplement AMM230088 REV B.pdf,True,88.77,1.304,88.77,tesseract,12.825
+3722,IPC,TS-INQ_Old doc_Mods_CDSS ST01432LA_IPC Supplement IPC 230088 REV C.pdf,True,84.92,1.335,84.92,tesseract,10.005

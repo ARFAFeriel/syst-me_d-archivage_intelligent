@@ -1,6 +1,6 @@
 """
 Agent Classifier
-TF-IDF + SVM — 12 classes de documents aéronautiques
+TF-IDF + LR — 13 classes de documents aéronautiques
 Entraîné sur patterns textuels et métadonnées structurées
 """
 import re
@@ -38,12 +38,7 @@ CLASSIFICATION_RULES = {
         "path_patterns": ["defect report", "defect"],
         "weight": 1.0,
     },
-    DocumentTypeEnum.NCR: {
-        "keywords": ["non conformity", "ncr", "non-conformance", "non conformance report"],
-        "filename_patterns": [],
-        "path_patterns": ["ncr"],
-        "weight": 1.0,
-    },
+
     DocumentTypeEnum.AD: {
         "keywords": ["airworthiness directive", "ad", "directive", "easa", "faa", "mandatory"],
         "filename_patterns": [r"A3\d{2}-\d{2}-\d{3,5}", r"AD-\d{4}"],
@@ -100,13 +95,13 @@ CLASSIFICATION_RULES = {
     },
 }
 
-# ── Types documentaires qui ne peuvent PAS être overridés par le chemin AD/SB ─
+
 # Un Work Order ou Job Card reste ce qu'il est, même s'il est dans /AD/ ou /SB/
 STRUCTURAL_TYPES = {
     DocumentTypeEnum.WORK_ORDER,
     DocumentTypeEnum.JOBCARD,
     DocumentTypeEnum.DEFECT_REPORT,
-    DocumentTypeEnum.NCR,
+
     DocumentTypeEnum.CERTIFICATE,
     DocumentTypeEnum.RCT,
 }
@@ -116,7 +111,7 @@ TYPE_TO_CATEGORY = {
     DocumentTypeEnum.WORK_ORDER: "Check A",
     DocumentTypeEnum.JOBCARD: "Check A",
     DocumentTypeEnum.DEFECT_REPORT: "Check C",
-    DocumentTypeEnum.NCR: "Check C",
+  
     DocumentTypeEnum.AD: "AD",
     DocumentTypeEnum.SB: "SB",
     DocumentTypeEnum.ATL: "ATL",
@@ -155,7 +150,7 @@ _PATH_RULES_RAW = [
     (r"[/\\]old[_\s]?doc[/\\]sb[/\\]",  "SB"),
     (r"[/\\]sb[_\s]?airbus[/\\]",       "SB"),
     (r"[/\\]atl[/\\]",                   "ATL"),
-    (r"[/\\]ncr[/\\]",                   "NCR"),
+    
     (r"_rct\.pdf$",                        "RCT"),
     (r"_rct_",                             "RCT"),
     (r"rct-es\d+",                         "RCT"),
@@ -171,7 +166,7 @@ _COMPILED_PATH_RULES = [
 class ClassifierAgent:
     """
     Agent Classification de Documents.
-    Utilise TF-IDF + Logistic Regression (sklearn) si le modèle est chargé,
+    Utilise TF-IDF + LR si le modèle est chargé,
     sinon utilise le système de règles basé sur patterns.
     """
 
