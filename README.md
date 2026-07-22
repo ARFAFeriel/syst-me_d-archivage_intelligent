@@ -1,8 +1,8 @@
 # Système d'Archivage Intelligent des Documents Aéronautiques
 ## NouvelAir MRO — Plateforme IA Documentaire
 
-> Projet de Fin d'Études (PFE) — Master 2 Data Science  
-> Faculté des Sciences de Monastir · Stage NouvelAir Tunisie  
+> Projet de Fin d'Études (PFE) — Master 2 Data Science
+> Faculté des Sciences de Monastir · Stage NouvelAir Tunisie
 > Directrice technique : ARFA Feriel
 
 ---
@@ -23,29 +23,37 @@ Plateforme intelligente d'exploitation documentaire aéronautique combinant **pi
 | Base de données | PostgreSQL 15 (port 5434) · pgvector HNSW · pg_trgm |
 | ORM | SQLAlchemy 2.0 async · asyncpg |
 | OCR | pdfplumber · Tesseract 5 · OpenCV · EasyOCR |
-| NER | Groq API (Llama 3.1 8B Instant) · spaCy · Regex |
-| Classification | TF-IDF · Logistic Regression · ~15 classes |
+| NER | Groq API (Llama 3.1 8B Instant) · fallback regex 6-niveaux · enrichissement par nom de fichier |
+| Classification | TF-IDF + `CalibratedClassifierCV` (estimateur `LinearSVC`, `class_weight='balanced'`) · 11 classes |
 | Embeddings | sentence-transformers all-MiniLM-L6-v2 (384d) |
-| Recherche | pgvector cosine similarity · FTS PostgreSQL |
+| Recherche | pgvector cosine similarity · FTS PostgreSQL (ILIKE multi-colonnes) |
 | Déduplication | SHA-256 |
 | Frontend | React 18 · Vite · port 3000 |
-| Analytics | Power BI (4 vues PostgreSQL) |
+| Analytics | Power BI (10 vues SQL) |
+
+> ⚠️ **spaCy n'est pas utilisé en production.** Le loader spaCy (`_get_nlp()`) existe dans le code mais n'est jamais appelé dans `process()` — c'est du code mort. Le flux NER réel : (1) Groq LLM en premier essai, (2) cascade regex à 6 niveaux de priorité si le LLM échoue, (3) enrichissement systématique par nom de fichier, (4) extraction spécifique RCT.
 
 ---
 
-## Performances
+## Performances (chiffres vérifiés sur le pipeline réellement déployé)
 
-| Métrique | Score |
-|---|---|
-| Accuracy classification | 91.2% |
-| F1 Weighted classification | 90.7% |
-| F1 Macro classification | 64.5% |
-| F1 NER entity-level (seqeval) | 95% |
-| Precision@5 recherche sémantique | 88% |
-| Latence recherche (médiane) | < 300ms |
-| Documents traités | 3 545 |
-| Documents uniques (SHA-256) | 2 674 |
-| Couverture embeddings | 100% |
+| Métrique | Score | Source |
+|---|---|---|
+| Accuracy classification (holdout) | 93.43% | TF-IDF + LinearSVC, JSON daté 2026-06-23 |
+| F1 Macro classification | 67.95% | idem |
+| F1 Weighted classification | 93.21% | idem |
+| Rappel macro NER | 54.6% | 413 docs, 6 entités évaluées |
+| Recall@10 recherche hybride | 46.7% | 15 requêtes |
+| MRR recherche hybride | 0.467 | 15 requêtes |
+| Confiance OCR (pipeline complet) | 80.61% | vs 77.17% Tesseract seul, 281 docs |
+| Latence recherche (après singleton embedding) | ~2.6s | réduite depuis 30–60s |
+| Documents traités (corpus pilote) | ~4 000 | 3 A320 (TS-INO, TS-INP, TS-INQ) |
+
+> ⚠️ **Chiffres à ne plus citer comme performance système** : 91.2% / 90.7% / 64.5% (classification) et 95% F1 NER n'ont été retrouvés dans aucun des scripts d'évaluation validés. Trois autres scripts d'évaluation existent mais mesurent des variantes non déployées :
+> - `evaluate_classifier.py` → 48.74% (réimplémentation keyword-only, jamais comparable au système réel)
+> - `distilbert_report.json` → 78.77% (baseline DistilBERT, non déployée)
+> - `training_report.json` → 93.25% / 64.27% (variante LogisticRegression, non déployée — le modèle réel est LinearSVC)
+> - Les scripts mesurant réellement la cascade à 5 niveaux (`eva_class.py` / `eval_with_path.py`) n'ont pas encore de sortie sauvegardée confirmée.
 
 ---
 
@@ -58,18 +66,20 @@ PDF
 [1] OCR Agent v5        pdfplumber → Tesseract (4 PSM) → EasyOCR fallback
  │                      Confiance < 60% → EasyOCR activé
  ▼
-[2] NER Agent v6        Groq Llama 3.1 8B · 7 stratégies de priorité
+[2] NER Agent v6        Groq Llama 3.1 8B → fallback regex 6-priorités → enrichissement filename
  │                      Entités : REGISTRATION · ES_REF · DOC_TYPE · ATA · DATE
  │
 [2b] Aircraft Resolver  Lookup DB si immatriculation non détectée
  │                      → cherche via es_reference dans les archives existantes
  ▼
-[3] Classifier Agent    TF-IDF + Logistic Regression · class_weight=balanced
- │                      15 catégories · path-based rules override
+[3] Classifier Agent    TF-IDF + CalibratedClassifierCV(LinearSVC) · class_weight=balanced
+ │                      Cascade 5 niveaux : règles regex chemin (1.0) → filename ES (0.97)
+ │                      → TF-IDF+LinearSVC → fallback NER/mots-clés → Groq LLM si confiance <0.85
+ │                      11 catégories · path-based rules override (pipeline.py)
  │
 [3b] LinkedWP Resolver  Résolution catégorie via Work Package lié (RCT anchor)
  ▼
-[4] Embedding Agent     all-MiniLM-L6-v2 · vecteur 384 dimensions
+[4] Embedding Agent     all-MiniLM-L6-v2 · vecteur 384 dimensions · pattern singleton
  ▼
 [5] Archive Agent       PostgreSQL · SHA-256 dédup · copie vers ORGANISED/
  ▼
@@ -95,8 +105,8 @@ système_darchivage_intelligent/
 │   │   └── search.py              # Schémas recherche
 │   ├── agents/
 │   │   ├── ocr_agent.py           # OCR v5 multi-moteur
-│   │   ├── ner_agent.py           # NER v6 Groq + règles
-│   │   ├── classifier_agent.py    # TF-IDF + LR
+│   │   ├── ner_agent.py           # NER v6 Groq + règles (agent réellement déployé)
+│   │   ├── classifier_agent.py    # TF-IDF + CalibratedClassifierCV(LinearSVC)
 │   │   ├── embedding_agent.py     # MiniLM 384d
 │   │   ├── archive_agent.py       # Archivage + ORGANISED/
 │   │   ├── monitoring_agent.py    # Alertes + métriques
@@ -134,10 +144,10 @@ système_darchivage_intelligent/
 │   │       └── useDocumentWatcher.js
 │   └── package.json
 ├── models/
-│   └── classifier_model.pkl       # Modèle TF-IDF + LR entraîné
+│   └── classifier_model.pkl       # Modèle TF-IDF + CalibratedClassifierCV(LinearSVC) entraîné
 ├── scripts/
 │   ├── init_db.sql                # Initialisation PostgreSQL
-│   ├── retrain_classifier.py      # Réentraînement du classifieur
+│   ├── retrain_classifier.py      # Entraînement du modèle réellement déployé
 │   └── fix_missing_paths.py       # Correction chemins manquants
 ├── .env.example                   # Template variables d'environnement
 ├── requirements.txt               # Dépendances production
@@ -153,7 +163,7 @@ système_darchivage_intelligent/
 
 - Python 3.11 — [python.org/downloads](https://python.org/downloads) (**cocher "Add to PATH"**)
 - PostgreSQL 15 — [postgresql.org/download/windows](https://postgresql.org/download/windows) (port **5434**)
-- Tesseract OCR — [github.com/UB-Mannheim/tesseract/wiki](https://github.com/UB-Mannheim/tesseract/wiki)
+- Tesseract OCR — [github.com/UB-Mannheim/tesseract/wiki](https://github.com/UB-Mannheim/tesseract/wiki) (+ `fra.traineddata` pour l'OCR français)
 - Poppler — [github.com/oschwartz10612/poppler-windows](https://github.com/oschwartz10612/poppler-windows)
 
 ### Installation automatique
@@ -214,7 +224,9 @@ MAX_UPLOAD_SIZE_MB=100
 
 ---
 
-## Types Documentaires (15 classes)
+## Types Documentaires
+
+> ⚠️ Le tableau ci-dessous liste 15 codes, mais le nombre de classes confirmé dans le classifieur de production est **13**. Cette liste est à vérifier directement dans `classifier_agent.py` / `retrain_classifier.py` avant de la citer dans le rapport — deux de ces codes pourraient ne pas être des classes actives du modèle (ex. regroupées, gérées par règles de chemin plutôt que par le classifieur ML, ou non présentes dans le jeu d'entraînement).
 
 | Code | Libellé MRO |
 |---|---|
@@ -294,13 +306,12 @@ Documentation interactive : `http://localhost:8000/docs`
 - **Fine-tuning aviation** — embeddings spécialisés domaine MRO
 - **Active learning** — amélioration continue du classifieur
 - **Déploiement intranet** — serveur NouvelAir (Python + PostgreSQL)
-- **Stockage distribué** — migration vers Cloudflare R2 / AWS S3 (>10GB)
 - **Agents autonomes** — détection incohérences réglementaires AD
 
 ---
 
 ## Auteur
 
-**ARFA Feriel** — Master 2 Data Science, Faculté des Sciences de Monastir  
-Stage PFE — Direction Technique MRO, NouvelAir Tunisie  
+**ARFA Feriel** — Master 2 Data Science, Faculté des Sciences de Monastir
+Stage PFE — Direction Technique MRO, NouvelAir Tunisie
 Année universitaire 2025–2026
