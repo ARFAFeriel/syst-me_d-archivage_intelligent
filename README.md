@@ -31,7 +31,7 @@ Plateforme intelligente d'exploitation documentaire aéronautique combinant **pi
 | Frontend | React 18 · Vite · port 3000 |
 | Analytics | Power BI (10 vues SQL) |
 
-> ⚠️ **spaCy n'est pas utilisé en production.** Le loader spaCy (`_get_nlp()`) existe dans le code mais n'est jamais appelé dans `process()` — c'est du code mort. Le flux NER réel : (1) Groq LLM en premier essai, (2) cascade regex à 6 niveaux de priorité si le LLM échoue, (3) enrichissement systématique par nom de fichier, (4) extraction spécifique RCT.
+> ⚠️ **spaCy n'est pas utilisé en production.** Le loader spaCy (`_get_nlp()`) existe dans le code mais n'est jamais appelé dans `process()` — c'est pour les perspectives. Le flux NER réel : (1) Groq LLM en premier essai, (2) cascade regex à 6 niveaux de priorité si le LLM échoue, (3) enrichissement systématique par nom de fichier, (4) extraction spécifique RCT.
 
 ---
 
